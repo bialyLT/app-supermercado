@@ -1,6 +1,6 @@
 # Roadmap operativo
 
-**Estado:** bootstrap aprobado; Fase 0 pendiente de ejecución
+**Estado:** Épicas 0 y 1 cerradas; Épica 2 pendiente de definición
 
 ## Ola y gates
 
@@ -30,6 +30,7 @@ baterías afectadas.
 - **Entregables:** usuarios, roles, sesiones, permisos, audit log y rate limit.
 - **Criterios:** una solicitud sin permiso falla server-side; cada cambio
   sensible deja actor, terminal, timestamp y valores relevantes.
+- **Decisión:** Better Auth como proveedor de autenticación.
 
 ## Épica 2 — Catálogo, precios e inventario
 

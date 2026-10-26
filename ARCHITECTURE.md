@@ -68,6 +68,8 @@ deduplica y resuelve conflictos explícitamente.
 
 ## Seguridad
 
+- La autenticación de la Épica 1 se implementa con Better Auth; la sesión es
+  la fuente server-side de identidad y tenant.
 - Cookies HttpOnly, Secure y SameSite=Strict para refresh/session cuando
   corresponda.
 - CSRF, headers seguros, CSP y rate limiting.

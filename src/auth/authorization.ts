@@ -1,0 +1,25 @@
+import type { RoleName } from "@prisma/client";
+
+const permissions: Record<RoleName, readonly string[]> = {
+  CASHIER: ["cash:read"],
+  SUPERVISOR: ["cash:read", "cash:override"],
+  STOCK_MANAGER: ["cash:read", "inventory:write"],
+  ADMIN: ["cash:read", "cash:override", "inventory:write", "settings:write"],
+};
+
+export function roleHasPermission(role: RoleName, permission: string): boolean {
+  return permissions[role].includes(permission);
+}
+
+export async function requirePermission(permission: string, branchId?: string) {
+  const { getServerIdentity } = await import("./session");
+  const identity = await getServerIdentity();
+  if (!identity) throw new Error("UNAUTHENTICATED");
+  const allowed =
+    (!branchId || identity.branchIds.includes(branchId)) &&
+    identity.roles.some((role) => roleHasPermission(role, permission));
+  if (!allowed) {
+    throw new Error("FORBIDDEN");
+  }
+  return identity;
+}

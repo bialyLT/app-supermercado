@@ -37,6 +37,7 @@ model Branch {
   name          String
   store         Store          @relation(fields: [tenantId, storeId], references: [tenantId, id])
   cashRegisters CashRegister[]
+  users         UserBranch[]
   createdAt     DateTime       @default(now())
   @@unique([tenantId, code])
   @@unique([tenantId, id])
@@ -60,13 +61,74 @@ model User {
   tenantId    String   @db.Uuid
   email       String
   displayName String
+  name        String   @default("")
+  emailVerified Boolean @default(false)
+  image       String?
+  active      Boolean  @default(true)
   tenant      Tenant   @relation(fields: [tenantId], references: [id])
   roles       UserRole[]
   auditLogs   AuditLog[]
+  accounts    Account[]
+  sessions    Session[]
+  branches    UserBranch[]
   createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
   @@unique([tenantId, email])
+  @@unique([email])
   @@unique([tenantId, id])
   @@index([tenantId])
+}
+
+model Account {
+  id                    String    @id @default(uuid())
+  accountId             String
+  providerId            String
+  userId                String    @db.Uuid
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  @@unique([providerId, accountId])
+  @@index([userId])
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  expiresAt DateTime
+  token     String   @unique
+  userId    String   @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId])
+}
+
+model Verification {
+  id         String   @id @default(uuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  @@unique([identifier, value])
+}
+
+model UserBranch {
+  tenantId String @db.Uuid
+  userId   String @db.Uuid
+  branchId String @db.Uuid
+  user     User   @relation(fields: [tenantId, userId], references: [tenantId, id], onDelete: Cascade)
+  branch   Branch @relation(fields: [tenantId, branchId], references: [tenantId, id], onDelete: Cascade)
+  @@id([tenantId, userId, branchId])
+  @@index([tenantId, branchId])
 }
 
 model Role {

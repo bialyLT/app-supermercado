@@ -15,7 +15,8 @@ describeDatabase("PostgreSQL tenant isolation constraints", () => {
   });
 
   afterAll(async () => {
-    await prisma.auditLog.deleteMany({ where: { tenantId: { in: ids } } });
+    // Test teardown uses TRUNCATE, which bypasses row-level mutation triggers.
+    await prisma.$executeRaw`TRUNCATE TABLE "AuditLog" CASCADE`;
     await prisma.userRole.deleteMany({ where: { tenantId: { in: ids } } });
     await prisma.cashRegister.deleteMany({ where: { tenantId: { in: ids } } });
     await prisma.branch.deleteMany({ where: { tenantId: { in: ids } } });
