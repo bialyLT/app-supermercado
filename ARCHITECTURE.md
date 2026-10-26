@@ -66,6 +66,11 @@ según las pruebas de carga, documentando la decisión. El cliente offline
 almacena comandos, no autoridad de stock; al reconectar, el servidor valida,
 deduplica y resuelve conflictos explícitamente.
 
+Si el stock administrativo está atrasado pero el producto físico está en caja,
+la venta puede crear un `UNVERIFIED_INTAKE` positivo y auditado en la misma
+transacción que la salida. La regularización queda pendiente de revisión; no es
+una recepción confirmada ni permite stock negativo.
+
 ## Seguridad
 
 - La autenticación de la Épica 1 se implementa con Better Auth; la sesión es

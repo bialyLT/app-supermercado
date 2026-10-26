@@ -1,6 +1,6 @@
 # Roadmap operativo
 
-**Estado:** Épicas 0 y 1 cerradas; Épica 2 pendiente de definición
+**Estado:** Épicas 0 y 1 cerradas; Épica 2 en ejecución
 
 ## Ola y gates
 
@@ -39,6 +39,9 @@ baterías afectadas.
   ubicaciones, recepciones, reservas, movimientos y ajustes autorizados.
 - **Criterios:** ninguna venta puede producir stock negativo sin regla explícita;
   dos operaciones concurrentes no pierden movimientos.
+- **Política aprobada:** `UNVERIFIED_INTAKE` atómico cuando el producto físico
+  llegó a caja pero la recepción administrativa está atrasada; queda pendiente
+  de validación y auditado.
 
 ## Épica 3 — POS keyboard-first y offline
 
