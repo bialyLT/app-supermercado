@@ -4,7 +4,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 model Tenant {
@@ -26,6 +25,7 @@ model Store {
   tenant    Tenant         @relation(fields: [tenantId], references: [id])
   branches  Branch[]
   createdAt DateTime       @default(now())
+  @@unique([tenantId, id])
   @@index([tenantId])
 }
 
@@ -35,10 +35,11 @@ model Branch {
   storeId       String         @db.Uuid
   code          String
   name          String
-  store         Store          @relation(fields: [storeId], references: [id])
+  store         Store          @relation(fields: [tenantId, storeId], references: [tenantId, id])
   cashRegisters CashRegister[]
   createdAt     DateTime       @default(now())
   @@unique([tenantId, code])
+  @@unique([tenantId, id])
   @@index([tenantId])
 }
 
@@ -47,9 +48,10 @@ model CashRegister {
   tenantId  String   @db.Uuid
   branchId  String   @db.Uuid
   name      String
-  branch    Branch   @relation(fields: [branchId], references: [id])
+  branch    Branch   @relation(fields: [tenantId, branchId], references: [tenantId, id])
   createdAt DateTime @default(now())
   @@unique([branchId, name])
+  @@unique([tenantId, id])
   @@index([tenantId])
 }
 
@@ -63,6 +65,7 @@ model User {
   auditLogs   AuditLog[]
   createdAt   DateTime @default(now())
   @@unique([tenantId, email])
+  @@unique([tenantId, id])
   @@index([tenantId])
 }
 
@@ -74,15 +77,17 @@ model Role {
   users     UserRole[]
   createdAt DateTime   @default(now())
   @@unique([tenantId, name])
+  @@unique([tenantId, id])
   @@index([tenantId])
 }
 
 model UserRole {
-  userId String @db.Uuid
-  roleId String @db.Uuid
-  user   User   @relation(fields: [userId], references: [id])
-  role   Role   @relation(fields: [roleId], references: [id])
-  @@id([userId, roleId])
+  tenantId String @db.Uuid
+  userId   String @db.Uuid
+  roleId   String @db.Uuid
+  user     User   @relation(fields: [tenantId, userId], references: [tenantId, id])
+  role     Role   @relation(fields: [tenantId, roleId], references: [tenantId, id])
+  @@id([tenantId, userId, roleId])
 }
 
 model AuditLog {
@@ -97,7 +102,7 @@ model AuditLog {
   ipAddress     String?
   createdAt     DateTime @default(now())
   tenant        Tenant   @relation(fields: [tenantId], references: [id])
-  actor         User?    @relation(fields: [actorUserId], references: [id])
+  actor         User?    @relation(fields: [tenantId, actorUserId], references: [tenantId, id])
   @@index([tenantId, createdAt])
 }
 

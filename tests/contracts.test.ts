@@ -19,5 +19,6 @@ describe("foundation contracts", () => {
 
   it("rejects resources from another tenant", () => {
     expect(() => assertTenantAccess("tenant-a", "tenant-b")).toThrow("TENANT_ACCESS_DENIED");
+    expect(() => assertTenantAccess("tenant-a", "tenant-a")).not.toThrow();
   });
 });
