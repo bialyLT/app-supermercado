@@ -1,0 +1,109 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Tenant {
+  id        String        @id @default(uuid()) @db.Uuid
+  name      String
+  slug      String        @unique
+  stores    Store[]
+  users     User[]
+  roles     Role[]
+  auditLogs AuditLog[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+model Store {
+  id        String         @id @default(uuid()) @db.Uuid
+  tenantId  String         @db.Uuid
+  name      String
+  tenant    Tenant         @relation(fields: [tenantId], references: [id])
+  branches  Branch[]
+  createdAt DateTime       @default(now())
+  @@index([tenantId])
+}
+
+model Branch {
+  id            String         @id @default(uuid()) @db.Uuid
+  tenantId      String         @db.Uuid
+  storeId       String         @db.Uuid
+  code          String
+  name          String
+  store         Store          @relation(fields: [storeId], references: [id])
+  cashRegisters CashRegister[]
+  createdAt     DateTime       @default(now())
+  @@unique([tenantId, code])
+  @@index([tenantId])
+}
+
+model CashRegister {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @db.Uuid
+  branchId  String   @db.Uuid
+  name      String
+  branch    Branch   @relation(fields: [branchId], references: [id])
+  createdAt DateTime @default(now())
+  @@unique([branchId, name])
+  @@index([tenantId])
+}
+
+model User {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @db.Uuid
+  email       String
+  displayName String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  roles       UserRole[]
+  auditLogs   AuditLog[]
+  createdAt   DateTime @default(now())
+  @@unique([tenantId, email])
+  @@index([tenantId])
+}
+
+model Role {
+  id        String     @id @default(uuid()) @db.Uuid
+  tenantId  String     @db.Uuid
+  name      RoleName
+  tenant    Tenant     @relation(fields: [tenantId], references: [id])
+  users     UserRole[]
+  createdAt DateTime   @default(now())
+  @@unique([tenantId, name])
+  @@index([tenantId])
+}
+
+model UserRole {
+  userId String @db.Uuid
+  roleId String @db.Uuid
+  user   User   @relation(fields: [userId], references: [id])
+  role   Role   @relation(fields: [roleId], references: [id])
+  @@id([userId, roleId])
+}
+
+model AuditLog {
+  id            String   @id @default(uuid()) @db.Uuid
+  tenantId      String   @db.Uuid
+  actorUserId   String?  @db.Uuid
+  action        String
+  entityType    String
+  entityId      String?  @db.Uuid
+  previousValue Json?
+  newValue      Json?
+  ipAddress     String?
+  createdAt     DateTime @default(now())
+  tenant        Tenant   @relation(fields: [tenantId], references: [id])
+  actor         User?    @relation(fields: [actorUserId], references: [id])
+  @@index([tenantId, createdAt])
+}
+
+enum RoleName {
+  CASHIER
+  SUPERVISOR
+  STOCK_MANAGER
+  ADMIN
+}
