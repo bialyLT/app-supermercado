@@ -27,6 +27,7 @@ model Tenant {
   unverifiedIntakes UnverifiedIntakeReview[]
   sales Sale[]
   payments Payment[]
+  cashMovements CashMovement[]
   idempotencyCommands IdempotencyCommand[]
   intakePolicy UnverifiedIntakePolicy?
   discrepancies InventoryDiscrepancy[]
@@ -167,6 +168,7 @@ model User {
   closedRegisterSessions CashRegisterSession[] @relation("SessionCloser")
   supervisorCredentials SupervisorCredential[]
   payments Payment[]
+  cashMovements CashMovement[]
   requestedApprovals SupervisorApproval[] @relation("ApprovalRequester")
   grantedApprovals SupervisorApproval[] @relation("ApprovalApprover")
   createdAt   DateTime @default(now())
@@ -599,11 +601,14 @@ model Payment {
   currency    String
   createdAt   DateTime      @default(now()) @db.Timestamptz(3)
   actorUserId String        @db.Uuid
+  registerSessionId String? @db.Uuid
   tenant      Tenant        @relation(fields: [tenantId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   sale        Sale          @relation(fields: [tenantId, saleId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction)
   actor       User          @relation(fields: [tenantId, actorUserId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction)
+  registerSession CashRegisterSession? @relation(fields: [tenantId, registerSessionId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction)
   @@unique([tenantId, id])
   @@index([tenantId, saleId])
+  @@index([tenantId, registerSessionId])
 }
 
 model CashRegisterSession {
@@ -616,16 +621,21 @@ model CashRegisterSession {
   openedAt DateTime @db.Timestamptz(3)
   closedAt DateTime? @db.Timestamptz(3)
   closedBy String? @db.Uuid
+  declaredCash Decimal? @db.Decimal(22,4)
+  expectedCash Decimal? @db.Decimal(22,4)
+  difference Decimal? @db.Decimal(22,4)
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   register CashRegister @relation(fields: [tenantId, registerId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction)
   branch Branch @relation(fields: [tenantId, branchId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction)
   cashier User @relation("SessionCashier", fields: [tenantId, userId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction)
   closer User? @relation("SessionCloser", fields: [tenantId, closedBy], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction)
   sales Sale[]
+  payments Payment[]
   movements InventoryMovement[]
   intakeReviews UnverifiedIntakeReview[]
   discrepancies InventoryDiscrepancy[]
   approvals SupervisorApproval[]
+  cashMovements CashMovement[]
   @@unique([tenantId, id])
 }
 
@@ -659,11 +669,36 @@ model SupervisorApproval {
   @@unique([tenantId, tokenHash])
 }
 
+enum CashMovementType {
+  OPENING
+  CASH_IN
+  CASH_OUT
+  CLOSING_COUNT
+}
+
 enum PaymentMethod {
   CASH
   TRANSFER
   CARD
   WALLET
+}
+
+model CashMovement {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid
+  registerSessionId String @db.Uuid
+  type CashMovementType
+  amount Decimal @db.Decimal(22,4)
+  currency String
+  actorUserId String @db.Uuid
+  reason String
+  referenceId String?
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  registerSession CashRegisterSession @relation(fields: [tenantId, registerSessionId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction)
+  actor User @relation(fields: [tenantId, actorUserId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction)
+  @@unique([tenantId, id])
+  @@index([tenantId, registerSessionId, createdAt])
 }
 
 enum RoleName {

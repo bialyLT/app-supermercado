@@ -212,7 +212,7 @@ async function confirmSaleCore(tx: Tx, verified: Actor, now: Date, lines: SaleCo
 
   if (options.payments) {
     for (const payment of options.payments) {
-      const createdPayment = await tx.payment.create({ data: { tenantId: verified.tenantId, saleId: created.id, amount: payment.amount, method: payment.method, currency: session.currency, createdAt: now, actorUserId: verified.userId } });
+      const createdPayment = await tx.payment.create({ data: { tenantId: verified.tenantId, saleId: created.id, registerSessionId: session.id, amount: payment.amount, method: payment.method, currency: session.currency, createdAt: now, actorUserId: verified.userId } });
       await audit(tx, verified, "payment.created", "Payment", createdPayment.id, { saleId: created.id, amount: payment.amount, method: payment.method, currency: session.currency });
     }
   }

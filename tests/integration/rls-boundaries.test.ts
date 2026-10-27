@@ -1,10 +1,12 @@
 import { afterAll, describe, expect, it } from "vitest";
 import { admin, runtime, enabled, fixture, clock, addActor } from "./fixtures";
 import { recordReceipt, confirmPaidMultiLineSale, confirmSale, reserveStock, reviewUnverifiedIntake } from "../../src/server/inventory";
+import { recordCashMovement } from "../../src/server/cash";
 import { setSupervisorPin, approveInventorySale } from "../../src/server/supervisor";
 
 async function populatedFixture() {
   const f = await fixture();
+  await recordCashMovement(f.actor, { registerSessionId: f.registerSessionId!, type: "CASH_IN", amount: "1", reason: "RLS population", idempotencyKey: `cash-population-${f.tenantId}` }, clock);
   await admin.cashRegister.create({ data: { tenantId: f.tenantId, branchId: f.branchId, name: "Gate" } });
   await admin.barcode.create({ data: { tenantId: f.tenantId, variantId: f.variantId, code: "12345" } });
   const lot = await admin.lot.create({ data: { tenantId: f.tenantId, variantId: f.variantId, lotNumber: "gate" } });
@@ -72,7 +74,8 @@ afterAll(async () => { await admin.$disconnect(); await runtime.$disconnect(); }
   it("rejects ledger/audit UPDATE DELETE and TRUNCATE with runtime, and triggers reject owner mutations", async () => {
     const f = await fixture();
     await recordReceipt(f.actor, { ...f.stock, quantity: "1", reason: "seed", idempotencyKey: "seed" }, clock);
-    for (const table of ["InventoryMovement", "AuditLog"]) {
+    await recordCashMovement(f.actor, { registerSessionId: f.registerSessionId!, type: "CASH_IN", amount: "1", reason: "RLS seed", idempotencyKey: "cash-seed" }, clock);
+    for (const table of ["InventoryMovement", "AuditLog", "CashMovement"]) {
       for (const statement of [`UPDATE "${table}" SET "tenantId" = "tenantId" WHERE "tenantId" = $1::uuid`, `DELETE FROM "${table}" WHERE "tenantId" = $1::uuid`]) {
         await expect(runtime.$transaction(async (tx) => {
           await tx.$executeRaw`SELECT set_config('app.tenant_id', ${f.tenantId}, true)`;

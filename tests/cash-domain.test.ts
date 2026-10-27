@@ -1,7 +1,7 @@
 import Decimal from "decimal.js";
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { money, assertMoneyPrecision, currencySchema, policySchema } from "../src/domain/cash";
+import { money, assertMoneyPrecision, currencySchema, policySchema, cashMovementSchema, blindCloseSchema } from "../src/domain/cash";
 import { httpStatus, InventoryError } from "../src/domain/inventory";
 
 describe("currency-aware intake contracts", () => {
@@ -28,6 +28,13 @@ describe("currency-aware intake contracts", () => {
       expect(policySchema.safeParse({ mode: "ALLOW_WITH_CAPS", currency: "XTS", maxSessionValue: "100", ...values }).success).toBe(false);
     expect(policySchema.parse({ mode: "ALLOW_WITH_CAPS", currency: "XTS", maxSessionValue: "100" }).maxLineQuantity).toBe("10");
   });
+  it("validates append-only movement and blind-close contracts", () => {
+    expect(cashMovementSchema.safeParse({ registerSessionId: crypto.randomUUID(), type: "CASH_IN", amount: "10", reason: "Deposit", idempotencyKey: "in-1" }).success).toBe(true);
+    expect(cashMovementSchema.safeParse({ registerSessionId: crypto.randomUUID(), type: "CASH_OUT", amount: "-1", reason: "Invalid", idempotencyKey: "out-1" }).success).toBe(false);
+    expect(blindCloseSchema.safeParse({ registerSessionId: crypto.randomUUID(), countedCashAmount: "10.00", reason: "Counted", idempotencyKey: "close-1" }).success).toBe(true);
+    expect(blindCloseSchema.safeParse({ registerSessionId: crypto.randomUUID(), countedCashAmount: "-1", reason: "Invalid", idempotencyKey: "close-2" }).success).toBe(false);
+  });
+
   it("maps supervisor and cash errors to stable status codes", () => {
     expect(httpStatus(new InventoryError("SUPERVISOR_PIN_LOCKED"))).toBe(429);
     expect(httpStatus(new InventoryError("SUPERVISOR_PIN_INVALID"))).toBe(403);
