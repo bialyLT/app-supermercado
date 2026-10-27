@@ -10,12 +10,14 @@ S4. Venta server-priced: el servidor recalcula precios y total; HALF_UP por lín
 S5. Mantener compatibilidad del comando single-line actual; atomicidad de stock, venta e idempotencia.
 
 ## Tasks
-W1 | S3-S5 | gentle-ai-worker | in_progress | Extraer core transaccional y agregar venta multilínea sin pagos aún. Risk: item 3 (contrato compartido).
-W2 | S1-S2 | pending | pending | Agregar pagos manuales combinables y pago completo.
+W1 | S3-S5 | gentle-ai-worker | done | Commit 29e560c + corrección 30c050e; parent focused 15/15 post-fix; writer full 139/139. Independent runtime retry hit Windows UNC limitation, but exact-tree review found blocker and parent native-path spot-check passed. Risk: item 3.
+W2 | S1-S2 | gentle-ai-worker | done | Pagos manuales combinables y pago exacto completo; no PSP ni deuda. Risk: item 1 (stored payment data).
 W3 | S3-S5 | pending | pending | Movimientos y cierre ciego de caja, anulaciones/devoluciones como documentos nuevos.
 W4 | S3-S5 | pending | pending | Numeración atómica, cierre documental y gates.
 
 ## Log
+L5. W1 correction: approved expired lot regression fixed in 30c050e; parent native Windows path run 15/15 passed. W1 is closed for this slice; native review was not started because inspect exposed unrelated workspace candidate. W2 begins with exact-total payment allocations; overpayment/change remains explicitly out of this slice until defined.
+L6. W2 delivered: `confirmPaidMultiLineSale` validates CASH/TRANSFER/CARD/WALLET allocations, exact server total, duplicate methods, idempotent replay/conflict, tenant-scoped append-only Payment rows, and audit creation. Change/overpayment remains a pending product decision and is intentionally unsupported.
 L1. Usuario: «ok, despues continua con ventas, caja y pagos».
 L2. Usuario confirmó medios manuales combinables: efectivo, transferencias, tarjetas y billeteras; pago completo al confirmar, sin fiado.
 L3. Exploración: `confirmSale` y `sale` actuales son single-line dentro de `inventoryTransaction`; extraer core parametrizado para no duplicar stock/FEFO/intake/idempotencia.

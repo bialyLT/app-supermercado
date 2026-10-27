@@ -1,5 +1,6 @@
 import Decimal from "decimal.js";
 import { z } from "zod";
+import { paymentsSchema } from "./payment";
 
 export class InventoryError extends Error {
   constructor(public readonly code: string) { super(code); }
@@ -37,6 +38,7 @@ export const multiSaleSchema = z.object({
   const variants = new Set(value.lines.map((line) => `${line.locationId}:${line.variantId}`));
   if (variants.size !== value.lines.length) context.addIssue({ code: "custom", message: "DUPLICATE_VARIANT_LINE", path: ["lines"] });
 });
+export const paidMultiSaleSchema = multiSaleSchema.extend({ payments: paymentsSchema });
 export const reservationSchema = z.object({ ...stock, referenceId: z.string().max(128).optional() }).strict();
 export const releaseSchema = z.object({ reservationId: z.string().uuid(), idempotencyKey: key }).strict();
 export const reviewSchema = z.object({
@@ -54,6 +56,7 @@ export const reviewSchema = z.object({
 export type Receipt = z.output<typeof receiptSchema>;
 export type SaleInput = z.output<typeof saleSchema>;
 export type MultiSaleInput = z.output<typeof multiSaleSchema>;
+export type PaidMultiSaleInput = z.output<typeof paidMultiSaleSchema>;
 export type ReservationInput = z.output<typeof reservationSchema>;
 export type ReviewInput = z.output<typeof reviewSchema>;
 
@@ -67,6 +70,6 @@ export function httpStatus(error: InventoryError): number {
   if (error.code === "SUPERVISOR_PIN_LOCKED") return 429;
   if (["FORBIDDEN", "SEPARATION_OF_DUTIES", "SUPERVISOR_PIN_INVALID", "INVALID_SUPERVISOR_APPROVAL"].includes(error.code)) return 403;
   if (["IDEMPOTENCY_CONFLICT", "REVIEW_ALREADY_CLOSED", "INSUFFICIENT_STOCK", "SUPERVISOR_APPROVAL_USED", "SUPERVISOR_APPROVAL_EXPIRED",
-    "REGISTER_SESSION_REQUIRED", "REGISTER_SESSION_ALREADY_OPEN", "REGISTER_SESSION_ALREADY_CLOSED", "MONETARY_CONFIGURATION_REQUIRED", "CURRENCY_MISMATCH", "PRICE_MISMATCH"].includes(error.code)) return 409;
+    "REGISTER_SESSION_REQUIRED", "REGISTER_SESSION_ALREADY_OPEN", "REGISTER_SESSION_ALREADY_CLOSED", "MONETARY_CONFIGURATION_REQUIRED", "CURRENCY_MISMATCH", "PRICE_MISMATCH", "PAYMENT_TOTAL_MISMATCH"].includes(error.code)) return 409;
   return 400;
 }

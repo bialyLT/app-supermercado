@@ -1,6 +1,6 @@
 import type { z } from "zod";
 import type { Actor } from "../domain/actor";
-import { InventoryError, multiSaleSchema, receiptSchema, saleSchema, reservationSchema, releaseSchema, reviewSchema } from "../domain/inventory";
+import { InventoryError, multiSaleSchema, paidMultiSaleSchema, receiptSchema, saleSchema, reservationSchema, releaseSchema, reviewSchema } from "../domain/inventory";
 import * as repository from "./repositories/inventory";
 
 export async function execute<T>(actor: Actor, clock: repository.Clock, operation: () => Promise<T>) {
@@ -25,6 +25,9 @@ export function confirmSale(actor: Actor, input: z.input<typeof saleSchema>, clo
 }
 export function confirmMultiLineSale(actor: Actor, input: z.input<typeof multiSaleSchema>, clock = repository.systemClock) {
   return execute(actor, clock, () => repository.multiSale(actor, multiSaleSchema.parse(input), clock));
+}
+export function confirmPaidMultiLineSale(actor: Actor, input: z.input<typeof paidMultiSaleSchema>, clock = repository.systemClock) {
+  return execute(actor, clock, () => repository.paidMultiSale(actor, paidMultiSaleSchema.parse(input), clock));
 }
 export function reserveStock(actor: Actor, input: z.input<typeof reservationSchema>, clock = repository.systemClock) {
   return execute(actor, clock, () => repository.reserve(actor, reservationSchema.parse(input), clock));

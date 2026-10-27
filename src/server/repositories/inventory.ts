@@ -6,7 +6,8 @@ import type { Actor, Permission } from "../../domain/actor";
 import { selectFefoLots } from "../../domain/fefo";
 import { money, assertMoneyPrecision, FinancialDecimal } from "../../domain/cash";
 import { buildFiscalSnapshot, type FiscalContext } from "../../domain/fiscal";
-import { assertQuantityPrecision, InventoryError, type Receipt, type SaleInput, type MultiSaleInput, type ReservationInput, type ReviewInput } from "../../domain/inventory";
+import { assertQuantityPrecision, InventoryError, type Receipt, type SaleInput, type MultiSaleInput, type PaidMultiSaleInput, type ReservationInput, type ReviewInput } from "../../domain/inventory";
+import type { PaymentInput } from "../../domain/payment";
 import { prisma } from "./client";
 import { withTenant, type TransactionClient as Tx } from "./tenant-context";
 import { configuredPolicy, currentRegisterSession } from "./cash";
@@ -163,7 +164,7 @@ async function storeFiscalContext(tx: Tx, actor: Actor, branchId: string): Promi
 }
 
 type SaleCoreLine = { locationId: string; variantId: string; lotId?: string; quantity: string; unitPrice?: string; reason?: string };
-type SaleCoreOptions = { idempotencyKey: string; allowUnverifiedIntake: boolean; approvalToken?: string; clientPrices: boolean; approvalInput: SaleInput | MultiSaleInput };
+type SaleCoreOptions = { idempotencyKey: string; allowUnverifiedIntake: boolean; approvalToken?: string; clientPrices: boolean; approvalInput: SaleInput | MultiSaleInput | PaidMultiSaleInput; payments?: PaymentInput[] };
 
 async function confirmSaleCore(tx: Tx, verified: Actor, now: Date, lines: SaleCoreLine[], options: SaleCoreOptions) {
   const first = lines[0];
@@ -200,11 +201,21 @@ async function confirmSaleCore(tx: Tx, verified: Actor, now: Date, lines: SaleCo
   }
 
   const total = plans.reduce((sum, plan) => sum.plus(money(new FinancialDecimal(plan.line.quantity).times(plan.price.amount.toString()), plan.price.currency)), new FinancialDecimal(0));
+  if (options.payments) {
+    const paid = options.payments.reduce((sum, payment) => sum.plus(payment.amount), new FinancialDecimal(0));
+    if (!paid.equals(total)) throw new InventoryError("PAYMENT_TOTAL_MISMATCH");
+  }
   const fiscalContext = await storeFiscalContext(tx, verified, location.branchId);
   const created = await tx.sale.create({ data: { tenantId: verified.tenantId, locationId: first.locationId, actorUserId: verified.userId, total: money(total, session.currency),
     registerSessionId: session.id, currency: session.currency, createdAt: now, fiscalSnapshot: fiscalContext ? buildFiscalSnapshot(fiscalContext) : undefined,
     lines: { create: plans.map((plan) => ({ tenantId: verified.tenantId, variantId: plan.line.variantId, quantity: plan.line.quantity, unitPrice: plan.price.amount, productName: plan.variant.name })) } }, include: { lines: true } });
 
+  if (options.payments) {
+    for (const payment of options.payments) {
+      const createdPayment = await tx.payment.create({ data: { tenantId: verified.tenantId, saleId: created.id, amount: payment.amount, method: payment.method, currency: session.currency, createdAt: now, actorUserId: verified.userId } });
+      await audit(tx, verified, "payment.created", "Payment", createdPayment.id, { saleId: created.id, amount: payment.amount, method: payment.method, currency: session.currency });
+    }
+  }
   for (const [index, plan] of plans.entries()) {
     const { line, lots, shortage, day, intakeValue } = plan;
     let caseId: string | undefined;
@@ -246,6 +257,13 @@ export async function multiSale(actor: Actor, input: MultiSaleInput, clock: Cloc
   return inventoryTransaction(actor, "inventory.sell", clock, async (tx, verified, now) => {
     for (const line of input.lines) await stockAccess(tx, verified, line);
     return command(tx, verified, "MULTI_SALE", input, () => confirmSaleCore(tx, verified, now, input.lines, { ...input, clientPrices: false, approvalInput: input }));
+  });
+}
+
+export async function paidMultiSale(actor: Actor, input: PaidMultiSaleInput, clock: Clock) {
+  return inventoryTransaction(actor, "inventory.sell", clock, async (tx, verified, now) => {
+    for (const line of input.lines) await stockAccess(tx, verified, line);
+    return command(tx, verified, "PAID_MULTI_SALE", input, () => confirmSaleCore(tx, verified, now, input.lines, { ...input, clientPrices: false, approvalInput: input, payments: input.payments }));
   });
 }
 

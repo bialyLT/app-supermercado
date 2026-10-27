@@ -1,6 +1,6 @@
 import { afterAll, describe, expect, it } from "vitest";
 import { admin, runtime, enabled, fixture, clock, addActor } from "./fixtures";
-import { recordReceipt, confirmSale, reserveStock, reviewUnverifiedIntake } from "../../src/server/inventory";
+import { recordReceipt, confirmPaidMultiLineSale, confirmSale, reserveStock, reviewUnverifiedIntake } from "../../src/server/inventory";
 import { setSupervisorPin, approveInventorySale } from "../../src/server/supervisor";
 
 async function populatedFixture() {
@@ -15,6 +15,7 @@ async function populatedFixture() {
   await reviewUnverifiedIntake(reviewer, { reviewId: intake.id, decision: "REJECTED", reason: "Gate discrepancy", idempotencyKey: "review" }, clock);
   await recordReceipt(f.actor, { ...f.stock, quantity: "1", reason: "seed", idempotencyKey: "no-lot" }, clock);
   await reserveStock(f.actor, { ...f.stock, quantity: "1", idempotencyKey: "reservation" }, clock);
+  await confirmPaidMultiLineSale(f.actor, { lines: [{ ...f.stock, quantity: "1", unitPrice: "1" }], payments: [{ method: "CASH", amount: "1" }], allowUnverifiedIntake: true, idempotencyKey: "paid-gate" }, clock);
   const supervisor = await addActor(f.tenantId, f.branchId, "SUPERVISOR");
   await setSupervisorPin(supervisor, { pin: "963852" }, clock);
   await approveInventorySale(f.actor, { approverUserId: supervisor.userId, pin: "963852", reason: "Gate fixture",

@@ -26,6 +26,7 @@ model Tenant {
   reservations Reservation[]
   unverifiedIntakes UnverifiedIntakeReview[]
   sales Sale[]
+  payments Payment[]
   idempotencyCommands IdempotencyCommand[]
   intakePolicy UnverifiedIntakePolicy?
   discrepancies InventoryDiscrepancy[]
@@ -165,6 +166,7 @@ model User {
   registerSessions CashRegisterSession[] @relation("SessionCashier")
   closedRegisterSessions CashRegisterSession[] @relation("SessionCloser")
   supervisorCredentials SupervisorCredential[]
+  payments Payment[]
   requestedApprovals SupervisorApproval[] @relation("ApprovalRequester")
   grantedApprovals SupervisorApproval[] @relation("ApprovalApprover")
   createdAt   DateTime @default(now())
@@ -561,6 +563,7 @@ model Sale {
   tenant      Tenant   @relation(fields: [tenantId], references: [id])
   lines       SaleLine[]
   scopedLines SaleLine[] @relation("ScopedSaleLine")
+  payments    Payment[]
   intakeReviews UnverifiedIntakeReview[]
   discrepancies InventoryDiscrepancy[] @relation("ScopedDiscrepancySale")
   legacyDiscrepancies InventoryDiscrepancy[] @relation("LegacyDiscrepancySale")
@@ -585,6 +588,22 @@ model SaleLine {
   legacyDiscrepancies InventoryDiscrepancy[] @relation("LegacyDiscrepancyLine")
   @@unique([tenantId, id])
   @@index([tenantId, variantId])
+}
+
+model Payment {
+  id          String        @id @default(uuid()) @db.Uuid
+  tenantId    String        @db.Uuid
+  saleId      String        @db.Uuid
+  amount      Decimal       @db.Decimal(22, 4)
+  method      PaymentMethod
+  currency    String
+  createdAt   DateTime      @default(now()) @db.Timestamptz(3)
+  actorUserId String        @db.Uuid
+  tenant      Tenant        @relation(fields: [tenantId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  sale        Sale          @relation(fields: [tenantId, saleId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction)
+  actor       User          @relation(fields: [tenantId, actorUserId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction)
+  @@unique([tenantId, id])
+  @@index([tenantId, saleId])
 }
 
 model CashRegisterSession {
@@ -638,6 +657,13 @@ model SupervisorApproval {
   requester User @relation("ApprovalRequester", fields: [tenantId, requesterId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction)
   approver User @relation("ApprovalApprover", fields: [tenantId, approverId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction)
   @@unique([tenantId, tokenHash])
+}
+
+enum PaymentMethod {
+  CASH
+  TRANSFER
+  CARD
+  WALLET
 }
 
 enum RoleName {
