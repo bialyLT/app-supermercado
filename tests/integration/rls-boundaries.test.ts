@@ -1,7 +1,8 @@
 import { afterAll, describe, expect, it } from "vitest";
-import { admin, runtime, enabled, fixture, clock, addActor } from "./fixtures";
+import { admin, runtime, enabled, fixture, clock, addActor, now } from "./fixtures";
 import { recordReceipt, confirmPaidMultiLineSale, confirmSale, reserveStock, reviewUnverifiedIntake } from "../../src/server/inventory";
 import { recordCashMovement } from "../../src/server/cash";
+import { closeBranchDocuments } from "../../src/server/numbering";
 import { reverseSale } from "../../src/server/reversal";
 import { setSupervisorPin, approveInventorySale } from "../../src/server/supervisor";
 
@@ -26,6 +27,18 @@ async function populatedFixture() {
   const reversalSale = await confirmSale(f.actor, { ...f.stock, quantity: "1", unitPrice: "1", idempotencyKey: "reversal-gate", allowUnverifiedIntake: true }, clock);
   const reversalLine = await admin.saleLine.findFirstOrThrow({ where: { saleId: reversalSale.id } });
   await reverseSale(f.actor, { saleId: reversalSale.id, type: "ANNULMENT", lines: [{ saleLineId: reversalLine.id, quantity: "1" }], reason: "RLS population", idempotencyKey: "reversal-gate-reverse" }, clock);
+  // W4 population on an isolated second branch so the main-branch fixture cash
+  // (seed movements plus an annulment CASH_OUT) never affects closure balance.
+  const branch2 = await admin.branch.create({ data: { tenantId: f.tenantId, storeId: f.storeId, code: "gate-2", name: "Gate branch 2" } });
+  const actor2 = await addActor(f.tenantId, branch2.id, "ADMIN");
+  const location2 = await admin.location.create({ data: { tenantId: f.tenantId, branchId: branch2.id, code: "l2", name: "Location 2" } });
+  const register2 = await admin.cashRegister.create({ data: { tenantId: f.tenantId, branchId: branch2.id, name: "Gate register 2" } });
+  await admin.cashRegisterSession.create({ data: { tenantId: f.tenantId, registerId: register2.id,
+    branchId: branch2.id, userId: actor2.userId, currency: "XTS", openedAt: now } });
+  await recordReceipt(actor2, { locationId: location2.id, variantId: f.variantId, quantity: "2", reason: "seed", idempotencyKey: "rls-w4-receipt" }, clock);
+  await confirmPaidMultiLineSale(actor2, { lines: [{ locationId: location2.id, variantId: f.variantId, quantity: "2", unitPrice: "1" }],
+    payments: [{ method: "CASH", amount: "2" }], allowUnverifiedIntake: false, idempotencyKey: "rls-w4-sale" }, clock);
+  await closeBranchDocuments(actor2, { branchId: branch2.id, currency: "XTS", reason: "RLS population", idempotencyKey: `close-${f.tenantId}` }, clock);
   return f;
 }
 
@@ -35,7 +48,7 @@ afterAll(async () => { await admin.$disconnect(); await runtime.$disconnect(); }
     const a = await fixture();
     const b = await populatedFixture();
     const tables = await admin.$queryRaw<{ table_name: string }[]>`SELECT table_name FROM information_schema.columns WHERE table_schema = 'public' AND column_name = 'tenantId' ORDER BY table_name`;
-    expect(tables.length).toBeGreaterThanOrEqual(27);
+    expect(tables.length).toBeGreaterThanOrEqual(29);
     await runtime.$transaction(async (tx) => {
       await tx.$executeRaw`SELECT set_config('app.tenant_id', ${a.tenantId}, true)`;
       for (const { table_name: table } of tables) {
@@ -83,7 +96,10 @@ afterAll(async () => { await admin.$disconnect(); await runtime.$disconnect(); }
     const reversalSale = await confirmSale(f.actor, { ...f.stock, quantity: "1", unitPrice: "1", idempotencyKey: "reversal-seed-sale", allowUnverifiedIntake: false }, clock);
     const reversalLine = await admin.saleLine.findFirstOrThrow({ where: { saleId: reversalSale.id } });
     await reverseSale(f.actor, { saleId: reversalSale.id, type: "ANNULMENT", lines: [{ saleLineId: reversalLine.id, quantity: "1" }], reason: "RLS reversal seed", idempotencyKey: "reversal-seed-reverse" }, clock);
-    for (const table of ["InventoryMovement", "AuditLog", "CashMovement", "SaleReversal", "SaleReversalLine"]) {
+    // Seeds exactly one closure row: sale 1.00 minus annulment 1.00 nets to zero
+    // against CASH_IN 1.00 minus the reversal CASH_OUT 1.00.
+    await closeBranchDocuments(f.actor, { branchId: f.branchId, currency: "XTS", reason: "RLS seed", idempotencyKey: "rls-closure-seed" }, clock);
+    for (const table of ["InventoryMovement", "AuditLog", "CashMovement", "SaleReversal", "SaleReversalLine", "DocumentClosure"]) {
       for (const statement of [`UPDATE "${table}" SET "tenantId" = "tenantId" WHERE "tenantId" = $1::uuid`, `DELETE FROM "${table}" WHERE "tenantId" = $1::uuid`]) {
         await expect(runtime.$transaction(async (tx) => {
           await tx.$executeRaw`SELECT set_config('app.tenant_id', ${f.tenantId}, true)`;
@@ -93,5 +109,15 @@ afterAll(async () => { await admin.$disconnect(); await runtime.$disconnect(); }
       }
       await expect(runtime.$executeRawUnsafe(`TRUNCATE TABLE "${table}" CASCADE`)).rejects.toThrow();
     }
+    // Sequence rows advance only forward through the allocator: rewinds and
+    // deletes fail for both roles, enforced by trigger on top of grants.
+    for (const statement of [`UPDATE "DocumentSequence" SET "lastNumber" = "lastNumber" - 1 WHERE "tenantId" = $1::uuid`, `DELETE FROM "DocumentSequence" WHERE "tenantId" = $1::uuid`]) {
+      await expect(runtime.$transaction(async (tx) => {
+        await tx.$executeRaw`SELECT set_config('app.tenant_id', ${f.tenantId}, true)`;
+        await tx.$executeRawUnsafe(statement, f.tenantId);
+      })).rejects.toThrow(/DOCUMENT_SEQUENCE_PROTECTED|permission denied/);
+      await expect(admin.$executeRawUnsafe(statement, f.tenantId)).rejects.toThrow("DOCUMENT_SEQUENCE_PROTECTED");
+    }
+    await expect(runtime.$executeRawUnsafe(`TRUNCATE TABLE "DocumentSequence" CASCADE`)).rejects.toThrow();
   });
 });

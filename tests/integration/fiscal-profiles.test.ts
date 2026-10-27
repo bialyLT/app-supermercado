@@ -81,7 +81,7 @@ afterAll(async () => { await admin.$disconnect(); await runtime.$disconnect(); }
     const f = await fixture("ADMIN", { unitPrice: "10" });
     await configureFiscalProfile(f.actor, { storeId: f.storeId, condition: "RESPONSABLE_INSCRIPTO", internalTicket: true }, clock);
     const result = await confirmSale(f.actor, { ...f.stock, quantity: "1", unitPrice: "10", allowUnverifiedIntake: true, idempotencyKey: "fiscal-sale" }, clock);
-    expect(result).toEqual({ id: expect.any(String), type: "SALE", total: "10.00", currency: "XTS" });
+    expect(result).toEqual({ id: expect.any(String), type: "SALE", total: "10.00", currency: "XTS", documentNumber: 1 });
     const sale = await admin.sale.findFirstOrThrow({ where: { tenantId: f.tenantId }, orderBy: { createdAt: "desc" } });
     expect(fiscalSnapshotSchema.parse(sale.fiscalSnapshot)).toEqual({
       version: 1, storeId: f.storeId, storeName: "Gate store", country: "AR", condition: "RESPONSABLE_INSCRIPTO", internalTicket: true,

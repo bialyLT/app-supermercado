@@ -5,6 +5,7 @@ import { InventoryError, assertQuantityPrecision } from "../../domain/inventory"
 import { reversalLineTotal, type ReversalInput } from "../../domain/reversal";
 import { audit, command, inventoryTransaction } from "./inventory";
 import { currentRegisterSession } from "./cash";
+import { allocateDocumentNumber } from "./numbering";
 import type { Clock } from "./inventory";
 export async function reverse(actor: Actor, input: ReversalInput, clock: Clock) {
   return inventoryTransaction(actor, "inventory.sale.approve", clock, async (tx, verified, now) => {
@@ -43,10 +44,11 @@ export async function reverse(actor: Actor, input: ReversalInput, clock: Clock) 
       });
       if (input.type === "ANNULMENT" && selected.some(({ original }) => (reversed.get(original.id) ?? new Decimal(0)).gt(0))) throw new InventoryError("REVERSAL_QUANTITY_EXCEEDED");
       const total = selected.reduce((sum, line) => sum.plus(reversalLineTotal(line.quantity.toString(), line.original.unitPrice.toString(), currency)), new FinancialDecimal(0));
+      const documentNumber = await allocateDocumentNumber(tx, verified.tenantId, branchId, input.type);
       const reversal = await tx.saleReversal.create({ data: {
         tenantId: verified.tenantId, saleId: sale.id, branchId, registerSessionId: originalSession.id,
         type: input.type, actorUserId: verified.userId, reason: input.reason, idempotencyKey: input.idempotencyKey,
-        total: money(total, currency), currency, createdAt: now,
+        total: money(total, currency), currency, documentNumber, createdAt: now,
       } });
 
       for (const selectedLine of selected) {
@@ -75,8 +77,8 @@ export async function reverse(actor: Actor, input: ReversalInput, clock: Clock) 
       }
       await tx.cashMovement.create({ data: { tenantId: verified.tenantId, registerSessionId: originalSession.id, type: "CASH_OUT",
         amount: money(total, currency), currency, actorUserId: verified.userId, reason: input.reason, referenceId: reversal.id, createdAt: now } });
-      await audit(tx, verified, "sale.reversed", "SaleReversal", reversal.id, { saleId: sale.id, type: input.type, total: money(total, currency), currency, reason: input.reason });
-      return { id: reversal.id, type: input.type, total: money(total, currency), currency };
+      await audit(tx, verified, "sale.reversed", "SaleReversal", reversal.id, { saleId: sale.id, type: input.type, total: money(total, currency), currency, documentNumber, reason: input.reason });
+      return { id: reversal.id, type: input.type, total: money(total, currency), currency, documentNumber };
     });
   });
 }

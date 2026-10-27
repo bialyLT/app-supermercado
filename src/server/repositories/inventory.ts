@@ -12,6 +12,7 @@ import { prisma } from "./client";
 import { withTenant, type TransactionClient as Tx } from "./tenant-context";
 import { configuredPolicy, currentRegisterSession } from "./cash";
 import { consume } from "./approval";
+import { allocateDocumentNumber } from "./numbering";
 
 export const inventoryPermissions: Record<Actor["role"], readonly Permission[]> = {
   CASHIER: ["cash.session.open", "cash.session.close", "inventory.sell", "inventory.catalog.read", "inventory.unverified_intake.create"],
@@ -21,7 +22,8 @@ export const inventoryPermissions: Record<Actor["role"], readonly Permission[]> 
 };
 export const systemClock = { now: () => new Date() };
 export type Clock = { now(): Date };
-const resultSchema = z.object({ id: z.string(), type: z.string(), total: z.string().optional(), currency: z.string().optional() });
+const resultSchema = z.object({ id: z.string(), type: z.string(), total: z.string().optional(), currency: z.string().optional(),
+  documentNumber: z.number().int().min(1).optional() });
 export type CommandResult = z.infer<typeof resultSchema>;
 
 async function verifyActor(tx: Tx, actor: Actor, now: Date): Promise<Actor> {
@@ -206,7 +208,9 @@ async function confirmSaleCore(tx: Tx, verified: Actor, now: Date, lines: SaleCo
     if (!paid.equals(total)) throw new InventoryError("PAYMENT_TOTAL_MISMATCH");
   }
   const fiscalContext = await storeFiscalContext(tx, verified, location.branchId);
-  const created = await tx.sale.create({ data: { tenantId: verified.tenantId, locationId: first.locationId, actorUserId: verified.userId, total: money(total, session.currency),
+  const documentNumber = await allocateDocumentNumber(tx, verified.tenantId, location.branchId, "SALE");
+  const created = await tx.sale.create({ data: { tenantId: verified.tenantId, locationId: first.locationId, branchId: location.branchId,
+    documentNumber, actorUserId: verified.userId, total: money(total, session.currency),
     registerSessionId: session.id, currency: session.currency, createdAt: now, fiscalSnapshot: fiscalContext ? buildFiscalSnapshot(fiscalContext) : undefined,
     lines: { create: plans.map((plan) => ({ tenantId: verified.tenantId, variantId: plan.line.variantId, quantity: plan.line.quantity, unitPrice: plan.price.amount, productName: plan.variant.name })) } }, include: { lines: true } });
 
@@ -242,8 +246,8 @@ async function confirmSaleCore(tx: Tx, verified: Actor, now: Date, lines: SaleCo
         registerSessionId: session.id, actorUserId: verified.userId, reason: "Sale" } });
     }
   }
-  await audit(tx, verified, "inventory.sale", "Sale", created.id);
-  return { id: created.id, type: "SALE", total: money(total, session.currency), currency: session.currency };
+  await audit(tx, verified, "inventory.sale", "Sale", created.id, { branchId: location.branchId, documentNumber });
+  return { id: created.id, type: "SALE", total: money(total, session.currency), currency: session.currency, documentNumber };
 }
 
 export async function sale(actor: Actor, input: SaleInput, clock: Clock) {

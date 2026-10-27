@@ -37,6 +37,8 @@ model Tenant {
   reversals SaleReversal[]
   reversalLines SaleReversalLine[]
   fiscalProfiles FiscalProfile[]
+  documentSequences DocumentSequence[]
+  documentClosures DocumentClosure[]
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
 }
@@ -134,6 +136,9 @@ model Branch {
   locations     Location[]
   registerSessions CashRegisterSession[]
   reversals     SaleReversal[]
+  sales         Sale[]
+  documentSequences DocumentSequence[]
+  documentClosures DocumentClosure[]
   createdAt     DateTime       @default(now())
   @@unique([tenantId, code])
   @@unique([tenantId, id])
@@ -174,6 +179,7 @@ model User {
   payments Payment[]
   cashMovements CashMovement[]
   reversals SaleReversal[]
+  documentClosures DocumentClosure[]
   requestedApprovals SupervisorApproval[] @relation("ApprovalRequester")
   grantedApprovals SupervisorApproval[] @relation("ApprovalApprover")
   createdAt   DateTime @default(now())
@@ -561,9 +567,12 @@ model Sale {
   id          String   @id @default(uuid()) @db.Uuid
   tenantId    String   @db.Uuid
   locationId  String   @db.Uuid
+  branchId    String?  @db.Uuid
+  documentNumber Int?
   actorUserId String?  @db.Uuid
   total       Decimal  @db.Decimal(22, 4)
   currency    String?
+  branch      Branch?  @relation(fields: [tenantId, branchId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction)
   registerSessionId String? @db.Uuid
   registerSession CashRegisterSession? @relation(fields: [tenantId, registerSessionId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction)
   createdAt   DateTime @default(now())
@@ -577,6 +586,8 @@ model Sale {
   legacyDiscrepancies InventoryDiscrepancy[] @relation("LegacyDiscrepancySale")
   fiscalSnapshot Json?
   @@unique([tenantId, id])
+  @@unique([tenantId, branchId, documentNumber])
+  @@index([tenantId, branchId, documentNumber])
   @@index([tenantId, createdAt])
 }
 
@@ -731,6 +742,7 @@ model SaleReversal {
   idempotencyKey String
   total Decimal @db.Decimal(22,4)
   currency String
+  documentNumber Int?
   createdAt DateTime @default(now()) @db.Timestamptz(3)
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   sale Sale @relation(fields: [tenantId, saleId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction)
@@ -740,6 +752,7 @@ model SaleReversal {
   lines SaleReversalLine[]
   @@unique([tenantId, id])
   @@unique([tenantId, idempotencyKey])
+  @@unique([tenantId, branchId, type, documentNumber])
   @@index([tenantId, saleId])
 }
 
@@ -765,4 +778,53 @@ enum RoleName {
   SUPERVISOR
   STOCK_MANAGER
   ADMIN
+}
+
+enum DocumentType {
+  SALE
+  ANNULMENT
+  RETURN
+}
+
+model DocumentSequence {
+  tenantId     String       @db.Uuid
+  branchId     String       @db.Uuid
+  documentType DocumentType
+  lastNumber   Int          @default(0)
+  updatedAt    DateTime     @updatedAt
+  tenant       Tenant       @relation(fields: [tenantId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  branch       Branch       @relation(fields: [tenantId, branchId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction)
+  @@id([tenantId, branchId, documentType])
+  @@index([tenantId])
+}
+
+model DocumentClosure {
+  id             String   @id @default(uuid()) @db.Uuid
+  tenantId       String   @db.Uuid
+  branchId       String   @db.Uuid
+  currency       String
+  reason         String
+  idempotencyKey String
+  actorUserId    String   @db.Uuid
+  saleCount      Int      @default(0)
+  saleTotal      Decimal  @default(0) @db.Decimal(22, 4)
+  saleMax        Int      @default(0)
+  annulmentCount Int      @default(0)
+  annulmentTotal Decimal  @default(0) @db.Decimal(22, 4)
+  annulmentMax   Int      @default(0)
+  returnCount    Int      @default(0)
+  returnTotal    Decimal  @default(0) @db.Decimal(22, 4)
+  returnMax      Int      @default(0)
+  paymentsTotal  Decimal  @default(0) @db.Decimal(22, 4)
+  movementsIn    Decimal  @default(0) @db.Decimal(22, 4)
+  movementsOut   Decimal  @default(0) @db.Decimal(22, 4)
+  cashTotal      Decimal  @default(0) @db.Decimal(22, 4)
+  netTotal       Decimal  @default(0) @db.Decimal(22, 4)
+  createdAt      DateTime @default(now()) @db.Timestamptz(3)
+  tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  branch         Branch   @relation(fields: [tenantId, branchId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction)
+  actor          User     @relation(fields: [tenantId, actorUserId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction)
+  @@unique([tenantId, id])
+  @@unique([tenantId, idempotencyKey])
+  @@index([tenantId, branchId, createdAt])
 }
