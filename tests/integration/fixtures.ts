@@ -13,6 +13,7 @@ export async function fixture(role: RoleName = "ADMIN", options: { cashSession?:
   const tenant = await admin.tenant.create({ data: { name: "Gate fixture", slug: crypto.randomUUID() } });
   const store = await admin.store.create({ data: { tenantId: tenant.id, name: "Gate store" } });
   const branch = await admin.branch.create({ data: { tenantId: tenant.id, storeId: store.id, code: "gate", name: "Gate branch" } });
+  const fiscalProfile = await admin.fiscalProfile.create({ data: { tenantId: tenant.id, storeId: store.id, country: "AR", condition: "MONOTRIBUTO", internalTicket: true } });
   const unit = await admin.unitOfMeasure.create({ data: { tenantId: tenant.id, code: "u", name: "Unit" } });
   const product = await admin.product.create({ data: { tenantId: tenant.id, sku: "p", name: "Product", baseUnitId: unit.id } });
   const variant = await admin.productVariant.create({ data: { tenantId: tenant.id, productId: product.id, unitId: unit.id, sku: "v", name: "Variant" } });
@@ -23,9 +24,9 @@ export async function fixture(role: RoleName = "ADMIN", options: { cashSession?:
   const register = await admin.cashRegister.create({ data: { tenantId: tenant.id, branchId: branch.id, name: "Gate register" } });
   const registerSession = options.cashSession === false ? null : await admin.cashRegisterSession.create({ data: { tenantId: tenant.id,
     registerId: register.id, branchId: branch.id, userId: actor.userId, currency: "XTS", openedAt: now } });
-  return { actor, tenantId: tenant.id, branchId: branch.id, variantId: variant.id, locationId: location.id,
+  return { actor, tenantId: tenant.id, storeId: store.id, branchId: branch.id, variantId: variant.id, locationId: location.id,
     stock: { variantId: variant.id, locationId: location.id }, unitId: unit.id, productId: product.id,
-    registerId: register.id, registerSessionId: registerSession?.id, priceId: price.id, policy };
+    registerId: register.id, registerSessionId: registerSession?.id, priceId: price.id, policy, fiscalProfileId: fiscalProfile.id };
 }
 
 export async function addActor(tenantId: string, branchId: string, role: RoleName): Promise<Actor> {

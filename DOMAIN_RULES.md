@@ -152,6 +152,16 @@ Ciclo de vida del caso: `PENDING_REVIEW → CONFIRMED | CORRECTED | REJECTED`.
   Las ventas offline se asocian a la sesión por la que se hicieron y se
   concilian si esa sesión ya cerró.
 
+### Contexto tributario inicial (D-006/D-009)
+
+- Argentina: perfil por razón social (`store`), compartido por sus sucursales;
+  condiciones soportadas `MONOTRIBUTO` y `RESPONSABLE_INSCRIPTO`, sin default.
+- Ticket interno inicial; no habilita emisión fiscal ni sustituye obligaciones.
+- La venta toma el contexto tributario del servidor en su transacción. Cambiar
+  el perfil no modifica snapshots históricos; la base impide su reescritura.
+- Los registros legacy sin perfil no reciben condición retroactiva inventada.
+- Reglas tributarias separadas de caja/pagos; no se infieren tasas impositivas.
+
 ## 10. Errores
 
 Errores de dominio tipados con código estable; el mapeo a HTTP es único y

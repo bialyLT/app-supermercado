@@ -1,7 +1,9 @@
 # Roadmap operativo
 
 **Estado:** Épicas 0 y 1 cerradas; cierre técnico de Épica 2 entregado para
-aceptación del orquestador. Épica 3 pendiente de definiciones de negocio.
+aceptación del orquestador. Épica 3 iniciada: perfil tributario argentino por
+razón social y snapshot de ticket interno implementados; ventas/pagos/arqueos
+completos todavía no entregados.
 **Reglas vinculantes:** `AGENTS.md`, `DOMAIN_RULES.md`, `DECISIONS.md`,
 `GATES.md`.
 
@@ -64,7 +66,10 @@ entrega de movimientos de caja, pagos, arqueo ni contratos fiscales de Épica 3.
   pago, sesiones de caja con apertura/ingresos/retiros/cierre ciego,
   anulaciones y devoluciones como documentos nuevos, numeración correlativa,
   override de supervisor (D-012), reportes de cierre.
-- **Prerrequisitos:** D-006, D-007, D-009.
+- **Prerrequisitos:** D-006, D-007 y alcance inicial de D-009 aprobados.
+- **Primer avance:** perfiles MONOTRIBUTO/RESPONSABLE_INSCRIPTO por razón
+  social compartidos por sucursales, contexto histórico protegido y ticket
+  interno. Informe: `.github/web-dev-loop/reports/epica-3-tax-profiles.md`.
 - **Criterios:** sin venta sin sesión abierta; una sesión no se cierra dos
   veces; la diferencia de arqueo queda explicada y auditada; venta confirmada
   inmutable; el servidor recalcula todo total.

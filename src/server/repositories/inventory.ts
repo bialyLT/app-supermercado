@@ -5,6 +5,7 @@ import { z } from "zod";
 import type { Actor, Permission } from "../../domain/actor";
 import { selectFefoLots } from "../../domain/fefo";
 import { money, assertMoneyPrecision, FinancialDecimal } from "../../domain/cash";
+import { buildFiscalSnapshot, type FiscalContext } from "../../domain/fiscal";
 import { assertQuantityPrecision, InventoryError, type Receipt, type SaleInput, type ReservationInput, type ReviewInput } from "../../domain/inventory";
 import { prisma } from "./client";
 import { withTenant, type TransactionClient as Tx } from "./tenant-context";
@@ -13,9 +14,9 @@ import { consume } from "./approval";
 
 export const inventoryPermissions: Record<Actor["role"], readonly Permission[]> = {
   CASHIER: ["cash.session.open", "cash.session.close", "inventory.sell", "inventory.catalog.read", "inventory.unverified_intake.create"],
-  STOCK_MANAGER: ["inventory.receive", "inventory.reserve", "inventory.catalog.read", "inventory.catalog.write", "inventory.unverified_intake.review"],
+  STOCK_MANAGER: ["inventory.receive", "inventory.reserve", "inventory.catalog.read", "inventory.catalog.write", "inventory.unverified_intake.review", "fiscal.profile.read"],
   SUPERVISOR: ["cash.session.open", "cash.session.close", "cash.session.close.other", "identity.supervisor_pin.manage", "inventory.sale.approve", "inventory.sell", "inventory.reserve", "inventory.catalog.read", "inventory.unverified_intake.create", "inventory.unverified_intake.review", "inventory.expired.override"],
-  ADMIN: ["inventory.policy.manage", "cash.session.open", "cash.session.close", "cash.session.close.other", "identity.supervisor_pin.manage", "inventory.sale.approve", "inventory.write", "inventory.receive", "inventory.sell", "inventory.reserve", "inventory.catalog.read", "inventory.catalog.write", "inventory.unverified_intake.create", "inventory.unverified_intake.review", "inventory.expired.override"],
+  ADMIN: ["inventory.policy.manage", "cash.session.open", "cash.session.close", "cash.session.close.other", "identity.supervisor_pin.manage", "inventory.sale.approve", "inventory.write", "inventory.receive", "inventory.sell", "inventory.reserve", "inventory.catalog.read", "inventory.catalog.write", "inventory.unverified_intake.create", "inventory.unverified_intake.review", "inventory.expired.override", "fiscal.profile.manage", "fiscal.profile.read"],
 };
 export const systemClock = { now: () => new Date() };
 export type Clock = { now(): Date };
@@ -153,6 +154,14 @@ async function serverPrice(tx: Tx, actor: Actor, input: SaleInput, branchId: str
   return { ...price, currency: price.currency };
 }
 
+async function storeFiscalContext(tx: Tx, actor: Actor, branchId: string): Promise<FiscalContext | null> {
+  const branch = await tx.branch.findFirst({ where: { tenantId: actor.tenantId, id: branchId } });
+  const store = branch ? await tx.store.findFirst({ where: { tenantId: actor.tenantId, id: branch.storeId } }) : null;
+  const profile = store ? await tx.fiscalProfile.findUnique({ where: { tenantId_storeId: { tenantId: actor.tenantId, storeId: store.id } } }) : null;
+  if (!store || !profile) return null;
+  return { storeId: store.id, storeName: store.name, country: "AR", condition: profile.condition, internalTicket: profile.internalTicket };
+}
+
 export async function sale(actor: Actor, input: SaleInput, clock: Clock) {
   return inventoryTransaction(actor, "inventory.sell", clock, async (tx, verified, now) => {
     const { location, variant } = await stockAccess(tx, verified, input);
@@ -183,8 +192,10 @@ export async function sale(actor: Actor, input: SaleInput, clock: Clock) {
         await intake(tx, verified, input, shortage, day, session.id, intakeValue, approval !== null);
       }
       const total = money(new FinancialDecimal(input.quantity).times(price.amount.toString()), price.currency);
+      const fiscalContext = location.branchId ? await storeFiscalContext(tx, verified, location.branchId) : null;
+      const fiscalSnapshot = fiscalContext ? buildFiscalSnapshot(fiscalContext) : null;
       const created = await tx.sale.create({ data: { tenantId: verified.tenantId, locationId: input.locationId, actorUserId: verified.userId, total,
-        registerSessionId: session.id, currency: price.currency, createdAt: now,
+        registerSessionId: session.id, currency: price.currency, createdAt: now, fiscalSnapshot: fiscalSnapshot ?? undefined,
         lines: { create: { tenantId: verified.tenantId, variantId: input.variantId, quantity: input.quantity, unitPrice: price.amount, productName: variant.name } } }, include: { lines: true } });
       let caseId: string | undefined;
       if (shortage.gt(0)) {

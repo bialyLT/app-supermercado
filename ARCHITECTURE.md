@@ -85,6 +85,17 @@ importes viajan como string con moneda en contratos externos.
 - Todo comando offline tiene clave idempotente única por tenant.
 - Ninguna consulta operativa cruza tenants.
 
+## Perfil tributario inicial
+
+`src/domain/fiscal.ts` valida el perfil argentino y el snapshot versionado sin
+I/O. `src/server/fiscal.ts` expone configuración por Store y consulta por
+sucursal asignada; su repositorio reutiliza transacción, permisos y auditoría.
+`FiscalProfile` tiene RLS y FK compuesta tenant/store; no amplía privilegios de
+escritura de Store. La venta configurada conserva `fiscalSnapshot` del servidor
+en la misma transacción, protegido por triggers. Legacy sin perfil queda sin
+snapshot. No se agrega emisión fiscal, IVA ni lógica tributaria en caja/pagos.
+Contrato y límites: `docs/fiscal-profiles.md`.
+
 ## Concurrencia (decidido, D-005)
 
 Venta y movimientos de stock corren en una transacción. El descuento usa

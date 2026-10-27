@@ -13,16 +13,28 @@ la recomendación como `SUPUESTO:` reversible.
 | D-003b | Semántica de REJECTED y topes/política por tenant (ver `DOMAIN_RULES.md` §5) | APROBADA | — |
 | D-004 | Aislamiento de tenant: repositorios + RLS de PostgreSQL | APROBADA | — |
 | D-005 | Stock: ledger + `level` materializado con UPDATE condicional atómico y CHECK en base | APROBADA | — |
-| D-006 | `store` = entidad fiscal del tenant; `branch` = sucursal física | PROPUESTA | Épica 3 |
-| D-007 | Redondeo `HALF_UP` por línea; total = suma de líneas | PROPUESTA | Épica 3 |
+| D-006 | `store` = razón social del tenant; varias `branch` = sucursales físicas de esa razón social | APROBADA | — |
+| D-007 | Redondeo `HALF_UP` por línea; total = suma de líneas | APROBADA | — |
 | D-008 | Política offline: ventana máxima, qué se permite sin red, conflictos | PENDIENTE | Épica 4 |
-| D-009 | Fiscalidad: país, condición tributaria, facturación electrónica, impresora | PENDIENTE | Épica 3 (esquema de venta) |
+| D-009 | Argentina; monotributista o responsable inscripto por razón social; ticket interno inicial, sin emisión fiscal | APROBADA (alcance inicial) | Integración fiscal e impresora pendientes para Épica 5 |
 | D-010 | Proveedor de despliegue y región | PENDIENTE | Épica 6 |
 | D-011 | Memoria persistente externa | PENDIENTE | cuando convenga |
 | D-012 | Override de supervisor por PIN con token de un solo uso | PROPUESTA | Épica 3 |
 | D-013 | Fuera de alcance: e-commerce, delivery, picking, fidelización | PROPUESTA | — |
 | D-014 | Idempotencia por `(tenant, command_id)` + hash de payload; comandos POS como REST versionado | PROPUESTA | Épica 4 |
 | D-015 | Moneda y tope monetario de intake obligatorios por tenant, sin valores de negocio por defecto; bloqueo hasta configurar | APROBADA | Apertura de sesión de caja |
+
+## Decisiones de continuidad de Épica 3
+
+El dueño confirmó Argentina, ticket interno inicial, una razón social con varias
+sucursales y HALF_UP por línea. El producto soporta tanto monotributista como
+responsable inscripto: la condición se configura por razón social, no es una
+elección global del sistema ni un régimen «pendiente». Las ventas conservan el
+contexto tributario del momento; cambios posteriores no reescriben su historia.
+Las reglas tributarias se separan de caja, pagos y stock. No se infieren tasas,
+exenciones ni obligaciones de facturación a partir de un ticket interno.
+Los registros legacy sin perfil se preservan sin asignación retroactiva.
+Alcance verificable: `.github/web-dev-loop/briefs/epica-3-tax-profiles.md`.
 
 ## Fundamento de las propuestas
 

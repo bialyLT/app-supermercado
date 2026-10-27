@@ -32,6 +32,7 @@ model Tenant {
   registerSessions CashRegisterSession[]
   supervisorCredentials SupervisorCredential[]
   supervisorApprovals SupervisorApproval[]
+  fiscalProfiles FiscalProfile[]
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
 }
@@ -99,12 +100,18 @@ enum IntakePolicyMode {
   REQUIRE_SUPERVISOR
 }
 
+enum FiscalCondition {
+  MONOTRIBUTO
+  RESPONSABLE_INSCRIPTO
+}
+
 model Store {
   id        String         @id @default(uuid()) @db.Uuid
   tenantId  String         @db.Uuid
   name      String
   tenant    Tenant         @relation(fields: [tenantId], references: [id])
   branches  Branch[]
+  fiscalProfiles FiscalProfile[]
   createdAt DateTime       @default(now())
   @@unique([tenantId, id])
   @@index([tenantId])
@@ -492,6 +499,21 @@ model UnverifiedIntakePolicy {
   tenant                Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
+model FiscalProfile {
+  id            String   @id @default(uuid()) @db.Uuid
+  tenantId      String   @db.Uuid
+  storeId       String   @db.Uuid
+  country       String
+  condition     FiscalCondition
+  internalTicket Boolean
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  store         Store    @relation(fields: [tenantId, storeId], references: [tenantId, id])
+  @@unique([tenantId, storeId])
+  @@index([tenantId])
+}
+
 model IdempotencyCommand {
   id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   tenantId     String   @db.Uuid
@@ -542,6 +564,7 @@ model Sale {
   intakeReviews UnverifiedIntakeReview[]
   discrepancies InventoryDiscrepancy[] @relation("ScopedDiscrepancySale")
   legacyDiscrepancies InventoryDiscrepancy[] @relation("LegacyDiscrepancySale")
+  fiscalSnapshot Json?
   @@unique([tenantId, id])
   @@index([tenantId, createdAt])
 }
