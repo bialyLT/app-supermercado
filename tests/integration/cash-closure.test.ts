@@ -1,11 +1,62 @@
 import { afterAll, describe, expect, it } from "vitest";
-import { configureInventoryPolicy, openRegisterSession, closeRegisterSession } from "../../src/server/cash";
+import { configureInventoryPolicy, openRegisterSession, closeRegisterSession, closeRegisterSessionBlind, recordCashMovement } from "../../src/server/cash";
 import { confirmSale, recordReceipt } from "../../src/server/inventory";
 import { setSupervisorPin, approveInventorySale } from "../../src/server/supervisor";
 import { admin, runtime, fixture, addActor, clock, enabled, reconcile } from "./fixtures";
 
 afterAll(async () => { await admin.$disconnect(); await runtime.$disconnect(); });
 (enabled ? describe : describe.skip)("cash session and monetary budget closure", () => {
+  it("preserves a legacy closed session without fabricated closure counts", async () => {
+    const f = await fixture("ADMIN", { cashSession: false });
+    const closedAt = new Date("2026-10-26T11:00:00Z");
+    const legacy = await admin.cashRegisterSession.create({ data: {
+      tenantId: f.tenantId,
+      registerId: f.registerId,
+      branchId: f.branchId,
+      userId: f.actor.userId,
+      currency: "XTS",
+      openedAt: new Date("2026-10-26T10:00:00Z"),
+      closedAt,
+      closedBy: f.actor.userId,
+    } });
+    expect(legacy.closedAt).toEqual(closedAt);
+    expect(legacy.closedBy).toBe(f.actor.userId);
+    expect(legacy.declaredCash).toBeNull();
+    expect(legacy.expectedCash).toBeNull();
+    expect(legacy.difference).toBeNull();
+  });
+
+  it("records authorized append-only movements and closes blind with cash-only expected amount", async () => {
+    const f = await fixture("ADMIN");
+    await recordCashMovement(f.actor, { registerSessionId: f.registerSessionId!, type: "CASH_IN", amount: "5", reason: "Deposit", idempotencyKey: "cash-in" }, clock);
+    await recordCashMovement(f.actor, { registerSessionId: f.registerSessionId!, type: "CASH_OUT", amount: "2", reason: "Petty cash", idempotencyKey: "cash-out" }, clock);
+    await confirmSale(f.actor, { ...f.stock, quantity: "1", unitPrice: "1", allowUnverifiedIntake: true, idempotencyKey: "transfer-sale" }, clock);
+    const result = await closeRegisterSessionBlind(f.actor, { registerSessionId: f.registerSessionId!, countedCashAmount: "3", reason: "Counted", idempotencyKey: "blind-close" }, clock);
+    expect(result).toMatchObject({ expectedCash: "3.00", declaredCash: "3.00", difference: "0.00" });
+    expect(await admin.cashMovement.count({ where: { tenantId: f.tenantId, registerSessionId: f.registerSessionId } })).toBe(3);
+    const session = await admin.cashRegisterSession.findUniqueOrThrow({ where: { id: f.registerSessionId } });
+    expect(session.declaredCash?.toFixed(2)).toBe("3.00");
+    expect(session.difference?.toFixed(2)).toBe("0.00");
+  });
+
+  it("audits a blind-close difference and rejects replay under a different key", async () => {
+    const f = await fixture("ADMIN");
+    const first = await closeRegisterSessionBlind(f.actor, { registerSessionId: f.registerSessionId!, countedCashAmount: "9", reason: "Short count", idempotencyKey: "blind-close" }, clock);
+    expect(first.difference).toBe("9.00");
+    await expect(closeRegisterSessionBlind(f.actor, { registerSessionId: f.registerSessionId!, countedCashAmount: "9", reason: "Again", idempotencyKey: "blind-close-2" }, clock)).rejects.toThrow("REGISTER_SESSION_ALREADY_CLOSED");
+    await expect(closeRegisterSessionBlind(f.actor, { registerSessionId: f.registerSessionId!, countedCashAmount: "9", reason: "Replay", idempotencyKey: "blind-close" }, clock)).rejects.toThrow("IDEMPOTENCY_CONFLICT");
+    await expect(admin.cashMovement.updateMany({ where: { tenantId: f.tenantId }, data: { reason: "tampered" } })).rejects.toThrow();
+    expect(await admin.auditLog.count({ where: { tenantId: f.tenantId, action: "cash.session.blind_closed" } })).toBe(1);
+  });
+
+  it("rejects cash movement authorization, currency mismatch, and malformed input before writes", async () => {
+    const f = await fixture("CASHIER");
+    const other = await fixture();
+    await expect(recordCashMovement(f.actor, { registerSessionId: other.registerSessionId!, type: "CASH_IN", amount: "1", reason: "No", idempotencyKey: "foreign" }, clock)).rejects.toThrow("NOT_FOUND");
+    await expect(recordCashMovement(f.actor, { registerSessionId: f.registerSessionId!, type: "CASH_IN", amount: "1.001", reason: "Bad", idempotencyKey: "precision" }, clock)).rejects.toThrow("INVALID_MONEY_PRECISION");
+    expect(await admin.cashMovement.count({ where: { tenantId: f.tenantId } })).toBe(0);
+  });
+
   it("requires explicit currency/value configuration and server-side administration permission", async () => {
     const f = await fixture("ADMIN", { cashSession: false });
     await admin.unverifiedIntakePolicy.update({ where: { tenantId: f.tenantId }, data: { currency: null, maxSessionValue: null } });

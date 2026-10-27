@@ -11,8 +11,17 @@ export const currencySchema = z.string().regex(/^[A-Z]{3}$/).refine((value) =>
 export const amountSchema = z.string().regex(/^\d{1,18}(\.\d{1,4})?$/)
   .transform((value) => new Decimal(value).toString());
 export const commandKey = z.string().trim().min(1).max(128);
-export const openSessionSchema = z.object({ registerId: z.string().uuid(), idempotencyKey: commandKey }).strict();
+export const openingAmountSchema = amountSchema.optional();
+export const openSessionSchema = z.object({ registerId: z.string().uuid(), openingAmount: openingAmountSchema, openingReason: z.string().trim().min(1).max(500).optional(), idempotencyKey: commandKey }).strict();
 export const closeSessionSchema = z.object({ registerSessionId: z.string().uuid(), idempotencyKey: commandKey }).strict();
+export const cashMovementSchema = z.object({
+  registerSessionId: z.string().uuid(), type: z.enum(["CASH_IN", "CASH_OUT"]), amount: amountSchema,
+  reason: z.string().trim().min(1).max(500), referenceId: z.string().trim().max(128).optional(), idempotencyKey: commandKey,
+}).strict();
+export const blindCloseSchema = z.object({
+  registerSessionId: z.string().uuid(), countedCashAmount: amountSchema,
+  reason: z.string().trim().min(1).max(500), idempotencyKey: commandKey,
+}).strict();
 export const policySchema = z.object({
   mode: z.enum(["DISABLED", "ALLOW_WITH_CAPS", "REQUIRE_SUPERVISOR"]),
   currency: currencySchema,

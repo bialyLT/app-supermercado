@@ -1,7 +1,7 @@
 import { createHash, randomBytes, scrypt, timingSafeEqual } from "node:crypto";
 import type { Actor } from "../../domain/actor";
 import { approvalTtlMs, maxPinFailures, pinLockMs, type ApprovalInput } from "../../domain/approval";
-import { InventoryError, type SaleInput } from "../../domain/inventory";
+import { InventoryError, type MultiSaleInput, type SaleInput } from "../../domain/inventory";
 import { audit, inventoryPermissions, inventoryTransaction, locationAccess, type Clock } from "./inventory";
 import { currentRegisterSession } from "./cash";
 import type { TransactionClient as Tx } from "./tenant-context";
@@ -20,8 +20,10 @@ async function verifyPin(pin: string, hash: string): Promise<boolean> {
   return timingSafeEqual(await derive(pin, parts[1]), Buffer.from(parts[2], "hex"));
 }
 function tokenHash(token: string): string { return createHash("sha256").update(token).digest("hex"); }
-export function approvalCommandHash(input: SaleInput): string {
-  const target = { ...input };
+export function approvalCommandHash(input: SaleInput | MultiSaleInput): string {
+  const target = "lines" in input
+    ? { ...input, lines: input.lines.map((line) => { const canonicalLine = { ...line }; delete canonicalLine.unitPrice; return canonicalLine; }) }
+    : { ...input };
   delete target.approvalToken;
   return createHash("sha256").update(JSON.stringify({ operation: "inventory.sale", input: target })).digest("hex");
 }
@@ -81,7 +83,7 @@ export async function issue(actor: Actor, input: ApprovalInput, clock: Clock) {
   return result;
 }
 
-export async function consume(tx: Tx, actor: Actor, input: SaleInput, registerSessionId: string, branchId: string, now: Date) {
+export async function consume(tx: Tx, actor: Actor, input: SaleInput | MultiSaleInput, registerSessionId: string, branchId: string, now: Date) {
   if (!input.approvalToken) throw new InventoryError("SUPERVISOR_APPROVAL_REQUIRED");
   const approval = await tx.supervisorApproval.findUnique({ where: { tenantId_tokenHash: { tenantId: actor.tenantId, tokenHash: tokenHash(input.approvalToken) } } });
   if (!approval || approval.requesterId !== actor.userId || approval.registerSessionId !== registerSessionId || approval.commandHash !== approvalCommandHash(input))

@@ -47,6 +47,17 @@ afterAll(() => admin.$disconnect());
     await expect(admin.supervisorApproval.update({ where: { id: approval.approvalId }, data: { reason: "tamper" } })).rejects.toThrow("SUPERVISOR_APPROVAL_IMMUTABLE");
   });
 
+  it("uses approved expired stock without unverified intake and consumes approval", async () => {
+    const f = await setup(true);
+    const sale = { ...f.sale, allowUnverifiedIntake: false };
+    const approval = await approveInventorySale(f.actor, { approverUserId: f.supervisor.userId, pin: syntheticPin, reason: "Approved expired stock", sale }, clock);
+    const result = await confirmSale(f.actor, { ...sale, approvalToken: approval.token }, clock);
+    expect(result).toMatchObject({ type: "SALE", total: "1.00", currency: "XTS" });
+    expect((await admin.supervisorApproval.findUniqueOrThrow({ where: { id: approval.approvalId } })).consumedAt).not.toBeNull();
+    expect(await admin.unverifiedIntakeReview.count({ where: { tenantId: f.tenantId } })).toBe(0);
+    expect(await reconcile(f.tenantId)).toHaveLength(0);
+  });
+
   it("binds approval to payload and requester, and expires at 90 seconds", async () => {
     const f = await setup(true);
     const approval = await approveInventorySale(f.actor, { approverUserId: f.supervisor.userId, pin: syntheticPin, reason: "Bound exception", sale: f.sale }, clock);

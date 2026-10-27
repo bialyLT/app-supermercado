@@ -6,11 +6,13 @@ import type { Actor, Permission } from "../../domain/actor";
 import { selectFefoLots } from "../../domain/fefo";
 import { money, assertMoneyPrecision, FinancialDecimal } from "../../domain/cash";
 import { buildFiscalSnapshot, type FiscalContext } from "../../domain/fiscal";
-import { assertQuantityPrecision, InventoryError, type Receipt, type SaleInput, type ReservationInput, type ReviewInput } from "../../domain/inventory";
+import { assertQuantityPrecision, InventoryError, type Receipt, type SaleInput, type MultiSaleInput, type PaidMultiSaleInput, type ReservationInput, type ReviewInput } from "../../domain/inventory";
+import type { PaymentInput } from "../../domain/payment";
 import { prisma } from "./client";
 import { withTenant, type TransactionClient as Tx } from "./tenant-context";
 import { configuredPolicy, currentRegisterSession } from "./cash";
 import { consume } from "./approval";
+import { allocateDocumentNumber } from "./numbering";
 
 export const inventoryPermissions: Record<Actor["role"], readonly Permission[]> = {
   CASHIER: ["cash.session.open", "cash.session.close", "inventory.sell", "inventory.catalog.read", "inventory.unverified_intake.create"],
@@ -20,7 +22,8 @@ export const inventoryPermissions: Record<Actor["role"], readonly Permission[]> 
 };
 export const systemClock = { now: () => new Date() };
 export type Clock = { now(): Date };
-const resultSchema = z.object({ id: z.string(), type: z.string(), total: z.string().optional(), currency: z.string().optional() });
+const resultSchema = z.object({ id: z.string(), type: z.string(), total: z.string().optional(), currency: z.string().optional(),
+  documentNumber: z.number().int().min(1).optional() });
 export type CommandResult = z.infer<typeof resultSchema>;
 
 async function verifyActor(tx: Tx, actor: Actor, now: Date): Promise<Actor> {
@@ -144,13 +147,13 @@ async function intake(tx: Tx, actor: Actor, input: SaleInput, shortage: Decimal,
   if (new FinancialDecimal(intakeValue).plus(session._sum.intakeValue?.toString() ?? "0").gt(policy.maxSessionValue.toString())) throw new InventoryError("UNVERIFIED_INTAKE_VALUE_CAP");
 }
 
-async function serverPrice(tx: Tx, actor: Actor, input: SaleInput, branchId: string, now: Date) {
+async function serverPrice(tx: Tx, actor: Actor, input: { variantId: string; unitPrice?: string }, branchId: string, now: Date) {
   const price = await tx.price.findFirst({ where: { tenantId: actor.tenantId, variantId: input.variantId, channel: "RETAIL",
     validFrom: { lte: now }, AND: [{ OR: [{ validTo: null }, { validTo: { gt: now } }] }, { OR: [{ branchId }, { branchId: null }] }] },
     orderBy: [{ branchId: { sort: "desc", nulls: "last" } }, { validFrom: "desc" }, { id: "asc" }] });
   if (!price?.currency) throw new InventoryError("PRICE_CURRENCY_REQUIRED");
   assertMoneyPrecision(price.amount.toString(), price.currency);
-  if (!price.amount.equals(input.unitPrice)) throw new InventoryError("PRICE_MISMATCH");
+  if (input.unitPrice !== undefined && !price.amount.equals(input.unitPrice)) throw new InventoryError("PRICE_MISMATCH");
   return { ...price, currency: price.currency };
 }
 
@@ -162,72 +165,112 @@ async function storeFiscalContext(tx: Tx, actor: Actor, branchId: string): Promi
   return { storeId: store.id, storeName: store.name, country: "AR", condition: profile.condition, internalTicket: profile.internalTicket };
 }
 
+type SaleCoreLine = { locationId: string; variantId: string; lotId?: string; quantity: string; unitPrice?: string; reason?: string };
+type SaleCoreOptions = { idempotencyKey: string; allowUnverifiedIntake: boolean; approvalToken?: string; clientPrices: boolean; approvalInput: SaleInput | MultiSaleInput | PaidMultiSaleInput; payments?: PaymentInput[] };
+
+async function confirmSaleCore(tx: Tx, verified: Actor, now: Date, lines: SaleCoreLine[], options: SaleCoreOptions) {
+  const first = lines[0];
+  const { location } = await stockAccess(tx, verified, first);
+  if (!location.branchId || lines.some((line) => line.locationId !== first.locationId)) throw new InventoryError("SAME_LOCATION_REQUIRED");
+  const session = await currentRegisterSession(tx, verified, location.branchId);
+  const policy = await configuredPolicy(tx, verified.tenantId);
+  const approval = options.approvalToken ? await consume(tx, verified, options.approvalInput, session.id, location.branchId, now) : null;
+  const plans: Array<{ line: SaleCoreLine; variant: { name: string }; price: { amount: Decimal; currency: string }; lots: Awaited<ReturnType<typeof tx.lot.findMany>>; levels: Awaited<ReturnType<typeof tx.inventoryLevel.findMany>>; shortage: Decimal; day: string; intakeValue: string }> = [];
+
+  for (const line of lines) {
+    const { variant } = await stockAccess(tx, verified, line);
+    const price = await serverPrice(tx, verified, options.clientPrices ? line : { variantId: line.variantId }, location.branchId, now);
+    if (session.currency !== price.currency || policy.currency !== session.currency) throw new InventoryError("CURRENCY_MISMATCH");
+    await tx.$queryRaw`SELECT "id" FROM "InventoryLevel" WHERE "tenantId" = ${verified.tenantId}::uuid
+      AND "locationId" = ${line.locationId}::uuid AND "variantId" = ${line.variantId}::uuid
+      ORDER BY "locationId", "variantId", "lotId" NULLS LAST FOR UPDATE`;
+    const lots = await tx.lot.findMany({ where: { tenantId: verified.tenantId, variantId: line.variantId, ...(line.lotId ? { id: line.lotId } : {}) } });
+    if (line.lotId && lots[0]?.expiresAt && lots[0].expiresAt <= now && !approval) throw new InventoryError("EXPIRED_LOT");
+    const levels = await tx.inventoryLevel.findMany({ where: { tenantId: verified.tenantId, locationId: line.locationId, variantId: line.variantId,
+      ...(line.lotId ? { lotId: line.lotId } : {}) } });
+    const usable = levels.filter((stock) => !stock.lotId || lots.some((lot) => lot.id === stock.lotId && (approval || !lot.expiresAt || lot.expiresAt > now)));
+    const available = usable.reduce((sum, stock) => sum.plus(stock.onHand.minus(stock.reserved).toString()), new Decimal(0));
+    const requested = new Decimal(line.quantity);
+    const shortage = Decimal.max(0, requested.minus(available));
+    const day = businessDay(now, location.timeZone);
+    const intakeValue = money(new FinancialDecimal(shortage.toString()).times(price.amount.toString()), price.currency);
+    if (shortage.gt(0)) {
+      if (!options.allowUnverifiedIntake) throw new InventoryError("INSUFFICIENT_STOCK");
+      if (lots.some((lot) => lot.expiresAt && lot.expiresAt <= now) && !approval) throw new InventoryError("EXPIRED_LOT");
+      await intake(tx, verified, { ...line, idempotencyKey: options.idempotencyKey, unitPrice: price.amount.toString(), allowUnverifiedIntake: options.allowUnverifiedIntake }, shortage, day, session.id, intakeValue, approval !== null);
+    }
+    plans.push({ line, variant, price, lots, levels, shortage, day, intakeValue });
+  }
+
+  const total = plans.reduce((sum, plan) => sum.plus(money(new FinancialDecimal(plan.line.quantity).times(plan.price.amount.toString()), plan.price.currency)), new FinancialDecimal(0));
+  if (options.payments) {
+    const paid = options.payments.reduce((sum, payment) => sum.plus(payment.amount), new FinancialDecimal(0));
+    if (!paid.equals(total)) throw new InventoryError("PAYMENT_TOTAL_MISMATCH");
+  }
+  const fiscalContext = await storeFiscalContext(tx, verified, location.branchId);
+  const documentNumber = await allocateDocumentNumber(tx, verified.tenantId, location.branchId, "SALE");
+  const created = await tx.sale.create({ data: { tenantId: verified.tenantId, locationId: first.locationId, branchId: location.branchId,
+    documentNumber, actorUserId: verified.userId, total: money(total, session.currency),
+    registerSessionId: session.id, currency: session.currency, createdAt: now, fiscalSnapshot: fiscalContext ? buildFiscalSnapshot(fiscalContext) : undefined,
+    lines: { create: plans.map((plan) => ({ tenantId: verified.tenantId, variantId: plan.line.variantId, quantity: plan.line.quantity, unitPrice: plan.price.amount, productName: plan.variant.name })) } }, include: { lines: true } });
+
+  if (options.payments) {
+    for (const payment of options.payments) {
+      const createdPayment = await tx.payment.create({ data: { tenantId: verified.tenantId, saleId: created.id, registerSessionId: session.id, amount: payment.amount, method: payment.method, currency: session.currency, createdAt: now, actorUserId: verified.userId } });
+      await audit(tx, verified, "payment.created", "Payment", createdPayment.id, { saleId: created.id, amount: payment.amount, method: payment.method, currency: session.currency });
+    }
+  }
+  for (const [index, plan] of plans.entries()) {
+    const { line, lots, shortage, day, intakeValue } = plan;
+    let caseId: string | undefined;
+    if (shortage.gt(0)) {
+      const target = await level(tx, verified, line);
+      await tx.inventoryLevel.update({ where: { id: target.id }, data: { onHand: { increment: shortage.toString() } } });
+      const review = await tx.unverifiedIntakeReview.create({ data: { tenantId: verified.tenantId, locationId: line.locationId, variantId: line.variantId, lotId: line.lotId,
+        quantity: shortage.toString(), reason: line.reason ?? "Physical stock pending review", createdBy: verified.userId, saleId: created.id, saleLineId: created.lines[index].id,
+        sessionId: verified.sessionId, registerSessionId: session.id, intakeValue, currency: session.currency, businessDay: day, createdAt: now } });
+      caseId = review.id;
+      await tx.inventoryMovement.create({ data: { tenantId: verified.tenantId, locationId: line.locationId, variantId: line.variantId, lotId: line.lotId,
+        quantity: shortage.toString(), type: "UNVERIFIED_INTAKE", direction: "IN", referenceId: review.id, caseId, registerSessionId: session.id, actorUserId: verified.userId, reason: line.reason ?? "Physical stock pending review" } });
+      await audit(tx, verified, "UNVERIFIED_INTAKE_CREATED", "UnverifiedIntakeReview", review.id, { saleId: created.id, quantity: shortage.toString() });
+    }
+    const finalLevels = await tx.inventoryLevel.findMany({ where: { tenantId: verified.tenantId, locationId: line.locationId, variantId: line.variantId, ...(line.lotId ? { lotId: line.lotId } : {}) } });
+    const allocation = selectFefoLots(finalLevels.map((stock) => ({ lotId: stock.lotId ?? "", available: new Decimal(stock.onHand.minus(stock.reserved).toString()), expiresAt: lots.find((lot) => lot.id === stock.lotId)?.expiresAt ?? null })), new Decimal(line.quantity), now, approval !== null);
+    for (const part of allocation) {
+      const target = finalLevels.find((stock) => (stock.lotId ?? "") === part.lotId)!;
+      const changed = await tx.$executeRaw`UPDATE "InventoryLevel" SET "onHand" = "onHand" - ${part.available.toString()}::decimal
+        WHERE "id" = ${target.id}::uuid AND "tenantId" = ${verified.tenantId}::uuid AND "onHand" - "reserved" >= ${part.available.toString()}::decimal`;
+      if (changed !== 1) throw new InventoryError("INSUFFICIENT_STOCK");
+      await tx.inventoryMovement.create({ data: { tenantId: verified.tenantId, locationId: line.locationId, variantId: line.variantId, lotId: target.lotId,
+        quantity: part.available.toString(), direction: "OUT", type: "SALE", referenceId: created.id, caseId: target.lotId === (line.lotId ?? null) ? caseId : undefined,
+        registerSessionId: session.id, actorUserId: verified.userId, reason: "Sale" } });
+    }
+  }
+  await audit(tx, verified, "inventory.sale", "Sale", created.id, { branchId: location.branchId, documentNumber });
+  return { id: created.id, type: "SALE", total: money(total, session.currency), currency: session.currency, documentNumber };
+}
+
 export async function sale(actor: Actor, input: SaleInput, clock: Clock) {
   return inventoryTransaction(actor, "inventory.sell", clock, async (tx, verified, now) => {
-    const { location, variant } = await stockAccess(tx, verified, input);
-    return command(tx, verified, "SALE", input, async () => {
-      const session = await currentRegisterSession(tx, verified, location.branchId!);
-      const policy = await configuredPolicy(tx, verified.tenantId);
-      const price = await serverPrice(tx, verified, input, location.branchId!, now);
-      if (session.currency !== price.currency || policy.currency !== session.currency) throw new InventoryError("CURRENCY_MISMATCH");
-      const approval = input.approvalToken ? await consume(tx, verified, input, session.id, location.branchId!, now) : null;
-      const lots = await tx.lot.findMany({ where: { tenantId: verified.tenantId, variantId: input.variantId, ...(input.lotId ? { id: input.lotId } : {}) } });
-      if (input.lotId && lots[0]?.expiresAt && lots[0].expiresAt <= now && !approval) throw new InventoryError("EXPIRED_LOT");
-      // Lock levels in stable key order, independently of FEFO consumption order.
-      await tx.$queryRaw`SELECT "id" FROM "InventoryLevel" WHERE "tenantId" = ${verified.tenantId}::uuid
-        AND "locationId" = ${input.locationId}::uuid AND "variantId" = ${input.variantId}::uuid
-        ORDER BY "locationId", "variantId", "lotId" NULLS LAST FOR UPDATE`;
-      const levels = await tx.inventoryLevel.findMany({ where: { tenantId: verified.tenantId, locationId: input.locationId, variantId: input.variantId,
-        ...(input.lotId ? { lotId: input.lotId } : {}) } });
-      const usable = levels.filter((stock) => !stock.lotId || lots.some((lot) => lot.id === stock.lotId && (approval || !lot.expiresAt || lot.expiresAt > now)));
-      const available = usable.reduce((sum, stock) => sum.plus(stock.onHand.minus(stock.reserved).toString()), new Decimal(0));
-      const requested = new Decimal(input.quantity);
-      const shortage = Decimal.max(0, requested.minus(available));
-      const day = businessDay(now, location.timeZone);
-      const intakeValue = money(new FinancialDecimal(shortage.toString()).times(price.amount.toString()), price.currency);
-      if (shortage.gt(0)) {
-        if (!input.allowUnverifiedIntake) throw new InventoryError("INSUFFICIENT_STOCK");
-        // Intake cannot manufacture a fresh lot to bypass quarantined expired stock.
-        if (!approval && lots.some((lot) => lot.expiresAt && lot.expiresAt <= now)) throw new InventoryError("EXPIRED_LOT");
-        await intake(tx, verified, input, shortage, day, session.id, intakeValue, approval !== null);
-      }
-      const total = money(new FinancialDecimal(input.quantity).times(price.amount.toString()), price.currency);
-      const fiscalContext = location.branchId ? await storeFiscalContext(tx, verified, location.branchId) : null;
-      const fiscalSnapshot = fiscalContext ? buildFiscalSnapshot(fiscalContext) : null;
-      const created = await tx.sale.create({ data: { tenantId: verified.tenantId, locationId: input.locationId, actorUserId: verified.userId, total,
-        registerSessionId: session.id, currency: price.currency, createdAt: now, fiscalSnapshot: fiscalSnapshot ?? undefined,
-        lines: { create: { tenantId: verified.tenantId, variantId: input.variantId, quantity: input.quantity, unitPrice: price.amount, productName: variant.name } } }, include: { lines: true } });
-      let caseId: string | undefined;
-      if (shortage.gt(0)) {
-        const target = await level(tx, verified, input);
-        await tx.inventoryLevel.update({ where: { id: target.id }, data: { onHand: { increment: shortage.toString() } } });
-        const review = await tx.unverifiedIntakeReview.create({ data: { tenantId: verified.tenantId, locationId: input.locationId, variantId: input.variantId, lotId: input.lotId,
-          quantity: shortage.toString(), reason: input.reason ?? "Physical stock pending review", createdBy: verified.userId,
-          saleId: created.id, saleLineId: created.lines[0].id, sessionId: verified.sessionId, registerSessionId: session.id,
-          intakeValue, currency: price.currency, businessDay: day, createdAt: now } });
-        caseId = review.id;
-        await tx.inventoryMovement.create({ data: { tenantId: verified.tenantId, locationId: input.locationId, variantId: input.variantId, lotId: input.lotId,
-          quantity: shortage.toString(), type: "UNVERIFIED_INTAKE", direction: "IN", referenceId: review.id, caseId, registerSessionId: session.id, actorUserId: verified.userId, reason: input.reason ?? "Physical stock pending review" } });
-        await audit(tx, verified, "UNVERIFIED_INTAKE_CREATED", "UnverifiedIntakeReview", review.id, { saleId: created.id, quantity: shortage.toString() });
-      }
-      const finalLevels = await tx.inventoryLevel.findMany({ where: { tenantId: verified.tenantId, locationId: input.locationId, variantId: input.variantId,
-        ...(input.lotId ? { lotId: input.lotId } : {}) } });
-      const allocation = selectFefoLots(finalLevels.map((stock) => ({ lotId: stock.lotId ?? "", available: new Decimal(stock.onHand.minus(stock.reserved).toString()),
-        expiresAt: lots.find((lot) => lot.id === stock.lotId)?.expiresAt ?? null })), requested, now, approval !== null);
-      for (const part of allocation) {
-        const target = finalLevels.find((stock) => (stock.lotId ?? "") === part.lotId)!;
-        const changed = await tx.$executeRaw`UPDATE "InventoryLevel" SET "onHand" = "onHand" - ${part.available.toString()}::decimal
-          WHERE "id" = ${target.id}::uuid AND "tenantId" = ${verified.tenantId}::uuid AND "onHand" - "reserved" >= ${part.available.toString()}::decimal`;
-        if (changed !== 1) throw new InventoryError("INSUFFICIENT_STOCK");
-        await tx.inventoryMovement.create({ data: { tenantId: verified.tenantId, locationId: input.locationId, variantId: input.variantId, lotId: target.lotId,
-          quantity: part.available.toString(), direction: "OUT", type: "SALE", referenceId: created.id,
-          caseId: target.lotId === (input.lotId ?? null) ? caseId : undefined, registerSessionId: session.id, actorUserId: verified.userId, reason: "Sale" } });
-      }
-      await audit(tx, verified, "inventory.sale", "Sale", created.id);
-      return { id: created.id, type: "SALE", total, currency: price.currency };
-    });
+    await stockAccess(tx, verified, input);
+    return command(tx, verified, "SALE", input, () => confirmSaleCore(tx, verified, now, [input], { idempotencyKey: input.idempotencyKey, allowUnverifiedIntake: input.allowUnverifiedIntake, approvalToken: input.approvalToken, clientPrices: true, approvalInput: input }));
   });
 }
+
+export async function multiSale(actor: Actor, input: MultiSaleInput, clock: Clock) {
+  return inventoryTransaction(actor, "inventory.sell", clock, async (tx, verified, now) => {
+    for (const line of input.lines) await stockAccess(tx, verified, line);
+    return command(tx, verified, "MULTI_SALE", input, () => confirmSaleCore(tx, verified, now, input.lines, { ...input, clientPrices: false, approvalInput: input }));
+  });
+}
+
+export async function paidMultiSale(actor: Actor, input: PaidMultiSaleInput, clock: Clock) {
+  return inventoryTransaction(actor, "inventory.sell", clock, async (tx, verified, now) => {
+    for (const line of input.lines) await stockAccess(tx, verified, line);
+    return command(tx, verified, "PAID_MULTI_SALE", input, () => confirmSaleCore(tx, verified, now, input.lines, { ...input, clientPrices: false, approvalInput: input, payments: input.payments }));
+  });
+}
+
 
 export async function reserve(actor: Actor, input: ReservationInput, clock: Clock) {
   return inventoryTransaction(actor, "inventory.reserve", clock, async (tx, verified, now) => {
