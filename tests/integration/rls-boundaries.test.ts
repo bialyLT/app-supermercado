@@ -2,6 +2,7 @@ import { afterAll, describe, expect, it } from "vitest";
 import { admin, runtime, enabled, fixture, clock, addActor } from "./fixtures";
 import { recordReceipt, confirmPaidMultiLineSale, confirmSale, reserveStock, reviewUnverifiedIntake } from "../../src/server/inventory";
 import { recordCashMovement } from "../../src/server/cash";
+import { reverseSale } from "../../src/server/reversal";
 import { setSupervisorPin, approveInventorySale } from "../../src/server/supervisor";
 
 async function populatedFixture() {
@@ -22,6 +23,9 @@ async function populatedFixture() {
   await setSupervisorPin(supervisor, { pin: "963852" }, clock);
   await approveInventorySale(f.actor, { approverUserId: supervisor.userId, pin: "963852", reason: "Gate fixture",
     sale: { ...f.stock, quantity: "1", unitPrice: "1", idempotencyKey: "approved-gate" } }, clock);
+  const reversalSale = await confirmSale(f.actor, { ...f.stock, quantity: "1", unitPrice: "1", idempotencyKey: "reversal-gate", allowUnverifiedIntake: true }, clock);
+  const reversalLine = await admin.saleLine.findFirstOrThrow({ where: { saleId: reversalSale.id } });
+  await reverseSale(f.actor, { saleId: reversalSale.id, type: "ANNULMENT", lines: [{ saleLineId: reversalLine.id, quantity: "1" }], reason: "RLS population", idempotencyKey: "reversal-gate-reverse" }, clock);
   return f;
 }
 
@@ -75,7 +79,11 @@ afterAll(async () => { await admin.$disconnect(); await runtime.$disconnect(); }
     const f = await fixture();
     await recordReceipt(f.actor, { ...f.stock, quantity: "1", reason: "seed", idempotencyKey: "seed" }, clock);
     await recordCashMovement(f.actor, { registerSessionId: f.registerSessionId!, type: "CASH_IN", amount: "1", reason: "RLS seed", idempotencyKey: "cash-seed" }, clock);
-    for (const table of ["InventoryMovement", "AuditLog", "CashMovement"]) {
+    await recordReceipt(f.actor, { ...f.stock, quantity: "1", reason: "reversal seed", idempotencyKey: "reversal-seed" }, clock);
+    const reversalSale = await confirmSale(f.actor, { ...f.stock, quantity: "1", unitPrice: "1", idempotencyKey: "reversal-seed-sale", allowUnverifiedIntake: false }, clock);
+    const reversalLine = await admin.saleLine.findFirstOrThrow({ where: { saleId: reversalSale.id } });
+    await reverseSale(f.actor, { saleId: reversalSale.id, type: "ANNULMENT", lines: [{ saleLineId: reversalLine.id, quantity: "1" }], reason: "RLS reversal seed", idempotencyKey: "reversal-seed-reverse" }, clock);
+    for (const table of ["InventoryMovement", "AuditLog", "CashMovement", "SaleReversal", "SaleReversalLine"]) {
       for (const statement of [`UPDATE "${table}" SET "tenantId" = "tenantId" WHERE "tenantId" = $1::uuid`, `DELETE FROM "${table}" WHERE "tenantId" = $1::uuid`]) {
         await expect(runtime.$transaction(async (tx) => {
           await tx.$executeRaw`SELECT set_config('app.tenant_id', ${f.tenantId}, true)`;

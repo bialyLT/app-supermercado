@@ -34,6 +34,8 @@ model Tenant {
   registerSessions CashRegisterSession[]
   supervisorCredentials SupervisorCredential[]
   supervisorApprovals SupervisorApproval[]
+  reversals SaleReversal[]
+  reversalLines SaleReversalLine[]
   fiscalProfiles FiscalProfile[]
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
@@ -74,6 +76,7 @@ enum InventoryMovementType {
   TRANSFER_OUT
   ADJUSTMENT
   UNVERIFIED_INTAKE
+  RETURN
 }
 
 enum MovementDirection {
@@ -130,6 +133,7 @@ model Branch {
   users         UserBranch[]
   locations     Location[]
   registerSessions CashRegisterSession[]
+  reversals     SaleReversal[]
   createdAt     DateTime       @default(now())
   @@unique([tenantId, code])
   @@unique([tenantId, id])
@@ -169,6 +173,7 @@ model User {
   supervisorCredentials SupervisorCredential[]
   payments Payment[]
   cashMovements CashMovement[]
+  reversals SaleReversal[]
   requestedApprovals SupervisorApproval[] @relation("ApprovalRequester")
   grantedApprovals SupervisorApproval[] @relation("ApprovalApprover")
   createdAt   DateTime @default(now())
@@ -567,6 +572,7 @@ model Sale {
   scopedLines SaleLine[] @relation("ScopedSaleLine")
   payments    Payment[]
   intakeReviews UnverifiedIntakeReview[]
+  reversals SaleReversal[]
   discrepancies InventoryDiscrepancy[] @relation("ScopedDiscrepancySale")
   legacyDiscrepancies InventoryDiscrepancy[] @relation("LegacyDiscrepancySale")
   fiscalSnapshot Json?
@@ -586,6 +592,7 @@ model SaleLine {
   scopedSale  Sale @relation("ScopedSaleLine", fields: [tenantId, saleId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction, map: "SaleLine_tenant_sale_fkey")
   variant     ProductVariant @relation(fields: [tenantId, variantId], references: [tenantId, id])
   intakeReviews UnverifiedIntakeReview[]
+  reversalLines SaleReversalLine[]
   discrepancies InventoryDiscrepancy[] @relation("ScopedDiscrepancyLine")
   legacyDiscrepancies InventoryDiscrepancy[] @relation("LegacyDiscrepancyLine")
   @@unique([tenantId, id])
@@ -630,6 +637,7 @@ model CashRegisterSession {
   cashier User @relation("SessionCashier", fields: [tenantId, userId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction)
   closer User? @relation("SessionCloser", fields: [tenantId, closedBy], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction)
   sales Sale[]
+  reversals SaleReversal[]
   payments Payment[]
   movements InventoryMovement[]
   intakeReviews UnverifiedIntakeReview[]
@@ -683,6 +691,15 @@ enum PaymentMethod {
   WALLET
 }
 
+enum SaleReversalType {
+  ANNULMENT
+  RETURN
+}
+
+enum SaleReversalStatus {
+  COMPLETED
+}
+
 model CashMovement {
   id String @id @default(uuid()) @db.Uuid
   tenantId String @db.Uuid
@@ -699,6 +716,48 @@ model CashMovement {
   actor User @relation(fields: [tenantId, actorUserId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction)
   @@unique([tenantId, id])
   @@index([tenantId, registerSessionId, createdAt])
+}
+
+model SaleReversal {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid
+  saleId String @db.Uuid
+  branchId String @db.Uuid
+  registerSessionId String @db.Uuid
+  type SaleReversalType
+  status SaleReversalStatus @default(COMPLETED)
+  actorUserId String @db.Uuid
+  reason String
+  idempotencyKey String
+  total Decimal @db.Decimal(22,4)
+  currency String
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  sale Sale @relation(fields: [tenantId, saleId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction)
+  branch Branch @relation(fields: [tenantId, branchId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction)
+  registerSession CashRegisterSession @relation(fields: [tenantId, registerSessionId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction)
+  actor User @relation(fields: [tenantId, actorUserId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction)
+  lines SaleReversalLine[]
+  @@unique([tenantId, id])
+  @@unique([tenantId, idempotencyKey])
+  @@index([tenantId, saleId])
+}
+
+model SaleReversalLine {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid
+  reversalId String @db.Uuid
+  saleLineId String @db.Uuid
+  quantity Decimal @db.Decimal(18,6)
+  unitPrice Decimal @db.Decimal(22,4)
+  total Decimal @db.Decimal(22,4)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  reversal SaleReversal @relation(fields: [tenantId, reversalId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction)
+  saleLine SaleLine @relation(fields: [tenantId, saleLineId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction)
+  @@unique([tenantId, id])
+  @@unique([tenantId, reversalId, saleLineId])
+  @@index([tenantId, saleLineId])
 }
 
 enum RoleName {
