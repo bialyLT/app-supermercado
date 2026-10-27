@@ -12,15 +12,18 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_DB: supermercado
+          POSTGRES_DB: supermercado_gate
           POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
+          POSTGRES_HOST_AUTH_METHOD: trust
         ports: ["5432:5432"]
         options: >-
-          --health-cmd="pg_isready -U postgres -d supermercado"
+          --health-cmd="pg_isready -U postgres -d supermercado_gate"
           --health-interval=10s --health-timeout=5s --health-retries=5
     env:
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/supermercado?schema=public
+      DATABASE_URL: postgresql://supermercado_gate_runtime@localhost:5432/supermercado_gate
+      AUTH_DATABASE_URL: postgresql://supermercado_gate_auth@localhost:5432/supermercado_gate
+      TEST_DATABASE_URL: postgresql://postgres@localhost:5432/supermercado_gate
+      MIGRATION_DATABASE_URL: postgresql://postgres@localhost:5432/supermercado_gate
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -31,10 +34,12 @@ jobs:
       - run: npm run db:generate
       - run: npm run db:validate
       - run: npm run db:migrate
+      - run: npm run test:db:setup
       - run: npm run typecheck
       - run: npm run lint
       - run: npm test
       - run: npm run test:coverage
+      - run: npm run test:ledger
       - run: npm run build
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e

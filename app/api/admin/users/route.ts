@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requirePermission } from "../../../../src/auth/authorization";
 import { appendAuditLog } from "../../../../src/server/audit";
-import { prisma } from "../../../../src/server/db";
+import { createIdentityUser } from "../../../../src/server/repositories/identity";
 
 const userSchema = z.object({
   email: z.string().email().max(254),
@@ -18,32 +18,7 @@ export async function POST(request: Request) {
     const body = userSchema.parse(await request.json());
     const identity = await requirePermission("settings:write", body.branchId);
     const password = await hashPassword(body.password);
-    const user = await prisma.$transaction(async (tx) => {
-      const created = await tx.user.create({
-        data: {
-          tenantId: identity.tenantId,
-          email: body.email.toLowerCase(),
-          displayName: body.displayName,
-          name: body.displayName,
-          active: true,
-        },
-      });
-      const role = await tx.role.upsert({
-        where: { tenantId_name: { tenantId: identity.tenantId, name: body.role } },
-        update: {},
-        create: { tenantId: identity.tenantId, name: body.role },
-      });
-      await tx.userRole.create({ data: { tenantId: identity.tenantId, userId: created.id, roleId: role.id } });
-      if (body.branchId) {
-        await tx.userBranch.create({
-          data: { tenantId: identity.tenantId, userId: created.id, branchId: body.branchId },
-        });
-      }
-      await tx.account.create({
-        data: { id: crypto.randomUUID(), accountId: created.email, providerId: "credential", userId: created.id, password },
-      });
-      return created;
-    });
+    const user = await createIdentityUser(identity, body, password);
     await appendAuditLog({
       tenantId: identity.tenantId,
       actorUserId: identity.userId,
@@ -61,6 +36,9 @@ export async function POST(request: Request) {
     }
     if (error instanceof Error && error.message === "FORBIDDEN") {
       return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+    }
+    if (error instanceof Error && error.message === "NOT_FOUND") {
+      return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
     }
     return NextResponse.json({ error: "REQUEST_FAILED" }, { status: 400 });
   }

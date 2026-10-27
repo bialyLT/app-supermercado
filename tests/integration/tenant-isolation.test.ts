@@ -2,7 +2,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient, RoleName } from "@prisma/client";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-const databaseUrl = process.env.DATABASE_URL;
+const databaseUrl = process.env.TEST_DATABASE_URL;
 const describeDatabase = databaseUrl ? describe : describe.skip;
 const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: databaseUrl ?? "" }),
@@ -15,15 +15,7 @@ describeDatabase("PostgreSQL tenant isolation constraints", () => {
   });
 
   afterAll(async () => {
-    // Test teardown uses TRUNCATE, which bypasses row-level mutation triggers.
-    await prisma.$executeRaw`TRUNCATE TABLE "AuditLog" CASCADE`;
-    await prisma.userRole.deleteMany({ where: { tenantId: { in: ids } } });
-    await prisma.cashRegister.deleteMany({ where: { tenantId: { in: ids } } });
-    await prisma.branch.deleteMany({ where: { tenantId: { in: ids } } });
-    await prisma.store.deleteMany({ where: { tenantId: { in: ids } } });
-    await prisma.user.deleteMany({ where: { tenantId: { in: ids } } });
-    await prisma.role.deleteMany({ where: { tenantId: { in: ids } } });
-    await prisma.tenant.deleteMany({ where: { id: { in: ids } } });
+    // Fixtures live only in the disposable gate database. Never TRUNCATE shared data.
     await prisma.$disconnect();
   });
 
