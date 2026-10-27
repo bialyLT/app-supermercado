@@ -1,7 +1,7 @@
 import Decimal from "decimal.js";
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { httpStatus, InventoryError, quantitySchema, reviewSchema } from "../src/domain/inventory";
+import { httpStatus, InventoryError, multiSaleSchema, quantitySchema, reviewSchema } from "../src/domain/inventory";
 import { parseWeighedEan13 } from "../src/domain/ean13";
 import { selectFefoLots } from "../src/domain/fefo";
 
@@ -29,6 +29,17 @@ describe("inventory contracts and decimal properties", () => {
       expect(parseWeighedEan13(raw, config).amount?.toFixed(2)).toBe(new Decimal(value.toString()).div("100").toFixed(2));
       expect(() => parseWeighedEan13(raw, { ...config, valueDigits: 20 })).toThrow("INVALID_EAN13_LAYOUT");
     }), { numRuns: 200, seed: 20261026 });
+  });
+
+  it("rejects multiline sales with duplicate variants or different locations", () => {
+    const line = { locationId: "123e4567-e89b-42d3-a456-426614174000", variantId: "123e4567-e89b-42d3-a456-426614174001", quantity: "1" };
+    expect(multiSaleSchema.safeParse({ lines: [line, line], idempotencyKey: "sale" }).success).toBe(false);
+    expect(multiSaleSchema.safeParse({ lines: [line, { ...line, variantId: "123e4567-e89b-42d3-a456-426614174002", locationId: "123e4567-e89b-42d3-a456-426614174003" }], idempotencyKey: "sale" }).success).toBe(false);
+  });
+
+  it("normalizes multiline commands without trusting client prices", () => {
+    const parsed = multiSaleSchema.parse({ lines: [{ locationId: "123e4567-e89b-42d3-a456-426614174000", variantId: "123e4567-e89b-42d3-a456-426614174001", quantity: "1", unitPrice: "999.999" }], idempotencyKey: "sale" });
+    expect(parsed.lines[0].unitPrice).toBe("999.999");
   });
 
   it("requires complete review decisions", () => {

@@ -14,16 +14,29 @@ const stock = {
   quantity: quantitySchema, idempotencyKey: key,
 };
 export const receiptSchema = z.object({ ...stock, reason: z.string().trim().min(1).max(500) }).strict();
-export const saleSchema = z.object({
-  ...stock,
-  unitPrice: z.string().regex(/^\d{1,18}(\.\d{1,4})?$/).transform((value) => {
-    const decimal = new Decimal(value);
-    return decimal.decimalPlaces() <= 2 ? decimal.toFixed(2) : decimal.toString();
-  }),
+const priceSchema = z.string().regex(/^\d{1,18}(\.\d{1,4})?$/).transform((value) => {
+  const decimal = new Decimal(value);
+  return decimal.decimalPlaces() <= 2 ? decimal.toFixed(2) : decimal.toString();
+});
+const saleOptions = {
   reason: z.string().trim().min(1).max(500).optional(),
   allowUnverifiedIntake: z.boolean().default(false),
   approvalToken: z.string().regex(/^[a-f0-9]{64}$/).optional(),
-}).strict();
+};
+export const saleSchema = z.object({ ...stock, unitPrice: priceSchema, ...saleOptions }).strict();
+const multiSaleLineSchema = z.object({ locationId: stock.locationId, variantId: stock.variantId, lotId: stock.lotId,
+  quantity: stock.quantity, unitPrice: priceSchema.optional(), reason: saleOptions.reason }).strict();
+export const multiSaleSchema = z.object({
+  lines: z.array(multiSaleLineSchema).min(1).max(100),
+  allowUnverifiedIntake: z.boolean().default(false),
+  approvalToken: saleOptions.approvalToken,
+  idempotencyKey: key,
+}).strict().superRefine((value, context) => {
+  const locations = new Set(value.lines.map((line) => line.locationId));
+  if (locations.size !== 1) context.addIssue({ code: "custom", message: "SAME_LOCATION_REQUIRED", path: ["lines"] });
+  const variants = new Set(value.lines.map((line) => `${line.locationId}:${line.variantId}`));
+  if (variants.size !== value.lines.length) context.addIssue({ code: "custom", message: "DUPLICATE_VARIANT_LINE", path: ["lines"] });
+});
 export const reservationSchema = z.object({ ...stock, referenceId: z.string().max(128).optional() }).strict();
 export const releaseSchema = z.object({ reservationId: z.string().uuid(), idempotencyKey: key }).strict();
 export const reviewSchema = z.object({
@@ -40,6 +53,7 @@ export const reviewSchema = z.object({
 });
 export type Receipt = z.output<typeof receiptSchema>;
 export type SaleInput = z.output<typeof saleSchema>;
+export type MultiSaleInput = z.output<typeof multiSaleSchema>;
 export type ReservationInput = z.output<typeof reservationSchema>;
 export type ReviewInput = z.output<typeof reviewSchema>;
 
