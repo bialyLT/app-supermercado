@@ -185,7 +185,7 @@ async function confirmSaleCore(tx: Tx, verified: Actor, now: Date, lines: SaleCo
     if (line.lotId && lots[0]?.expiresAt && lots[0].expiresAt <= now && !approval) throw new InventoryError("EXPIRED_LOT");
     const levels = await tx.inventoryLevel.findMany({ where: { tenantId: verified.tenantId, locationId: line.locationId, variantId: line.variantId,
       ...(line.lotId ? { lotId: line.lotId } : {}) } });
-    const usable = levels.filter((stock) => !stock.lotId || lots.some((lot) => lot.id === stock.lotId && (!lot.expiresAt || lot.expiresAt > now)));
+    const usable = levels.filter((stock) => !stock.lotId || lots.some((lot) => lot.id === stock.lotId && (approval || !lot.expiresAt || lot.expiresAt > now)));
     const available = usable.reduce((sum, stock) => sum.plus(stock.onHand.minus(stock.reserved).toString()), new Decimal(0));
     const requested = new Decimal(line.quantity);
     const shortage = Decimal.max(0, requested.minus(available));

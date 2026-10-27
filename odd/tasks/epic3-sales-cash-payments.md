@@ -20,3 +20,4 @@ L1. Usuario: «ok, despues continua con ventas, caja y pagos».
 L2. Usuario confirmó medios manuales combinables: efectivo, transferencias, tarjetas y billeteras; pago completo al confirmar, sin fiado.
 L3. Exploración: `confirmSale` y `sale` actuales son single-line dentro de `inventoryTransaction`; extraer core parametrizado para no duplicar stock/FEFO/intake/idempotencia.
 L4. No se implementarán tasas fiscales, ARCA, PSP, UI POS ni offline en esta épica backend.
+L5. Verificador independiente encontró blocker en W1: el predicado `usable` omitía la aprobación para lotes vencidos y una venta aprobada sin intake devolvía `INSUFFICIENT_STOCK`. Corrección bounded aplicada solo en `src/server/repositories/inventory.ts`; regresión en `tests/integration/supervisor-closure.test.ts` pasó de RED (11/12) a GREEN junto con multiline (15/15), preservando consumo atómico de aprobación y reconciliación sin cambios de pagos/caja.
