@@ -1,11 +1,10 @@
 import { betterAuth } from "better-auth";
-import { prismaAdapter } from "@better-auth/prisma-adapter";
-import { env } from "../config/env";
-import { prisma } from "../server/db";
+import { env, authSecret } from "../config/env";
+import { authDatabaseAdapter } from "../server/repositories/identity";
 
-export const auth = betterAuth({
-  database: prismaAdapter(prisma, { provider: "postgresql", transaction: true }),
-  secret: env.BETTER_AUTH_SECRET,
+function createAuth() { return betterAuth({
+  database: authDatabaseAdapter(),
+  secret: authSecret(),
   baseURL: env.BETTER_AUTH_URL,
   emailAndPassword: {
     enabled: true,
@@ -26,4 +25,7 @@ export const auth = betterAuth({
       secure: env.NODE_ENV === "production",
     },
   },
-});
+}); }
+
+let instance: ReturnType<typeof createAuth> | undefined;
+export function getAuth() { return instance ??= createAuth(); }

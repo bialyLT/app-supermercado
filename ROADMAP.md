@@ -1,6 +1,16 @@
 # Roadmap operativo
 
-**Estado:** Épicas 0 y 1 cerradas; Épica 2 en ejecución
+**Estado:** Épicas 0 y 1 cerradas; cierre técnico de Épica 2 entregado para
+aceptación del orquestador. Épica 3 iniciada: perfil tributario argentino por
+razón social y snapshot de ticket interno implementados; ventas/pagos/arqueos
+completos todavía no entregados.
+**Reglas vinculantes:** `AGENTS.md`, `DOMAIN_RULES.md`, `DECISIONS.md`,
+`GATES.md`.
+
+**Verificación final (2026-10-26):** 111/111 tests, 5/5 E2E,
+20/20 rondas de 20 ventas concurrentes, ledger con 0 divergencias y RLS en
+27/27 tablas con `tenantId`. Sesiones mínimas, step-up, topes de valor y alertas
+del cierre implementados; ver `.github/web-dev-loop/reports/epica-2-closure.md`.
 
 ## Ola y gates
 
@@ -13,106 +23,95 @@
 
 La base de datos, el servidor y el navegador se serializan. Todo tester que
 arregle código deja primero una reproducción fallida y luego re-ejecuta las
-baterías afectadas.
+baterías afectadas. Los gates y su umbral viven en `GATES.md`.
 
-## Épica 0 — Fundación y decisiones
+## Cambio de orden respecto de la versión anterior
 
-- **Objetivo:** convertir requisitos en scaffold ejecutable y contratos.
-- **Entregables:** arquitectura, ADRs, Next.js/TypeScript, Prisma/PostgreSQL,
-  Zod/env, Docker, CI base, registry de testing y briefs.
-- **Gates:** instalación limpia, typecheck, lint, tests mínimos y migración
-  desde cero.
-- **Fuera:** ventas reales, pagos y despliegue productivo.
+Se separó el backend de ventas, caja y pagos de la interfaz POS y se movió
+antes de ella. Motivo: no se puede construir ni probar un POS offline sin una
+venta, una sesión de caja y un pago con contrato servidor definido; y
+"Sales" (tickets, devoluciones, anulaciones, numeración) no pertenecía a
+ninguna épica anterior.
 
-## Épica 1 — Identity, RBAC y auditoría
+## Épica 0 — Fundación y decisiones (cerrada)
 
-- **Objetivo:** proteger tenant, sucursal y operaciones sensibles.
-- **Entregables:** usuarios, roles, sesiones, permisos, audit log y rate limit.
-- **Criterios:** una solicitud sin permiso falla server-side; cada cambio
-  sensible deja actor, terminal, timestamp y valores relevantes.
-- **Decisión:** Better Auth como proveedor de autenticación.
+Scaffold Next.js/TypeScript, Prisma/PostgreSQL, Zod/env, Docker, CI base,
+registry de testing y briefs.
 
-## Épica 2 — Catálogo, precios e inventario
+## Épica 1 — Identity, RBAC y auditoría (cerrada)
+
+Better Auth, roles, sesiones, permisos, audit log y rate limit.
+
+## Épica 2 — Catálogo, precios e inventario (cierre técnico entregado)
 
 - **Objetivo:** catálogo extensible y Kardex concurrente.
-- **Entregables:** variantes, códigos pesables, lotes, vencimientos,
-  ubicaciones, recepciones, reservas, movimientos y ajustes autorizados.
-- **Criterios:** ninguna venta puede producir stock negativo sin regla explícita;
-  dos operaciones concurrentes no pierden movimientos.
-- **Política aprobada:** `UNVERIFIED_INTAKE` atómico cuando el producto físico
-  llegó a caja pero la recepción administrativa está atrasada; queda pendiente
-  de validación y auditado.
+- **Entregables:** variantes, códigos de barras y pesables, lotes,
+  vencimientos, ubicaciones, recepciones, reservas, movimientos, ajustes
+  autorizados y `UNVERIFIED_INTAKE` con su ciclo de revisión.
+- **Criterios de salida:** stock nunca negativo; concurrencia sin pérdida de
+  movimientos; reconciliación ledger/level en cero divergencias; RLS o
+  equivalente decidido (D-004) y probado; aislamiento por tenant en todas las
+  tablas nuevas.
+- **Fuera:** UI POS, pagos, caja, promociones complejas, compras.
 
-## Épica 3 — POS keyboard-first y offline
+Se adelantó únicamente el ciclo mínimo de sesión de caja y step-up necesario
+para controlar inventario, autorizado en `epica-2-closure.md`. No implica
+entrega de movimientos de caja, pagos, arqueo ni contratos fiscales de Épica 3.
+
+## Épica 3 — Ventas, caja y pagos (backend)
+
+- **Objetivo:** que una venta sea un hecho íntegro, auditable y cobrable, sin
+  UI final.
+- **Entregables:** `sale`, `sale_line` con snapshots, `payment` y medios de
+  pago, sesiones de caja con apertura/ingresos/retiros/cierre ciego,
+  anulaciones y devoluciones como documentos nuevos, numeración correlativa,
+  override de supervisor (D-012), reportes de cierre.
+- **Prerrequisitos:** D-006, D-007 y alcance inicial de D-009 aprobados.
+- **Primer avance:** perfiles MONOTRIBUTO/RESPONSABLE_INSCRIPTO por razón
+  social compartidos por sucursales, contexto histórico protegido y ticket
+  interno. Informe: `.github/web-dev-loop/reports/epica-3-tax-profiles.md`.
+- **Criterios:** sin venta sin sesión abierta; una sesión no se cierra dos
+  veces; la diferencia de arqueo queda explicada y auditada; venta confirmada
+  inmutable; el servidor recalcula todo total.
+
+## Épica 4 — POS keyboard-first y offline
 
 - **Objetivo:** cobrar con teclado/escáner y tolerar microcortes.
-- **Entregables:** búsqueda, atajos, lector, carrito, cola local, reintentos,
-  idempotencia y responsive.
-- **Criterios:** flujo principal sin mouse; targets móviles >=44px; comandos
-  duplicados no duplican ventas.
+- **Entregables:** búsqueda, atajos F1–F12, lector, carrito, cola local en
+  IndexedDB, reintentos, idempotencia (D-014), sincronización con conflictos
+  marcados (no descartados), responsive.
+- **Prerrequisitos:** D-008 resuelta.
+- **Criterios:** flujo principal sin mouse; targets táctiles ≥ 44 px; comandos
+  duplicados no duplican ventas; una venta offline nunca se pierde ni se
+  rechaza por stock/precio distinto (se marca para revisión).
 
-## Épica 4 — Caja, pagos y arqueos
+## Épica 5 — Fiscalidad, hardware y promociones
 
-- **Objetivo:** controlar apertura, movimientos, pagos y cierre ciego.
-- **Entregables:** sesiones, ingresos/retiros, medios de pago, diferencias,
-  autorización de supervisor y reporte.
-- **Criterios:** no se cierra dos veces; diferencia queda explicada y auditada.
+- **Objetivo:** cumplir obligaciones fiscales y conectar periféricos.
+- **Entregables:** documentos fiscales según D-009, impresión de ticket,
+  balanza/códigos pesables en producción, promociones server-side explicables.
+- **Criterios:** cada línea guarda la regla que produjo su precio; el flujo
+  fiscal tiene plan definido para modo sin conexión.
 
-## Épica 5 — Escala, reportes y despliegue
+## Épica 6 — Escala, reportes y despliegue
 
 - **Objetivo:** operar múltiples sucursales y publicar con seguridad.
-- **Entregables:** compras, transferencias, reportes, observabilidad, backups,
-  CI/CD, staging, producción, rollback y runbook.
-- **Criterios:** release reproducible, migración reversible cuando sea posible,
-  backup restaurable probado y health checks.
+- **Entregables:** compras, transferencias entre sucursales, reportes,
+  observabilidad (logs estructurados con `correlation_id`, health checks,
+  métricas), backups, CI/CD, staging, producción, rollback y runbook.
+- **Prerrequisito:** D-010.
+- **Criterios:** release reproducible; migración reversible cuando sea
+  posible; **restauración de backup probada y cronometrada**; prueba de carga
+  con números; revisión OWASP final.
 
-## Sprint 1 — listo para ejecutar
+## Plantilla de cierre de cualquier épica
 
-### Objetivo
-
-Crear la base ejecutable sin inventar dominio innecesario: scaffold, entorno,
-contratos, tenant/sucursal/caja, RBAC mínimo, auditoría y gates.
-
-### Criterios Gherkin
-
-```gherkin
-Given una base vacía
-When ejecuto la migración inicial
-Then el esquema se crea desde cero sin pasos manuales
-
-Given un usuario sin permiso de administración
-When intenta modificar una configuración sensible
-Then el servidor rechaza la operación y registra el intento
-
-Given dos tenants distintos
-When consultan sus recursos
-Then cada uno solo recibe datos de su tenant
-
-Given una operación sensible autorizada
-When se confirma el cambio
-Then existe un audit log con actor, acción, timestamp y valores
-```
-
-### Entregables
-
-- `package.json`, TypeScript strict y scripts documentados.
-- Prisma schema y migración inicial.
-- Configuración Zod de entorno.
-- Tenant, store, branch, cash register, user, role y audit log.
-- Tests unitarios/integración de invariantes.
-- Playwright smoke mínimo y pipeline de calidad.
-- Briefs e informes de cada ola.
-
-### Definition of Done
-
-No hay secretos, `any`, migración manual, gate sin número ni permiso confiado
-solo a la UI. El árbol final queda sin cambios no explicados; el orquestador
-decide el commit solo después del gate.
+1. Todos los gates de `GATES.md` con números.
+2. Informe en `.github/web-dev-loop/reports/`.
+3. `DECISIONS.md` actualizado.
+4. `ROADMAP.md` con el nuevo estado.
+5. Árbol sin cambios sin explicar; el orquestador decide el commit.
 
 ## Decisiones pendientes
 
-1. Proveedor de despliegue y región.
-2. Proveedor de autenticación o implementación propia.
-3. Requisitos fiscales y hardware de impresión/escáner.
-4. Política exacta de operación offline y resolución de conflictos.
-5. Herramienta de memoria persistente compatible con el entorno.
+Ver `DECISIONS.md`. No se mantiene lista duplicada aquí.

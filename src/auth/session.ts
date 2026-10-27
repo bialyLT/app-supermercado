@@ -1,19 +1,24 @@
 import { headers } from "next/headers";
-import { auth } from "./config";
-import { prisma } from "../server/db";
+import { getAuth } from "./config";
+import { findIdentity } from "../server/repositories/identity";
+import { inventoryPermissions } from "../server/repositories/inventory";
+import type { Actor } from "../domain/actor";
+
+async function serverContext() {
+  const session = await getAuth().api.getSession({ headers: await headers() });
+  if (!session?.user) return null;
+  const identity = await findIdentity(session.user.id);
+  return identity ? { ...identity, sessionId: session.session.id } : null;
+}
 
 export async function getServerIdentity() {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session?.user) return null;
-  const user = await prisma.user.findFirst({
-    where: { id: session.user.id, active: true },
-    include: { roles: { include: { role: true } }, branches: true },
-  });
-  if (!user) return null;
-  return {
-    userId: user.id,
-    tenantId: user.tenantId,
-    roles: user.roles.map(({ role }) => role.name),
-    branchIds: user.branches.map(({ branchId }) => branchId),
-  };
+  const context = await serverContext();
+  return context ? { userId: context.userId, tenantId: context.tenantId, roles: context.roles, branchIds: context.branchIds } : null;
+}
+
+export async function getServerActor(): Promise<Actor> {
+  const identity = await serverContext();
+  const role = identity?.roles[0];
+  if (!identity || !role) throw new Error("UNAUTHENTICATED");
+  return { ...identity, role, permissions: [...new Set(identity.roles.flatMap((value) => inventoryPermissions[value]))] };
 }

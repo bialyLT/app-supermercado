@@ -12,6 +12,9 @@
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "test:db:setup": "node scripts/provision-gate-db.mjs",
+    "test:concurrency": "node scripts/run-concurrency.mjs",
+    "test:ledger": "node scripts/check-ledger.mjs",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate deploy",
     "db:validate": "prisma validate"
@@ -21,6 +24,7 @@
     "@prisma/adapter-pg": "7.10.1",
     "@prisma/client": "7.10.1",
     "better-auth": "^1.7.13",
+    "decimal.js": "10.4.3",
     "dotenv": "18.0.9",
     "next": "16.4.3",
     "pg": "8.23.1",
@@ -37,6 +41,7 @@
     "@vitest/coverage-v8": "5.0.5",
     "eslint": "^9.37.0",
     "eslint-config-next": "16.4.3",
+    "fast-check": "^4.10.2",
     "prisma": "7.10.1",
     "typescript": "^5.9.3",
     "vitest": "5.0.5"

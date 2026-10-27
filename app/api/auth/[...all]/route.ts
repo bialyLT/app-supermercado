@@ -1,13 +1,15 @@
 import { toNextJsHandler } from "better-auth/next-js";
-import { auth } from "../../../../src/auth/config";
+import { getAuth } from "../../../../src/auth/config";
 import { checkRateLimit } from "../../../../src/server/rate-limit";
 import { getServerIdentity } from "../../../../src/auth/session";
 import { appendAuditLog } from "../../../../src/server/audit";
 
-const handler = toNextJsHandler(auth);
-
-export const GET = handler.GET;
+export async function GET(request: Request) {
+  return toNextJsHandler(getAuth()).GET(request);
+}
 export async function POST(request: Request) {
+  const auth = getAuth();
+  const handler = toNextJsHandler(auth);
   const pathname = new URL(request.url).pathname;
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
   if (pathname.endsWith("/sign-in/email")) {

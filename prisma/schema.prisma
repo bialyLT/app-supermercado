@@ -26,6 +26,13 @@ model Tenant {
   reservations Reservation[]
   unverifiedIntakes UnverifiedIntakeReview[]
   sales Sale[]
+  idempotencyCommands IdempotencyCommand[]
+  intakePolicy UnverifiedIntakePolicy?
+  discrepancies InventoryDiscrepancy[]
+  registerSessions CashRegisterSession[]
+  supervisorCredentials SupervisorCredential[]
+  supervisorApprovals SupervisorApproval[]
+  fiscalProfiles FiscalProfile[]
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
 }
@@ -81,9 +88,21 @@ enum ReservationStatus {
 
 enum ReviewStatus {
   PENDING
+  PENDING_REVIEW
   CONFIRMED
   CORRECTED
   REJECTED
+}
+
+enum IntakePolicyMode {
+  DISABLED
+  ALLOW_WITH_CAPS
+  REQUIRE_SUPERVISOR
+}
+
+enum FiscalCondition {
+  MONOTRIBUTO
+  RESPONSABLE_INSCRIPTO
 }
 
 model Store {
@@ -92,6 +111,7 @@ model Store {
   name      String
   tenant    Tenant         @relation(fields: [tenantId], references: [id])
   branches  Branch[]
+  fiscalProfiles FiscalProfile[]
   createdAt DateTime       @default(now())
   @@unique([tenantId, id])
   @@index([tenantId])
@@ -106,6 +126,8 @@ model Branch {
   store         Store          @relation(fields: [tenantId, storeId], references: [tenantId, id])
   cashRegisters CashRegister[]
   users         UserBranch[]
+  locations     Location[]
+  registerSessions CashRegisterSession[]
   createdAt     DateTime       @default(now())
   @@unique([tenantId, code])
   @@unique([tenantId, id])
@@ -118,6 +140,7 @@ model CashRegister {
   branchId  String   @db.Uuid
   name      String
   branch    Branch   @relation(fields: [tenantId, branchId], references: [tenantId, id])
+  registerSessions CashRegisterSession[]
   createdAt DateTime @default(now())
   @@unique([branchId, name])
   @@unique([tenantId, id])
@@ -139,6 +162,11 @@ model User {
   accounts    Account[]
   sessions    Session[]
   branches    UserBranch[]
+  registerSessions CashRegisterSession[] @relation("SessionCashier")
+  closedRegisterSessions CashRegisterSession[] @relation("SessionCloser")
+  supervisorCredentials SupervisorCredential[]
+  requestedApprovals SupervisorApproval[] @relation("ApprovalRequester")
+  grantedApprovals SupervisorApproval[] @relation("ApprovalApprover")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   @@unique([tenantId, email])
@@ -230,6 +258,7 @@ model AuditLog {
   previousValue Json?
   newValue      Json?
   ipAddress     String?
+  correlationId String?
   createdAt     DateTime @default(now())
   tenant        Tenant   @relation(fields: [tenantId], references: [id])
   actor         User?    @relation(fields: [tenantId, actorUserId], references: [tenantId, id])
@@ -276,6 +305,7 @@ model ProductVariant {
   name        String
   attributes  Json?
   active      Boolean  @default(true)
+  quantityPrecision Int @default(0)
   tenant      Tenant   @relation(fields: [tenantId], references: [id])
   product     Product  @relation(fields: [tenantId, productId], references: [tenantId, id])
   unit        UnitOfMeasure @relation(fields: [tenantId, unitId], references: [tenantId, id])
@@ -285,6 +315,8 @@ model ProductVariant {
   inventoryMovements InventoryMovement[]
   reservations Reservation[]
   saleLines   SaleLine[]
+  lots        Lot[]
+  intakeReviews UnverifiedIntakeReview[]
   @@unique([tenantId, sku])
   @@unique([tenantId, id])
   @@index([tenantId, productId])
@@ -309,7 +341,8 @@ model Price {
   variantId String   @db.Uuid
   branchId  String?  @db.Uuid
   channel   PriceChannel @default(RETAIL)
-  amount    Decimal  @db.Decimal(18, 2)
+  amount    Decimal  @db.Decimal(22, 4)
+  currency  String?
   validFrom DateTime
   validTo   DateTime?
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
@@ -325,10 +358,13 @@ model Location {
   name      String
   type      LocationType @default(STORE)
   active    Boolean  @default(true)
+  timeZone  String   @default("America/Argentina/Buenos_Aires")
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
   levels    InventoryLevel[]
   movements InventoryMovement[]
   reservations Reservation[]
+  branch    Branch? @relation(fields: [tenantId, branchId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction, map: "Location_tenant_branch_fkey")
+  intakeReviews UnverifiedIntakeReview[]
   @@unique([tenantId, code])
   @@unique([tenantId, id])
   @@index([tenantId, branchId])
@@ -341,6 +377,7 @@ model Lot {
   lotNumber   String
   expiresAt   DateTime?
   tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  variant     ProductVariant @relation(fields: [tenantId, variantId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction, map: "Lot_tenant_variant_fkey")
   levels      InventoryLevel[]
   movements   InventoryMovement[]
   reservations Reservation[]
@@ -381,12 +418,18 @@ model InventoryMovement {
   reason      String?
   actorUserId String?  @db.Uuid
   createdAt   DateTime @default(now())
+  idempotencyKey String?
+  caseId      String? @db.Uuid
+  registerSessionId String? @db.Uuid
+  registerSession CashRegisterSession? @relation(fields: [tenantId, registerSessionId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction)
+  intakeCase  UnverifiedIntakeReview? @relation(fields: [tenantId, caseId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction, map: "Movement_tenant_case_fkey")
   tenant      Tenant   @relation(fields: [tenantId], references: [id])
   location    Location @relation(fields: [tenantId, locationId], references: [tenantId, id])
   variant     ProductVariant @relation(fields: [tenantId, variantId], references: [tenantId, id])
   lot         Lot?     @relation(fields: [tenantId, lotId], references: [tenantId, id])
   level       InventoryLevel? @relation(fields: [tenantId, locationId, variantId, lotId], references: [tenantId, locationId, variantId, lotId])
   @@index([tenantId, variantId, locationId, createdAt])
+  @@unique([tenantId, idempotencyKey])
 }
 
 model Reservation {
@@ -416,14 +459,93 @@ model UnverifiedIntakeReview {
   lotId       String?  @db.Uuid
   quantity    Decimal  @db.Decimal(18, 6)
   reason      String
-  status      ReviewStatus @default(PENDING)
+  status      ReviewStatus @default(PENDING_REVIEW)
+  saleId      String? @db.Uuid
+  saleLineId  String? @db.Uuid
+  sessionId   String?
+  registerSessionId String? @db.Uuid
+  intakeValue Decimal? @db.Decimal(22, 4)
+  currency String?
+  registerSession CashRegisterSession? @relation(fields: [tenantId, registerSessionId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction)
+  businessDay String?
   correctionQuantity Decimal? @db.Decimal(18, 6)
   reviewedBy  String?  @db.Uuid
   reviewedAt  DateTime?
   createdBy   String?  @db.Uuid
   createdAt   DateTime @default(now())
+  provider    String @default("UNKNOWN")
+  costStatus  String @default("UNKNOWN")
   tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  location    Location @relation(fields: [tenantId, locationId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction, map: "Intake_tenant_location_fkey")
+  variant     ProductVariant @relation(fields: [tenantId, variantId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction, map: "Intake_tenant_variant_fkey")
+  sale        Sale? @relation(fields: [tenantId, saleId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction, map: "Intake_tenant_sale_fkey")
+  saleLine    SaleLine? @relation(fields: [tenantId, saleLineId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction, map: "Intake_tenant_line_fkey")
+  discrepancies InventoryDiscrepancy[] @relation("ScopedDiscrepancyReview")
+  legacyDiscrepancies InventoryDiscrepancy[] @relation("LegacyDiscrepancyReview")
+  movements InventoryMovement[]
+  @@unique([tenantId, id])
   @@index([tenantId, status])
+}
+
+model UnverifiedIntakePolicy {
+  tenantId              String @id @db.Uuid
+  mode                  IntakePolicyMode @default(ALLOW_WITH_CAPS)
+  maxLineQuantity       Decimal @default(10) @db.Decimal(18, 3)
+  maxSessionQuantity    Decimal @default(30) @db.Decimal(18, 3)
+  maxVariantDailyQuantity Decimal @default(20) @db.Decimal(18, 3)
+  currency              String?
+  maxSessionValue       Decimal? @db.Decimal(22, 4)
+  reviewAfterDays       Int @default(7)
+  tenant                Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model FiscalProfile {
+  id            String   @id @default(uuid()) @db.Uuid
+  tenantId      String   @db.Uuid
+  storeId       String   @db.Uuid
+  country       String
+  condition     FiscalCondition
+  internalTicket Boolean
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  store         Store    @relation(fields: [tenantId, storeId], references: [tenantId, id])
+  @@unique([tenantId, storeId])
+  @@index([tenantId])
+}
+
+model IdempotencyCommand {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId     String   @db.Uuid
+  commandId    String
+  payloadHash  String
+  resultType   String
+  resultId     String
+  result       Json?
+  createdAt    DateTime @default(now())
+  tenant      Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  @@unique([tenantId, commandId])
+}
+
+model InventoryDiscrepancy {
+  id         String @id @default(uuid()) @db.Uuid
+  tenantId   String @db.Uuid
+  reviewId   String @unique @db.Uuid
+  saleId     String @db.Uuid
+  saleLineId String @db.Uuid
+  sessionId  String
+  registerSessionId String? @db.Uuid
+  registerSession CashRegisterSession? @relation(fields: [tenantId, registerSessionId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction)
+  reason     String
+  createdAt  DateTime @default(now()) @db.Timestamptz(3)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  review UnverifiedIntakeReview @relation("ScopedDiscrepancyReview", fields: [tenantId, reviewId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction, map: "Discrepancy_tenant_review_fkey")
+  legacyReview UnverifiedIntakeReview @relation("LegacyDiscrepancyReview", fields: [reviewId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  sale Sale @relation("ScopedDiscrepancySale", fields: [tenantId, saleId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction, map: "Discrepancy_tenant_sale_fkey")
+  legacySale Sale @relation("LegacyDiscrepancySale", fields: [saleId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  saleLine SaleLine @relation("ScopedDiscrepancyLine", fields: [tenantId, saleLineId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction, map: "Discrepancy_tenant_line_fkey")
+  legacySaleLine SaleLine @relation("LegacyDiscrepancyLine", fields: [saleLineId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  @@index([tenantId])
 }
 
 model Sale {
@@ -431,10 +553,19 @@ model Sale {
   tenantId    String   @db.Uuid
   locationId  String   @db.Uuid
   actorUserId String?  @db.Uuid
-  total       Decimal  @db.Decimal(18, 2)
+  total       Decimal  @db.Decimal(22, 4)
+  currency    String?
+  registerSessionId String? @db.Uuid
+  registerSession CashRegisterSession? @relation(fields: [tenantId, registerSessionId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction)
   createdAt   DateTime @default(now())
   tenant      Tenant   @relation(fields: [tenantId], references: [id])
   lines       SaleLine[]
+  scopedLines SaleLine[] @relation("ScopedSaleLine")
+  intakeReviews UnverifiedIntakeReview[]
+  discrepancies InventoryDiscrepancy[] @relation("ScopedDiscrepancySale")
+  legacyDiscrepancies InventoryDiscrepancy[] @relation("LegacyDiscrepancySale")
+  fiscalSnapshot Json?
+  @@unique([tenantId, id])
   @@index([tenantId, createdAt])
 }
 
@@ -444,11 +575,69 @@ model SaleLine {
   tenantId   String   @db.Uuid
   variantId   String   @db.Uuid
   quantity    Decimal  @db.Decimal(18, 6)
-  unitPrice   Decimal  @db.Decimal(18, 2)
+  unitPrice   Decimal  @db.Decimal(22, 4)
   productName String
   sale        Sale @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  scopedSale  Sale @relation("ScopedSaleLine", fields: [tenantId, saleId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction, map: "SaleLine_tenant_sale_fkey")
   variant     ProductVariant @relation(fields: [tenantId, variantId], references: [tenantId, id])
+  intakeReviews UnverifiedIntakeReview[]
+  discrepancies InventoryDiscrepancy[] @relation("ScopedDiscrepancyLine")
+  legacyDiscrepancies InventoryDiscrepancy[] @relation("LegacyDiscrepancyLine")
+  @@unique([tenantId, id])
   @@index([tenantId, variantId])
+}
+
+model CashRegisterSession {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid
+  registerId String @db.Uuid
+  branchId String @db.Uuid
+  userId String @db.Uuid
+  currency String
+  openedAt DateTime @db.Timestamptz(3)
+  closedAt DateTime? @db.Timestamptz(3)
+  closedBy String? @db.Uuid
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  register CashRegister @relation(fields: [tenantId, registerId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction)
+  branch Branch @relation(fields: [tenantId, branchId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction)
+  cashier User @relation("SessionCashier", fields: [tenantId, userId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction)
+  closer User? @relation("SessionCloser", fields: [tenantId, closedBy], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction)
+  sales Sale[]
+  movements InventoryMovement[]
+  intakeReviews UnverifiedIntakeReview[]
+  discrepancies InventoryDiscrepancy[]
+  approvals SupervisorApproval[]
+  @@unique([tenantId, id])
+}
+
+model SupervisorCredential {
+  tenantId String @db.Uuid
+  userId String @db.Uuid
+  pinHash String
+  failedAttempts Int @default(0)
+  lockedUntil DateTime? @db.Timestamptz(3)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user User @relation(fields: [tenantId, userId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction)
+  @@id([tenantId, userId])
+}
+
+model SupervisorApproval {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid
+  registerSessionId String @db.Uuid
+  requesterId String @db.Uuid
+  approverId String @db.Uuid
+  commandHash String
+  tokenHash String
+  reason String
+  createdAt DateTime @db.Timestamptz(3)
+  expiresAt DateTime @db.Timestamptz(3)
+  consumedAt DateTime? @db.Timestamptz(3)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  registerSession CashRegisterSession @relation(fields: [tenantId, registerSessionId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction)
+  requester User @relation("ApprovalRequester", fields: [tenantId, requesterId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction)
+  approver User @relation("ApprovalApprover", fields: [tenantId, approverId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction)
+  @@unique([tenantId, tokenHash])
 }
 
 enum RoleName {
