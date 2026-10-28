@@ -45,7 +45,7 @@ unauthenticated API E2E verdes. Authenticated replay/conflict E2E no estabilizó
 L5. C1 recibió persistencia genérica `SyncConflict` (tenant/RLS/status/payload,
 listado y resolución supervisor) en `4df5bfd`; migración
 `20261028100000_pos_sync_conflicts` aplicada al disposable; conflicto de
-producto y resolución probados 2/2, reversals 3/3. A2 (discrepancia de stock)
-y D1 (conflicto semántico de anulación) todavía requieren integración completa
-con replay y pruebas autenticadas.
-Commit boundary: 49c8d5e (T1-T3) → adae76f (T4 queue partial) → 4df5bfd (T4 conflicts partial).
+producto y resolución probados 3/3, A2 discrepancy 3/3 y D1 equivalent reversal
+3/3. Full suite 178/178; browser authenticated replay remains explicitly
+unverified. Commit boundary: 49c8d5e (T1-T3) → adae76f (T4 queue) → 4df5bfd
+(T4 conflicts) → 2addf18 (A2/D1 reconciliation) → db8822e (docs + repository).
