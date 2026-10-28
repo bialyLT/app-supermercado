@@ -11,7 +11,11 @@ test("POS exposes keyboard-first controls and touch-sized actions", async ({ pag
   await expect(page.locator("#variant")).toBeFocused();
 });
 
-test("POS checkout rejects unauthenticated callers without mutating state", async ({ request }) => {
-  const response = await request.post("/api/pos/checkout", { data: { lines: [], payments: [], idempotencyKey: "e2e-pos" } });
-  expect(response.status()).toBe(401);
+test("POS mutations reject unauthenticated callers", async ({ request }) => {
+  const checkout = await request.post("/api/pos/checkout", { data: { lines: [], payments: [], idempotencyKey: "e2e-pos" } });
+  const product = await request.post("/api/pos/products", { data: { sku: "offline", name: "Offline", unitCode: "u", unitName: "Unit" } });
+  const reversal = await request.post("/api/pos/reversals", { data: { saleId: "00000000-0000-4000-8000-000000000000", type: "ANNULMENT", lines: [], reason: "e2e", idempotencyKey: "e2e-reversal" } });
+  expect(checkout.status()).toBe(401);
+  expect(product.status()).toBe(401);
+  expect(reversal.status()).toBe(401);
 });

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { enqueue, pendingCommands, remove, type OfflineCommand } from "../../src/pos/offline-queue";
 
 type Line = { variantId: string; locationId: string; quantity: string; label: string };
 type Payment = { method: "CASH" | "TRANSFER" | "CARD" | "WALLET"; amount: string };
@@ -18,10 +19,27 @@ export default function PosPage() {
   const [status, setStatus] = useState("");
   const [change, setChange] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [offline, setOffline] = useState(() => typeof navigator !== "undefined" && !navigator.onLine);
+  const [queued, setQueued] = useState(0);
 
   const [commandId, setCommandId] = useState(() => crypto.randomUUID());
 
   useEffect(() => {
+    const refreshQueue = () => void pendingCommands().then((items) => setQueued(items.length)).catch(() => undefined);
+    const replay = async () => {
+      const items = await pendingCommands().catch(() => []);
+      for (const item of items) {
+        const response = await fetch(item.endpoint, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(item.payload) }).catch(() => null);
+        if (!response) break;
+        if (response.ok) await remove(item.commandId);
+        else if (response.status === 409) { setStatus(`Conflicto offline ${item.commandId}: revisión requerida`); break; }
+      }
+      refreshQueue();
+    };
+    const onOnline = () => { setOffline(false); void replay(); };
+    const onOffline = () => setOffline(true);
+    refreshQueue();
+    window.addEventListener("online", onOnline); window.addEventListener("offline", onOffline);
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "F2") { event.preventDefault(); document.getElementById("variant")?.focus(); }
       if (event.key === "F4") { event.preventDefault(); addLine(); }
@@ -30,8 +48,10 @@ export default function PosPage() {
       if (event.key === "Escape") { setLines([]); setStatus(""); setChange(null); }
     };
     window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  });
+    return () => { window.removeEventListener("keydown", onKeyDown); window.removeEventListener("online", onOnline); window.removeEventListener("offline", onOffline); };
+  // Keyboard handlers intentionally close over current command state.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function search(value: string) {
     setVariantId(value);
@@ -55,23 +75,23 @@ export default function PosPage() {
   async function checkout() {
     if (!lines.length || busy) return;
     setBusy(true); setStatus("Procesando…"); setChange(null);
+    const payload = { lines: lines.map((line) => ({ variantId: line.variantId, locationId: line.locationId, quantity: line.quantity })), payments, idempotencyKey: commandId };
     try {
-      const response = await fetch("/api/pos/checkout", { method: "POST", headers: { "content-type": "application/json" },
-        body: JSON.stringify({ lines, payments, idempotencyKey: commandId }) });
+      const response = await fetch("/api/pos/checkout", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) });
       const body = await response.json() as { error?: string; change?: string; id?: string };
       if (!response.ok) throw new Error(body.error ?? "REQUEST_FAILED");
-      setStatus(`Venta ${body.id ?? "confirmada"}`);
-      setChange(body.change ?? "0.00");
-      setLines([]);
-      setCommandId(crypto.randomUUID());
+      setStatus(`Venta ${body.id ?? "confirmada"}`); setChange(body.change ?? "0.00"); setLines([]); setCommandId(crypto.randomUUID());
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : "REQUEST_FAILED");
+      if (error instanceof TypeError || !navigator.onLine) {
+        const command: OfflineCommand = { commandId, kind: "SALE", endpoint: "/api/pos/checkout", payload, createdAt: Date.now() };
+        await enqueue(command); setQueued((count) => count + 1); setOffline(true); setStatus("Sin conexión: venta en cola local"); setLines([]); setCommandId(crypto.randomUUID());
+      } else setStatus(error instanceof Error ? error.message : "REQUEST_FAILED");
     } finally { setBusy(false); }
   }
 
   return <main className="pos-shell" aria-label="Punto de venta">
     <style>{`.pos-shell { max-width: 1100px; margin: 0 auto; padding: 24px; } .pos-grid { display: grid; gap: 24px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); } .pos-shell input, .pos-shell select, .pos-shell button { min-height: 44px; font-size: 1rem; margin: 4px; } .pos-shell label { display: block; margin-top: 8px; } .payment-row { display: flex; gap: 8px; }`}</style>
-    <header><h1>POS</h1><p>Keyboard-first · F2 buscar · F4 agregar · F8 pagar · F10 confirmar · Esc limpiar</p></header>
+    <header><h1>POS</h1><p>Keyboard-first · F2 buscar · F4 agregar · F8 pagar · F10 confirmar · Esc limpiar</p><p role="status">{offline ? "Offline · comandos se guardan localmente" : "Online"} · En cola: {queued}</p></header>
     <section className="pos-grid">
       <form onSubmit={(event) => { event.preventDefault(); addLine(); }} aria-label="Agregar producto">
         <label htmlFor="location">Ubicación</label>
