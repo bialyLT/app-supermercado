@@ -6,6 +6,7 @@ function createAuth() { return betterAuth({
   database: authDatabaseAdapter(),
   secret: authSecret(),
   baseURL: env.BETTER_AUTH_URL,
+  trustedOrigins: [env.BETTER_AUTH_URL, "http://localhost:3109", "http://127.0.0.1:3109"],
   emailAndPassword: {
     enabled: true,
     disableSignUp: true,

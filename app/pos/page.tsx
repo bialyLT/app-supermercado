@@ -20,7 +20,7 @@ export default function PosPage() {
   const [status, setStatus] = useState("");
   const [change, setChange] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [offline, setOffline] = useState(() => typeof navigator !== "undefined" && !navigator.onLine);
+  const [offline, setOffline] = useState(false);
   const [queued, setQueued] = useState(0);
 
   const [commandId, setCommandId] = useState(() => crypto.randomUUID());
@@ -39,6 +39,7 @@ export default function PosPage() {
     };
     const onOnline = () => { setOffline(false); void replay(); };
     const onOffline = () => setOffline(true);
+    queueMicrotask(() => setOffline(!navigator.onLine));
     refreshQueue();
     window.addEventListener("online", onOnline); window.addEventListener("offline", onOffline);
     const onKeyDown = (event: KeyboardEvent) => {
@@ -105,7 +106,7 @@ export default function PosPage() {
       </form>
       <section aria-label="Carrito"><h2>Carrito</h2>{lines.length === 0 ? <p>Vacío</p> : <ul>{lines.map((line, index) => <li key={`${line.variantId}-${index}`}>{line.label} × {line.quantity}</li>)}</ul>}</section>
       <section aria-label="Pago"><h2>Pago</h2>
-        {payments.map((payment, index) => <div className={styles.paymentRow} key={payment.method}><select value={payment.method} onChange={(event) => updatePayment(index, { method: event.target.value as Payment["method"] })}>{methods.map((method) => <option key={method}>{method}</option>)}</select><input id={index === 0 ? "payment" : undefined} inputMode="decimal" aria-label={`Monto ${payment.method}`} value={payment.amount} onChange={(event) => updatePayment(index, { amount: event.target.value })} /></div>)}
+        {payments.map((payment, index) => <div className={styles.paymentRow} key={`${payment.method}-${index}`}><select value={payment.method} onChange={(event) => updatePayment(index, { method: event.target.value as Payment["method"] })}>{methods.map((method) => <option key={method}>{method}</option>)}</select><input id={index === 0 ? "payment" : undefined} inputMode="decimal" aria-label={`Monto ${payment.method}`} value={payment.amount} onChange={(event) => updatePayment(index, { amount: event.target.value })} /></div>)}
         <button type="button" onClick={() => setPayments((current) => [...current, { method: "CARD", amount: "" }])}>Agregar medio</button>
         <button type="button" onClick={() => void checkout()} disabled={busy || !lines.length}>{busy ? "Procesando…" : "Confirmar (F10)"}</button>
         {change !== null && <p role="status">Vuelto: <strong>{change}</strong></p>}
