@@ -15,14 +15,16 @@ la recomendación como `SUPUESTO:` reversible.
 | D-005 | Stock: ledger + `level` materializado con UPDATE condicional atómico y CHECK en base | APROBADA | — |
 | D-006 | `store` = razón social del tenant; varias `branch` = sucursales físicas de esa razón social | APROBADA | — |
 | D-007 | Redondeo `HALF_UP` por línea; total = suma de líneas | APROBADA | — |
-| D-008 | Política offline: ventana máxima, qué se permite sin red, conflictos | PENDIENTE | Épica 4 |
+| D-008 | Política offline: ventana de horas (un turno); sin red se permite vender, anular y dar de alta productos (ajustes de stock prohibidos offline). Conflictos automáticos: A2 venta aceptada siempre, discrepancia solo si el stock da negativo; B1 idempotencia por `(tenant, command_id)` + 409 ante payload distinto; C1 primer escritor gana, duplicado offline marcado para fusión; D1 anulación idempotente si coincide, 409 si difiere | APROBADA | Épica 4 |
 | D-009 | Argentina; monotributista o responsable inscripto por razón social; ticket interno inicial, sin emisión fiscal | APROBADA (alcance inicial) | Integración fiscal e impresora pendientes para Épica 5 |
 | D-010 | Proveedor de despliegue y región | PENDIENTE | Épica 6 |
 | D-011 | Memoria persistente externa | PENDIENTE | cuando convenga |
 | D-012 | Override de supervisor por PIN con token de un solo uso | PROPUESTA | Épica 3 |
 | D-013 | Fuera de alcance: e-commerce, delivery, picking, fidelización | PROPUESTA | — |
-| D-014 | Idempotencia por `(tenant, command_id)` + hash de payload; comandos POS como REST versionado | PROPUESTA | Épica 4 |
+| D-014 | Idempotencia por `(tenant, command_id)` + hash de payload; comandos POS como REST versionado | APROBADA | Épica 4 |
 | D-015 | Moneda y tope monetario de intake obligatorios por tenant, sin valores de negocio por defecto; bloqueo hasta configurar | APROBADA | Apertura de sesión de caja |
+| D-016 | Vuelto y sobrepago: solo CASH puede exceder el total; TRANSFER/CARD/WALLET exactos; cambio calculado por el servidor y registrado como CASH_OUT auditable | APROBADA | Cobro en Épica 4 |
+| D-017 | POS en la misma app Next (ruta `/pos`, módulos aislados por boundaries): evita duplicar auth/tenant/validación y otro deploy; coherente con D-001 | APROBADA | Épica 4 |
 
 ## Decisiones de continuidad de Épica 3
 
@@ -35,6 +37,31 @@ Las reglas tributarias se separan de caja, pagos y stock. No se infieren tasas,
 exenciones ni obligaciones de facturación a partir de un ticket interno.
 Los registros legacy sin perfil se preservan sin asignación retroactiva.
 Alcance verificable: `.github/web-dev-loop/briefs/epica-3-tax-profiles.md`.
+
+## Cierre de Épica 3
+
+Backend de ventas, caja y pagos cerrado técnicamente en
+`.github/web-dev-loop/reports/epica-3-closure.md`: venta multilínea
+server-priced inmutable, pago exacto combinable CASH/TRANSFER/CARD/WALLET,
+cierre ciego auditable, anulaciones/devoluciones append-only con stock + caja,
+numeración por sucursal y tipo con cierre de continuidad + cuadre. D-012
+(override por PIN) ya se ejerce en el cierre documental pero sigue PROPUESTA
+hasta aprobación formal. D-016 fue aprobada para Épica 4: solo CASH puede
+sobrepagar y el cambio se registra server-side como CASH_OUT CHANGE; D-008 y
+D-014 también quedaron aprobadas. Entrega de Épica 3 pendiente: push de
+`feat/sales-cash_payments` + PR por el dueño.
+
+## Cierre de Épica 4
+
+Épica 4 queda cerrada técnicamente en
+`.github/web-dev-loop/reports/epica-4-closure.md`: POS `/pos` keyboard-first
+en la misma app Next, checkout online con vuelto CASH server-side, cola
+IndexedDB y replay por endpoint, `SyncConflict` para A2/C1/D1 y rutas POS
+protegidas. D-008, D-014, D-016 y D-017 están APROBADAS. El replay offline autenticado
+quedó verificado manualmente con usuario real durante el cierre; el camino
+estructural está tipado y los invariantes de A2/C1/D1 pasaron pruebas de
+integración. La verificación E2E autenticada sigue como hardening posterior.
+Entrega pendiente: push/PR por el dueño.
 
 ## Fundamento de las propuestas
 

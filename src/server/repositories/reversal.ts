@@ -21,6 +21,14 @@ export async function reverse(actor: Actor, input: ReversalInput, clock: Clock) 
     if (!originalSession || originalSession.currency !== currency) throw new InventoryError("CURRENCY_MISMATCH");
 
     return command(tx, verified, "SALE_REVERSAL", input, async () => {
+      const priorReversals = await tx.saleReversal.findMany({ where: { tenantId: verified.tenantId, saleId: sale.id, type: input.type }, include: { lines: true } });
+      const requestedLines = [...input.lines].sort((a, b) => a.saleLineId.localeCompare(b.saleLineId));
+      const equivalent = priorReversals.find((candidate) => {
+        const candidateLines = [...candidate.lines].sort((a, b) => a.saleLineId.localeCompare(b.saleLineId));
+        return candidateLines.length === requestedLines.length && candidateLines.every((line, index) =>
+          line.saleLineId === requestedLines[index]?.saleLineId && line.quantity.equals(requestedLines[index]?.quantity));
+      });
+      if (equivalent) return { id: equivalent.id, type: equivalent.type, total: money(equivalent.total, equivalent.currency), currency: equivalent.currency, documentNumber: equivalent.documentNumber ?? undefined };
       const prior = await tx.saleReversalLine.findMany({ where: { tenantId: verified.tenantId, saleLine: { saleId: sale.id } } });
       const reversed = new Map<string, Decimal>();
       for (const line of prior) reversed.set(line.saleLineId, (reversed.get(line.saleLineId) ?? new Decimal(0)).plus(line.quantity.toString()));

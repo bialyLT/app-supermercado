@@ -6,6 +6,24 @@ datasource db {
   provider = "postgresql"
 }
 
+model SyncConflict {
+  id              String            @id @default(uuid()) @db.Uuid
+  tenantId        String            @db.Uuid
+  commandId       String
+  kind            SyncConflictKind
+  status          SyncConflictStatus @default(OPEN)
+  payload         Json
+  existingEntityId String?           @db.Uuid
+  resolution      Json?
+  resolvedByUserId String?           @db.Uuid
+  createdAt       DateTime           @default(now())
+  resolvedAt      DateTime?
+  tenant          Tenant             @relation(fields: [tenantId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  @@unique([tenantId, id])
+  @@unique([tenantId, commandId])
+  @@index([tenantId, status, createdAt])
+}
+
 model Tenant {
   id        String        @id @default(uuid()) @db.Uuid
   name      String
@@ -39,6 +57,7 @@ model Tenant {
   fiscalProfiles FiscalProfile[]
   documentSequences DocumentSequence[]
   documentClosures DocumentClosure[]
+  syncConflicts SyncConflict[]
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
 }
@@ -48,6 +67,18 @@ enum ProductKind {
   WEIGHT
   VOLUME
   LENGTH
+}
+
+enum SyncConflictKind {
+  STOCK_DISCREPANCY
+  PRODUCT_DUPLICATE
+  REVERSAL_CONFLICT
+}
+
+enum SyncConflictStatus {
+  OPEN
+  RESOLVED
+  REJECTED
 }
 
 enum BarcodeType {

@@ -23,7 +23,7 @@ export const inventoryPermissions: Record<Actor["role"], readonly Permission[]> 
 export const systemClock = { now: () => new Date() };
 export type Clock = { now(): Date };
 const resultSchema = z.object({ id: z.string(), type: z.string(), total: z.string().optional(), currency: z.string().optional(),
-  documentNumber: z.number().int().min(1).optional() });
+  documentNumber: z.number().int().min(1).optional(), change: z.string().optional() });
 export type CommandResult = z.infer<typeof resultSchema>;
 
 async function verifyActor(tx: Tx, actor: Actor, now: Date): Promise<Actor> {
@@ -203,9 +203,14 @@ async function confirmSaleCore(tx: Tx, verified: Actor, now: Date, lines: SaleCo
   }
 
   const total = plans.reduce((sum, plan) => sum.plus(money(new FinancialDecimal(plan.line.quantity).times(plan.price.amount.toString()), plan.price.currency)), new FinancialDecimal(0));
+  let change = new FinancialDecimal(0);
   if (options.payments) {
     const paid = options.payments.reduce((sum, payment) => sum.plus(payment.amount), new FinancialDecimal(0));
-    if (!paid.equals(total)) throw new InventoryError("PAYMENT_TOTAL_MISMATCH");
+    const nonCash = options.payments.filter((payment) => payment.method !== "CASH")
+      .reduce((sum, payment) => sum.plus(payment.amount), new FinancialDecimal(0));
+    // D-016: only CASH may exceed the server total; every other method must be exact.
+    if (paid.lessThan(total) || nonCash.greaterThan(total)) throw new InventoryError("PAYMENT_TOTAL_MISMATCH");
+    change = paid.minus(total);
   }
   const fiscalContext = await storeFiscalContext(tx, verified, location.branchId);
   const documentNumber = await allocateDocumentNumber(tx, verified.tenantId, location.branchId, "SALE");
@@ -218,6 +223,13 @@ async function confirmSaleCore(tx: Tx, verified: Actor, now: Date, lines: SaleCo
     for (const payment of options.payments) {
       const createdPayment = await tx.payment.create({ data: { tenantId: verified.tenantId, saleId: created.id, registerSessionId: session.id, amount: payment.amount, method: payment.method, currency: session.currency, createdAt: now, actorUserId: verified.userId } });
       await audit(tx, verified, "payment.created", "Payment", createdPayment.id, { saleId: created.id, amount: payment.amount, method: payment.method, currency: session.currency });
+    }
+    if (change.greaterThan(0)) {
+      const changeMovement = await tx.cashMovement.create({ data: { tenantId: verified.tenantId, registerSessionId: session.id,
+        type: "CASH_OUT", amount: money(change, session.currency), currency: session.currency, actorUserId: verified.userId,
+        reason: "CHANGE", referenceId: created.id, createdAt: now } });
+      await audit(tx, verified, "cash.movement.cash_out", "CashMovement", changeMovement.id,
+        { amount: money(change, session.currency), currency: session.currency, reason: "CHANGE", saleId: created.id });
     }
   }
   for (const [index, plan] of plans.entries()) {
@@ -246,8 +258,14 @@ async function confirmSaleCore(tx: Tx, verified: Actor, now: Date, lines: SaleCo
         registerSessionId: session.id, actorUserId: verified.userId, reason: "Sale" } });
     }
   }
+  for (const plan of plans.filter((value) => value.shortage.gt(0))) {
+    await tx.syncConflict.create({ data: { tenantId: verified.tenantId,
+      commandId: `${options.idempotencyKey}:stock:${plan.line.variantId}`, kind: "STOCK_DISCREPANCY",
+      payload: { saleId: created.id, variantId: plan.line.variantId, shortage: plan.shortage.toString(), source: "OFFLINE" } } });
+  }
   await audit(tx, verified, "inventory.sale", "Sale", created.id, { branchId: location.branchId, documentNumber });
-  return { id: created.id, type: "SALE", total: money(total, session.currency), currency: session.currency, documentNumber };
+  return { id: created.id, type: "SALE", total: money(total, session.currency), currency: session.currency, documentNumber,
+    change: money(change, session.currency) };
 }
 
 export async function sale(actor: Actor, input: SaleInput, clock: Clock) {

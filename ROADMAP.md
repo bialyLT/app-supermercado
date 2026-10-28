@@ -1,9 +1,10 @@
 # Roadmap operativo
 
-**Estado:** Épicas 0 y 1 cerradas; cierre técnico de Épica 2 entregado para
-aceptación del orquestador. Épica 3 iniciada: perfil tributario argentino por
-razón social y snapshot de ticket interno implementados; ventas/pagos/arqueos
-completos todavía no entregados.
+**Estado:** Épicas 0, 1, 3 y 4 cerradas técnicamente; Épica 2 entregada para
+aceptación del orquestador. Épica 4 cerrada en
+`.github/web-dev-loop/reports/epica-4-closure.md` (178/178 tests, 5 E2E
+passed/2 skipped, gates verdes). Entrega pendiente: push/PR por el dueño desde
+Windows. Siguiente: Épica 5; la rama `feat/pos-offline` contiene el corte.
 **Reglas vinculantes:** `AGENTS.md`, `DOMAIN_RULES.md`, `DECISIONS.md`,
 `GATES.md`.
 
@@ -73,6 +74,14 @@ entrega de movimientos de caja, pagos, arqueo ni contratos fiscales de Épica 3.
 - **Criterios:** sin venta sin sesión abierta; una sesión no se cierra dos
   veces; la diferencia de arqueo queda explicada y auditada; venta confirmada
   inmutable; el servidor recalcula todo total.
+- **Cierre técnico:** W1 ventas multilínea (29e560c + 30c050e), W2 pagos
+  manuales exactos combinables (37f92d7), W3a movimientos y cierre ciego
+  (739543c), W3b anulaciones/devoluciones append-only (b861469), W4
+  numeración por sucursal y tipo con cierre documental (160f72d), más fix E2E
+  del mapeo 401/400 (sin commitear). Gates: 174/174 tests, typecheck/lint 0,
+  build/E2E/audit verdes, ledger 0 divergencias, RLS 34/34. Informe:
+  `.github/web-dev-loop/reports/epica-3-closure.md`. Entrega (push + PR)
+  pendiente por el dueño.
 
 ## Épica 4 — POS keyboard-first y offline
 
@@ -80,10 +89,19 @@ entrega de movimientos de caja, pagos, arqueo ni contratos fiscales de Épica 3.
 - **Entregables:** búsqueda, atajos F1–F12, lector, carrito, cola local en
   IndexedDB, reintentos, idempotencia (D-014), sincronización con conflictos
   marcados (no descartados), responsive.
-- **Prerrequisitos:** D-008 resuelta.
+- **Prerrequisitos:** D-008 y D-014 APROBADAS (ventana de horas; offline:
+  vender, anular, alta de productos; conflictos automáticos A2/B1/C1/D1).
 - **Criterios:** flujo principal sin mouse; targets táctiles ≥ 44 px; comandos
-  duplicados no duplican ventas; una venta offline nunca se pierde ni se
-  rechaza por stock/precio distinto (se marca para revisión).
+  duplicados no duplican ventas; venta offline preservada en IndexedDB y
+  replayable; stock insuficiente genera `STOCK_DISCREPANCY`; duplicados de
+  producto quedan en `SyncConflict`; anulaciones equivalentes son idempotentes.
+- **Cierre técnico:** T1-T3 `49c8d5e`, T4 queue `adae76f`, conflicts
+  `4df5bfd`, reconciliation `2addf18`; 178/178 tests, coverage global
+  89.81% líneas / 85.83% ramas, typecheck/lint/build verdes, E2E 5 passed /
+  2 skipped, ledger 0 divergencias, RLS 35/35. Informe:
+  `.github/web-dev-loop/reports/epica-4-closure.md`. Replay offline
+  autenticado verificado manualmente con usuario demo real; queue structural
+  path sí quedó typechecked.
 
 ## Épica 5 — Fiscalidad, hardware y promociones
 
