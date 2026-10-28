@@ -1,5 +1,6 @@
 import { afterAll, describe, expect, it } from "vitest";
-import { admin, enabled, fixture } from "./fixtures";
+import { admin, enabled, fixture, clock } from "./fixtures";
+import { confirmPaidMultiLineSale } from "../../src/server/inventory";
 import { listSyncConflicts, recordSyncConflict, resolveSyncConflict } from "../../src/server/repositories/sync-conflict";
 
 afterAll(async () => { await admin.$disconnect(); });
@@ -17,6 +18,13 @@ afterAll(async () => { await admin.$disconnect(); });
     const resolved = await resolveSyncConflict(f.actor, conflict.id, "RESOLVED", { mergedInto: "existing" });
     expect(resolved.status).toBe("RESOLVED");
     expect(await listSyncConflicts(f.actor)).toHaveLength(0);
+  });
+
+  it("records A2 stock discrepancy when an offline replay uses unverified intake", async () => {
+    const f = await fixture("ADMIN", { unitPrice: "2.50" });
+    const result = await confirmPaidMultiLineSale(f.actor, { allowUnverifiedIntake: true, idempotencyKey: "offline-sale", lines: [{ ...f.stock, quantity: "2" }], payments: [{ method: "CASH", amount: "5" }] }, clock);
+    expect(result.type).toBe("SALE");
+    expect(await admin.syncConflict.findFirst({ where: { tenantId: f.tenantId, kind: "STOCK_DISCREPANCY" } })).toMatchObject({ status: "OPEN" });
   });
 
   it("prevents a duplicate conflict command within the tenant", async () => {

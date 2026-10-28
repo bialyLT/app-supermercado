@@ -258,6 +258,11 @@ async function confirmSaleCore(tx: Tx, verified: Actor, now: Date, lines: SaleCo
         registerSessionId: session.id, actorUserId: verified.userId, reason: "Sale" } });
     }
   }
+  for (const plan of plans.filter((value) => value.shortage.gt(0))) {
+    await tx.syncConflict.create({ data: { tenantId: verified.tenantId,
+      commandId: `${options.idempotencyKey}:stock:${plan.line.variantId}`, kind: "STOCK_DISCREPANCY",
+      payload: { saleId: created.id, variantId: plan.line.variantId, shortage: plan.shortage.toString(), source: "OFFLINE" } } });
+  }
   await audit(tx, verified, "inventory.sale", "Sale", created.id, { branchId: location.branchId, documentNumber });
   return { id: created.id, type: "SALE", total: money(total, session.currency), currency: session.currency, documentNumber,
     change: money(change, session.currency) };

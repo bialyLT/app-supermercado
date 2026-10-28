@@ -83,7 +83,7 @@ export default function PosPage() {
       setStatus(`Venta ${body.id ?? "confirmada"}`); setChange(body.change ?? "0.00"); setLines([]); setCommandId(crypto.randomUUID());
     } catch (error) {
       if (error instanceof TypeError || !navigator.onLine) {
-        const command: OfflineCommand = { commandId, kind: "SALE", endpoint: "/api/pos/checkout", payload, createdAt: Date.now() };
+        const command: OfflineCommand = { commandId, kind: "SALE", endpoint: "/api/pos/checkout", payload: { ...payload, allowUnverifiedIntake: true }, createdAt: Date.now() };
         await enqueue(command); setQueued((count) => count + 1); setOffline(true); setStatus("Sin conexión: venta en cola local"); setLines([]); setCommandId(crypto.randomUUID());
       } else setStatus(error instanceof Error ? error.message : "REQUEST_FAILED");
     } finally { setBusy(false); }
