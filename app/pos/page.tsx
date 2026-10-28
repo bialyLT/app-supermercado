@@ -32,14 +32,19 @@ export default function PosPage() {
       for (const item of items) {
         const response = await fetch(item.endpoint, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(item.payload) }).catch(() => null);
         if (!response) break;
+        const body = await response.json().catch(() => ({})) as { error?: string };
         if (response.ok) await remove(item.commandId);
         else if (response.status === 409) { setStatus(`Conflicto offline ${item.commandId}: revisión requerida`); break; }
+        else { setStatus(`Replay rechazado: ${body.error ?? `HTTP_${response.status}`}`); break; }
       }
       refreshQueue();
     };
     const onOnline = () => { setOffline(false); void replay(); };
     const onOffline = () => setOffline(true);
-    queueMicrotask(() => setOffline(!navigator.onLine));
+    queueMicrotask(() => {
+      setOffline(!navigator.onLine);
+      if (navigator.onLine) void replay();
+    });
     refreshQueue();
     window.addEventListener("online", onOnline); window.addEventListener("offline", onOffline);
     const onKeyDown = (event: KeyboardEvent) => {
@@ -57,9 +62,20 @@ export default function PosPage() {
 
   async function search(value: string) {
     setVariantId(value);
-    if (value.trim().length < 2) { setSuggestions([]); return; }
-    const response = await fetch(`/api/pos/catalog?q=${encodeURIComponent(value)}`);
-    if (response.ok) setSuggestions((await response.json() as { items: Suggestion[] }).items);
+    const query = value.trim().toLowerCase();
+    if (query.length < 2) { setSuggestions([]); return; }
+    try {
+      const response = await fetch(`/api/pos/catalog?q=${encodeURIComponent(value)}`);
+      if (!response.ok) return;
+      const items = (await response.json() as { items: Suggestion[] }).items;
+      localStorage.setItem("supermercado-pos-catalog", JSON.stringify(items));
+      setSuggestions(items);
+    } catch {
+      const cached = JSON.parse(localStorage.getItem("supermercado-pos-catalog") ?? "[]") as Suggestion[];
+      const items = cached.filter((item) => `${item.sku} ${item.name} ${item.productName}`.toLowerCase().includes(query));
+      setSuggestions(items);
+      setStatus(items.length ? "Catálogo local: sin conexión" : "Producto no disponible en catálogo local");
+    }
   }
 
   function addLine() {
