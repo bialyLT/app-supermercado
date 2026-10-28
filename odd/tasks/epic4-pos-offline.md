@@ -38,4 +38,9 @@ L3. T1-T3 implementados: `/pos`, catálogo/búsqueda autenticada, checkout onlin
 D-016 CASH_OUT CHANGE y E2E. Focalizadas: manual-payments 5/5,
 fiscal contract 15/15; E2E 5 passed/2 skipped. Typecheck/lint/build verdes.
 El full suite tuvo flake de timeout en RLS bajo carga; la focalizada RLS+fiscal+payments
-pasó 23/23 con timeout 60s. T4 queda pendiente: cola IndexedDB + sync A2/B1/C1/D1.
+pasó 23/23 con timeout 60s.
+L4. T4 parcial en `adae76f`: IndexedDB para comandos SALE, replay por endpoint al
+reconectar, y rutas POS para product-create/reversal. Typecheck/lint/build y
+unauthenticated API E2E verdes. Authenticated replay/conflict E2E no estabilizó
+antes del corte; C1 duplicate marking y D1 semantic conflict tests siguen abiertos.
+Commit boundary: 49c8d5e (T1-T3) → adae76f (T4 partial).
