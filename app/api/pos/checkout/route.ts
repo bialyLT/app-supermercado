@@ -11,7 +11,12 @@ export async function POST(request: Request) {
     const result = await confirmPaidMultiLineSale(actor, input);
     return NextResponse.json(result, { status: 201 });
   } catch (error) {
-    if (error instanceof z.ZodError) return NextResponse.json({ error: "INVALID_INPUT" }, { status: 400 });
+    if (error instanceof z.ZodError) {
+      const details = process.env.NODE_ENV === "development"
+        ? error.issues.map((issue) => ({ path: issue.path, code: issue.code, message: issue.message }))
+        : undefined;
+      return NextResponse.json({ error: "INVALID_INPUT", ...(details ? { details } : {}) }, { status: 400 });
+    }
     if (error instanceof InventoryError) return NextResponse.json({ error: error.code }, { status: httpStatus(error) });
     if (error instanceof Error && error.message === "UNAUTHENTICATED") {
       return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });

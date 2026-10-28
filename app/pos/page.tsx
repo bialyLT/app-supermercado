@@ -33,10 +33,14 @@ export default function PosPage() {
       for (const item of items) {
         const response = await fetch(item.endpoint, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(item.payload) }).catch(() => null);
         if (!response) break;
-        const body = await response.json().catch(() => ({})) as { error?: string };
+        const body = await response.json().catch(() => ({})) as { error?: string; details?: Array<{ path: (string | number)[]; message: string }> };
         if (response.ok) await remove(item.commandId);
         else if (response.status === 409) { setStatus(`Conflicto offline ${item.commandId}: revisión requerida`); break; }
-        else { setStatus(`Replay rechazado: ${body.error ?? `HTTP_${response.status}`}`); break; }
+        else {
+          const detail = body.details?.map((issue) => `${issue.path.join(".") || "payload"}: ${issue.message}`).join(", ");
+          setStatus(`Replay rechazado: ${body.error ?? `HTTP_${response.status}`}${detail ? ` (${detail})` : ""}`);
+          break;
+        }
       }
       refreshQueue();
     };
@@ -103,6 +107,10 @@ export default function PosPage() {
 
   async function checkout() {
     if (!lines.length || busy) return;
+    if (payments.some((payment) => !/^\d+(\.\d{1,4})?$/.test(payment.amount) || Number(payment.amount) <= 0)) {
+      setStatus("Ingresá un importe válido para cada medio de pago");
+      return;
+    }
     setBusy(true); setStatus("Procesando…"); setChange(null);
     const payload = { lines: lines.map((line) => ({ variantId: line.variantId, locationId: line.locationId, quantity: line.quantity })), payments, idempotencyKey: commandId };
     try {
