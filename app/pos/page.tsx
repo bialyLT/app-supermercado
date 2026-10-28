@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { enqueue, pendingCommands, remove, type OfflineCommand } from "../../src/pos/offline-queue";
+import styles from "./pos.module.css";
 
 type Line = { variantId: string; locationId: string; quantity: string; label: string };
 type Payment = { method: "CASH" | "TRANSFER" | "CARD" | "WALLET"; amount: string };
@@ -89,10 +90,9 @@ export default function PosPage() {
     } finally { setBusy(false); }
   }
 
-  return <main className="pos-shell" aria-label="Punto de venta">
-    <style>{`.pos-shell { max-width: 1100px; margin: 0 auto; padding: 24px; } .pos-grid { display: grid; gap: 24px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); } .pos-shell input, .pos-shell select, .pos-shell button { min-height: 44px; font-size: 1rem; margin: 4px; } .pos-shell label { display: block; margin-top: 8px; } .payment-row { display: flex; gap: 8px; }`}</style>
+  return <main className={styles.shell} aria-label="Punto de venta">
     <header><h1>POS</h1><p>Keyboard-first · F2 buscar · F4 agregar · F8 pagar · F10 confirmar · Esc limpiar</p><p role="status">{offline ? "Offline · comandos se guardan localmente" : "Online"} · En cola: {queued}</p></header>
-    <section className="pos-grid">
+    <section className={styles.grid}>
       <form onSubmit={(event) => { event.preventDefault(); addLine(); }} aria-label="Agregar producto">
         <label htmlFor="location">Ubicación</label>
         <input id="location" value={locationId} onChange={(event) => setLocationId(event.target.value)} required />
@@ -101,13 +101,13 @@ export default function PosPage() {
         {suggestions.length > 0 && <ul aria-label="Resultados de búsqueda">{suggestions.map((item) => <li key={item.id}><button type="button" onClick={() => { setVariantId(item.id); setSuggestions([]); }}>{item.name} · {item.sku}</button></li>)}</ul>}
         <label htmlFor="quantity">Cantidad</label>
         <input id="quantity" type="number" min="0.001" step="0.001" value={quantity} onChange={(event) => setQuantity(event.target.value)} required />
-        <button type="submit" style={{ minHeight: "44px", minWidth: "44px" }}>Agregar (F4)</button>
+        <button type="submit">Agregar (F4)</button>
       </form>
       <section aria-label="Carrito"><h2>Carrito</h2>{lines.length === 0 ? <p>Vacío</p> : <ul>{lines.map((line, index) => <li key={`${line.variantId}-${index}`}>{line.label} × {line.quantity}</li>)}</ul>}</section>
       <section aria-label="Pago"><h2>Pago</h2>
-        {payments.map((payment, index) => <div className="payment-row" key={payment.method}><select value={payment.method} onChange={(event) => updatePayment(index, { method: event.target.value as Payment["method"] })}>{methods.map((method) => <option key={method}>{method}</option>)}</select><input id={index === 0 ? "payment" : undefined} inputMode="decimal" aria-label={`Monto ${payment.method}`} value={payment.amount} onChange={(event) => updatePayment(index, { amount: event.target.value })} /></div>)}
-        <button type="button" style={{ minHeight: "44px", minWidth: "44px" }} onClick={() => setPayments((current) => [...current, { method: "CARD", amount: "" }])}>Agregar medio</button>
-        <button type="button" style={{ minHeight: "44px", minWidth: "44px" }} onClick={() => void checkout()} disabled={busy || !lines.length}>{busy ? "Procesando…" : "Confirmar (F10)"}</button>
+        {payments.map((payment, index) => <div className={styles.paymentRow} key={payment.method}><select value={payment.method} onChange={(event) => updatePayment(index, { method: event.target.value as Payment["method"] })}>{methods.map((method) => <option key={method}>{method}</option>)}</select><input id={index === 0 ? "payment" : undefined} inputMode="decimal" aria-label={`Monto ${payment.method}`} value={payment.amount} onChange={(event) => updatePayment(index, { amount: event.target.value })} /></div>)}
+        <button type="button" onClick={() => setPayments((current) => [...current, { method: "CARD", amount: "" }])}>Agregar medio</button>
+        <button type="button" onClick={() => void checkout()} disabled={busy || !lines.length}>{busy ? "Procesando…" : "Confirmar (F10)"}</button>
         {change !== null && <p role="status">Vuelto: <strong>{change}</strong></p>}
       </section>
     </section>

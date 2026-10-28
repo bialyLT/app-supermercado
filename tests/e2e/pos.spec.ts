@@ -6,7 +6,7 @@ test("POS exposes keyboard-first controls and touch-sized actions", async ({ pag
   await expect(page.getByText(/F2 buscar/)).toBeVisible();
   const add = page.getByRole("button", { name: /Agregar \(F4\)/ });
   await expect(add).toBeVisible();
-  await expect(add).toHaveAttribute("style", /min-height:44px/);
+  await expect(add).toHaveCSS("min-height", "44px");
   await page.keyboard.press("F2");
   await expect(page.locator("#variant")).toBeFocused();
 });

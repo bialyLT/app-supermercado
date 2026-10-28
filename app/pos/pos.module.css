@@ -1,0 +1,30 @@
+.shell {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.grid {
+  display: grid;
+  gap: 24px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.shell input,
+.shell select,
+.shell button {
+  min-width: 44px;
+  min-height: 44px;
+  margin: 4px;
+  font-size: 1rem;
+}
+
+.shell label {
+  display: block;
+  margin-top: 8px;
+}
+
+.paymentRow {
+  display: flex;
+  gap: 8px;
+}
