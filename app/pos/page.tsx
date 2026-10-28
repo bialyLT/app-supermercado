@@ -35,7 +35,7 @@ export default function PosPage() {
         if (!response) break;
         const body = await response.json().catch(() => ({})) as { error?: string; details?: Array<{ path: (string | number)[]; message: string }> };
         if (response.ok) await remove(item.commandId);
-        else if (response.status === 409) { setStatus(`Conflicto offline ${item.commandId}: revisión requerida`); break; }
+        else if (response.status === 409) { setStatus(`Conflicto offline ${item.commandId}: ${body.error ?? "revisión requerida"}`); break; }
         else {
           const detail = body.details?.map((issue) => `${issue.path.join(".") || "payload"}: ${issue.message}`).join(", ");
           setStatus(`Replay rechazado: ${body.error ?? `HTTP_${response.status}`}${detail ? ` (${detail})` : ""}`);
