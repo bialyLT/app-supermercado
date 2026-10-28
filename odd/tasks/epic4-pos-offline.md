@@ -24,8 +24,8 @@ fuera de repositorios existentes; el POS consume el backend, no lo duplica.
 T1 | S1,S4 | inline | done | `/pos` keyboard-first, búsqueda de catálogo, carrito, F2/F4/F8/F10/Escape, targets >=44px; E2E POS 2/2.
 T2 | S2,S3,S4 | inline | done | D-016 CASH overpay + cambio server-side como CASH_OUT CHANGE; checkout `/api/pos/checkout`; command_id estable por intento/retry; manual-payments 5/5.
 T3 | S1-S3 | inline | done | `tests/e2e/pos.spec.ts` + smoke: E2E 5 passed, 2 skipped, 0 failed; typecheck/lint/build verdes.
-T4 | — | orquestador | pending | Corte 2 (cola + sync): solo tras T1–T3 verdes.
-T5 | — | orquestador | pending | Cierre Épica 4 (informe, ROADMAP/DECISIONS).
+T4 | — | orquestador | done | Corte 2 (cola + sync): solo tras T1–T3 verdes.
+T5 | — | orquestador | done | Cierre Épica 4 (informe, ROADMAP/DECISIONS).
 
 ## Log
 
@@ -49,3 +49,9 @@ producto y resolución probados 3/3, A2 discrepancy 3/3 y D1 equivalent reversal
 3/3. Full suite 178/178; browser authenticated replay remains explicitly
 unverified. Commit boundary: 49c8d5e (T1-T3) → adae76f (T4 queue) → 4df5bfd
 (T4 conflicts) → 2addf18 (A2/D1 reconciliation) → db8822e (docs + repository).
+L6. T5 verificado y cerrado: fixes finales `7faf0b5` (CSP POS), `4dd9458`
+(trust local origins), `fe31a05` (replay+catalog cache), `db1dc46` (validación
+UUID), `050c75e` (detalle replay), `23f6bf0` (código conflicto) + corrección
+final `a58a167`. Verificación manual autenticada completada: login usuario demo
+real, venta offline CASH exacta 500, replay único, A2 STOCK_DISCREPANCY,
+D1 idempotencia/cambio payload, C1 PRODUCT_DUPLICATE, alta offline producto.

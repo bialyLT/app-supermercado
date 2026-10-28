@@ -57,10 +57,11 @@ D-014 también quedaron aprobadas. Entrega de Épica 3 pendiente: push de
 `.github/web-dev-loop/reports/epica-4-closure.md`: POS `/pos` keyboard-first
 en la misma app Next, checkout online con vuelto CASH server-side, cola
 IndexedDB y replay por endpoint, `SyncConflict` para A2/C1/D1 y rutas POS
-protegidas. D-008, D-014, D-016 y D-017 están APROBADAS. La verificación
-autenticada del replay de navegador queda reportada como no disponible/ no
-estabilizada; el camino estructural está tipado y los invariantes de A2/C1/D1
-pasaron pruebas de integración. Entrega pendiente: push/PR por el dueño.
+protegidas. D-008, D-014, D-016 y D-017 están APROBADAS. El replay offline autenticado
+quedó verificado manualmente con usuario real durante el cierre; el camino
+estructural está tipado y los invariantes de A2/C1/D1 pasaron pruebas de
+integración. La verificación E2E autenticada sigue como hardening posterior.
+Entrega pendiente: push/PR por el dueño.
 
 ## Fundamento de las propuestas
 

@@ -1,6 +1,6 @@
 # Cierre formal — Épica 4
 
-**Estado:** cierre técnico entregado; push/PR quedan bajo decisión del dueño.
+**Estado:** cierre formal entregado (T5 verificado y cerrado); push/PR quedan bajo decisión del dueño.
 **Rama:** `feat/pos-offline`.
 **Brief:** `.github/web-dev-loop/briefs/epica-4-pos-offline.md`.
 
@@ -27,6 +27,13 @@
 - `adae76f` — `feat(pos): queue offline sales for replay`
 - `4df5bfd` — `feat(pos): persist offline sync conflicts`
 - `2addf18` — `feat(pos): reconcile offline stock and reversals`
+- `a58a167` — `docs(pos): record epic 4 evidence boundary`
+- `7faf0b5` — `fix(pos): make CSP-compatible POS styles`
+- `4dd9458` — `fix(auth): trust local POS origins`
+- `fe31a05` — `fix(pos): replay queued sales and cache catalog`
+- `db1dc46` — `fix(pos): reject unselected offline products`
+- `050c75e` — `fix(pos): expose replay validation details`
+- `23f6bf0` — `fix(pos): show conflict replay code`
 
 ## Gates observados
 
@@ -53,14 +60,21 @@
   overpay no-CASH.
 - Full suite: 178/178; una corrida anterior de RLS tuvo timeout bajo carga,
   pero la corrida final con `--testTimeout=60000` pasó completa.
+- Verificación manual autenticada offline (T5): login sobre usuario demo real,
+  venta offline con CASH exacto (`500` para cantidad `5` @ `100`), replay único,
+  discrepancia A2 `STOCK_DISCREPANCY`, resolución administrativa, anulación D1
+  idempotente, alta offline de producto C1 y conflicto `PRODUCT_DUPLICATE`.
+  PostgreSQL del disposable confirmó persistencia única y estado abierto controlado.
 
 ## Limitación reportada
 
-No quedó estabilizado un E2E autenticado de navegador que fuerce una caída de
-red, persista IndexedDB y complete el replay autenticado. El camino de cola,
-endpoint replay y tipos compila; los invariantes de resolución se verificaron
-con integración PostgreSQL real. Esta limitación no se oculta ni se presenta
-como evidencia E2E.
+Un E2E autenticado de navegador que fuerce caída de red, persista IndexedDB y
+complete el replay autenticado no quedó estabilizado en runner. La verificación
+**manual autenticada** con usuario real (`pos-admin@example.test`) se completó
+durante el cierre: venta offline, replay online, discrepancia A2, resolución,
+anulación D1, alta offline de producto y conflicto duplicado. No debe
+presentarse como evidencia E2E automatizada; los invariantes correspondientes
+pasaron en integración PostgreSQL real y la ruta manual quedó verificada.
 
 ## Decisiones
 
@@ -70,5 +84,6 @@ app Next. Épica 5 queda como siguiente epic probable.
 
 **Risk:** item 1 (datos offline y conflictos persistidos): mitigado con
 IndexedDB por command id, hash/idempotencia server-side, SyncConflict tenant
-scoped, RLS FORCED y resolución auditable. La limitación E2E autenticada queda
-como evidencia pendiente para hardening posterior.
+scoped, RLS FORCED y resolución auditable. La verificación manual autenticada
+del replay quedó completada durante el cierre; la limitación E2E autenticada
+sigue abierta solo como automatización runner.

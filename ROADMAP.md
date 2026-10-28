@@ -99,8 +99,9 @@ entrega de movimientos de caja, pagos, arqueo ni contratos fiscales de Épica 3.
   `4df5bfd`, reconciliation `2addf18`; 178/178 tests, coverage global
   89.81% líneas / 85.83% ramas, typecheck/lint/build verdes, E2E 5 passed /
   2 skipped, ledger 0 divergencias, RLS 35/35. Informe:
-  `.github/web-dev-loop/reports/epica-4-closure.md`. Browser authenticated
-  replay no quedó verificado; queue structural path sí quedó typechecked.
+  `.github/web-dev-loop/reports/epica-4-closure.md`. Replay offline
+  autenticado verificado manualmente con usuario demo real; queue structural
+  path sí quedó typechecked.
 
 ## Épica 5 — Fiscalidad, hardware y promociones
 
