@@ -9,6 +9,7 @@ type Payment = { method: "CASH" | "TRANSFER" | "CARD" | "WALLET"; amount: string
 type Suggestion = { id: string; sku: string; name: string; productName: string };
 
 const methods = ["CASH", "TRANSFER", "CARD", "WALLET"] as const;
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export default function PosPage() {
   const [locationId, setLocationId] = useState("");
@@ -64,6 +65,16 @@ export default function PosPage() {
     setVariantId(value);
     const query = value.trim().toLowerCase();
     if (query.length < 2) { setSuggestions([]); return; }
+    const cached = () => {
+      const items = JSON.parse(localStorage.getItem("supermercado-pos-catalog") ?? "[]") as Suggestion[];
+      return items.filter((item) => `${item.sku} ${item.name} ${item.productName}`.toLowerCase().includes(query));
+    };
+    if (!navigator.onLine) {
+      const items = cached();
+      setSuggestions(items);
+      setStatus(items.length ? "Catálogo local: sin conexión" : "Producto no disponible en catálogo local");
+      return;
+    }
     try {
       const response = await fetch(`/api/pos/catalog?q=${encodeURIComponent(value)}`);
       if (!response.ok) return;
@@ -71,15 +82,15 @@ export default function PosPage() {
       localStorage.setItem("supermercado-pos-catalog", JSON.stringify(items));
       setSuggestions(items);
     } catch {
-      const cached = JSON.parse(localStorage.getItem("supermercado-pos-catalog") ?? "[]") as Suggestion[];
-      const items = cached.filter((item) => `${item.sku} ${item.name} ${item.productName}`.toLowerCase().includes(query));
+      const items = cached();
       setSuggestions(items);
       setStatus(items.length ? "Catálogo local: sin conexión" : "Producto no disponible en catálogo local");
     }
   }
 
   function addLine() {
-    if (!variantId.trim() || !locationId.trim()) { setStatus("Ingresá ubicación y variante"); return; }
+    if (!locationId.trim() || !uuidPattern.test(locationId.trim())) { setStatus("Ingresá una ubicación válida"); return; }
+    if (!uuidPattern.test(variantId.trim())) { setStatus("Seleccioná un producto del catálogo"); return; }
     setLines((current) => [...current, { variantId: variantId.trim(), locationId: locationId.trim(), quantity, label: variantId.trim() }]);
     setVariantId("");
     setQuantity("1");
