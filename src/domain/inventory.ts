@@ -23,10 +23,11 @@ const saleOptions = {
   reason: z.string().trim().min(1).max(500).optional(),
   allowUnverifiedIntake: z.boolean().default(false),
   approvalToken: z.string().regex(/^[a-f0-9]{64}$/).optional(),
+  weighedBarcode: z.string().regex(/^\d{13}$/).optional(),
 };
 export const saleSchema = z.object({ ...stock, unitPrice: priceSchema, ...saleOptions }).strict();
 const multiSaleLineSchema = z.object({ locationId: stock.locationId, variantId: stock.variantId, lotId: stock.lotId,
-  quantity: stock.quantity, unitPrice: priceSchema.optional(), reason: saleOptions.reason }).strict();
+  quantity: stock.quantity, unitPrice: priceSchema.optional(), weighedBarcode: z.string().regex(/^\d{13}$/).optional(), reason: saleOptions.reason }).strict();
 export const multiSaleSchema = z.object({
   lines: z.array(multiSaleLineSchema).min(1).max(100),
   allowUnverifiedIntake: z.boolean().default(false),

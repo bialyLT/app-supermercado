@@ -58,6 +58,7 @@ model Tenant {
   documentSequences DocumentSequence[]
   documentClosures DocumentClosure[]
   syncConflicts SyncConflict[]
+  weighedBarcodeConfig WeighedBarcodeConfig?
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
 }
@@ -79,6 +80,11 @@ enum SyncConflictStatus {
   OPEN
   RESOLVED
   REJECTED
+}
+
+enum WeighedBarcodeMode {
+  PRICE
+  WEIGHT
 }
 
 enum BarcodeType {
@@ -368,6 +374,16 @@ model ProductVariant {
   @@index([tenantId, productId])
 }
 
+model WeighedBarcodeConfig {
+  tenantId      String            @id @db.Uuid
+  prefix        String
+  mode          WeighedBarcodeMode
+  variantDigits Int
+  valueDigits   Int
+  valueScale    Int
+  tenant        Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
 model Barcode {
   id        String   @id @default(uuid()) @db.Uuid
   tenantId  String   @db.Uuid
@@ -623,14 +639,15 @@ model Sale {
 }
 
 model SaleLine {
-  id          String   @id @default(uuid()) @db.Uuid
-  saleId      String   @db.Uuid
-  tenantId   String   @db.Uuid
-  variantId   String   @db.Uuid
-  quantity    Decimal  @db.Decimal(18, 6)
-  unitPrice   Decimal  @db.Decimal(22, 4)
-  productName String
-  sale        Sale @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  id             String   @id @default(uuid()) @db.Uuid
+  saleId         String   @db.Uuid
+  tenantId       String   @db.Uuid
+  variantId      String   @db.Uuid
+  quantity       Decimal  @db.Decimal(18, 6)
+  unitPrice      Decimal  @db.Decimal(22, 4)
+  productName    String
+  sourceSnapshot Json?
+  sale           Sale @relation(fields: [saleId], references: [id], onDelete: Cascade)
   scopedSale  Sale @relation("ScopedSaleLine", fields: [tenantId, saleId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction, map: "SaleLine_tenant_sale_fkey")
   variant     ProductVariant @relation(fields: [tenantId, variantId], references: [tenantId, id])
   intakeReviews UnverifiedIntakeReview[]

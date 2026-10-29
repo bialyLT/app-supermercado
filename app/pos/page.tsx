@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { enqueue, pendingCommands, remove, type OfflineCommand } from "../../src/pos/offline-queue";
 import styles from "./pos.module.css";
 
-type Line = { variantId: string; locationId: string; quantity: string; label: string };
+type Line = { variantId: string; locationId: string; quantity: string; label: string; unitPrice?: string; weighedBarcode?: string };
 type Payment = { method: "CASH" | "TRANSFER" | "CARD" | "WALLET"; amount: string };
 type Suggestion = { id: string; sku: string; name: string; productName: string };
 
@@ -14,6 +14,8 @@ const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}
 export default function PosPage() {
   const [locationId, setLocationId] = useState("");
   const [variantId, setVariantId] = useState("");
+  const [scannedUnitPrice, setScannedUnitPrice] = useState<string | undefined>();
+  const [scannedBarcode, setScannedBarcode] = useState<string | undefined>();
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [quantity, setQuantity] = useState("1");
   const [lines, setLines] = useState<Line[]>([]);
@@ -25,6 +27,9 @@ export default function PosPage() {
   const [queued, setQueued] = useState(0);
 
   const [commandId, setCommandId] = useState(() => crypto.randomUUID());
+  const searchSeq = useRef(0);
+  const addLineRef = useRef<() => void>(() => {});
+  const checkoutRef = useRef<() => Promise<void>>(async () => {});
 
   useEffect(() => {
     const refreshQueue = () => void pendingCommands().then((items) => setQueued(items.length)).catch(() => undefined);
@@ -54,50 +59,114 @@ export default function PosPage() {
     window.addEventListener("online", onOnline); window.addEventListener("offline", onOffline);
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "F2") { event.preventDefault(); document.getElementById("variant")?.focus(); }
-      if (event.key === "F4") { event.preventDefault(); addLine(); }
+      if (event.key === "F4") { event.preventDefault(); addLineRef.current(); }
       if (event.key === "F8") { event.preventDefault(); document.getElementById("payment")?.focus(); }
-      if (event.key === "F10") { event.preventDefault(); void checkout(); }
+      if (event.key === "F10") { event.preventDefault(); void checkoutRef.current(); }
       if (event.key === "Escape") { setLines([]); setStatus(""); setChange(null); }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => { window.removeEventListener("keydown", onKeyDown); window.removeEventListener("online", onOnline); window.removeEventListener("offline", onOffline); };
-  // Keyboard handlers intentionally close over current command state.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function search(value: string) {
-    setVariantId(value);
-    const query = value.trim().toLowerCase();
-    if (query.length < 2) { setSuggestions([]); return; }
+  async function searchCatalogQuery(queryText: string, seq: number) {
+    const query = queryText.trim().toLowerCase();
+    if (query.length < 2) {
+      if (seq === searchSeq.current) setSuggestions([]);
+      return;
+    }
     const cached = () => {
       const items = JSON.parse(localStorage.getItem("supermercado-pos-catalog") ?? "[]") as Suggestion[];
       return items.filter((item) => `${item.sku} ${item.name} ${item.productName}`.toLowerCase().includes(query));
     };
     if (!navigator.onLine) {
-      const items = cached();
-      setSuggestions(items);
-      setStatus(items.length ? "Catálogo local: sin conexión" : "Producto no disponible en catálogo local");
+      if (seq === searchSeq.current) {
+        const items = cached();
+        setSuggestions(items);
+        setStatus(items.length ? "Catálogo local: sin conexión" : "Producto no disponible en catálogo local");
+      }
       return;
     }
     try {
-      const response = await fetch(`/api/pos/catalog?q=${encodeURIComponent(value)}`);
+      const response = await fetch(`/api/pos/catalog?q=${encodeURIComponent(queryText)}`);
+      if (seq !== searchSeq.current) return;
       if (!response.ok) return;
       const items = (await response.json() as { items: Suggestion[] }).items;
+      if (seq !== searchSeq.current) return;
       localStorage.setItem("supermercado-pos-catalog", JSON.stringify(items));
       setSuggestions(items);
     } catch {
+      if (seq !== searchSeq.current) return;
       const items = cached();
       setSuggestions(items);
       setStatus(items.length ? "Catálogo local: sin conexión" : "Producto no disponible en catálogo local");
     }
   }
 
+  async function search(value: string) {
+    const seq = ++searchSeq.current;
+    setVariantId(value);
+    setScannedUnitPrice(undefined);
+    setScannedBarcode(undefined);
+    if (/^\d{13}$/.test(value.trim())) {
+      if (!navigator.onLine) {
+        setStatus("Sin conexión: no se puede resolver código pesable");
+        await searchCatalogQuery(value, seq);
+        return;
+      }
+      try {
+        const response = await fetch(`/api/pos/barcodes/price?code=${encodeURIComponent(value.trim())}`);
+        if (seq !== searchSeq.current) return;
+        if (response.ok) {
+          const item = await response.json() as Suggestion & { variantId: string; unitPrice: string };
+          if (seq !== searchSeq.current) return;
+          setVariantId(item.variantId);
+          setScannedUnitPrice(item.unitPrice);
+          setScannedBarcode(value.trim());
+          setSuggestions([{ id: item.variantId, sku: item.sku, name: item.name, productName: item.productName }]);
+          setStatus(`Código pesable: precio unitario ${item.unitPrice}`);
+          return;
+        }
+        const body = await response.json().catch(() => ({})) as { error?: string };
+        if (seq !== searchSeq.current) return;
+        if (body.error === "WEIGHED_BARCODE_NOT_CONFIGURED" || body.error === "EAN13_PREFIX_MISMATCH") {
+          // Ordinary EAN13: fall back to catalog
+          await searchCatalogQuery(value, seq);
+          return;
+        }
+        // Invalid configured scan: show error and do not fall back
+        setSuggestions([]);
+        setStatus(`Código pesable inválido: ${body.error ?? "error"}`);
+        return;
+      } catch {
+        if (seq !== searchSeq.current) return;
+        setStatus("Error al resolver código pesable");
+        setSuggestions([]);
+        return;
+      }
+    }
+    await searchCatalogQuery(value, seq);
+  }
+
+  function selectSuggestion(item: Suggestion) {
+    ++searchSeq.current;
+    setVariantId(item.id);
+    if (item.id !== variantId || !scannedBarcode) {
+      setScannedUnitPrice(undefined);
+      setScannedBarcode(undefined);
+    }
+    setSuggestions([]);
+  }
+
   function addLine() {
     if (!locationId.trim() || !uuidPattern.test(locationId.trim())) { setStatus("Ingresá una ubicación válida"); return; }
     if (!uuidPattern.test(variantId.trim())) { setStatus("Seleccioná un producto del catálogo"); return; }
-    setLines((current) => [...current, { variantId: variantId.trim(), locationId: locationId.trim(), quantity, label: variantId.trim() }]);
+    ++searchSeq.current;
+    setLines((current) => [...current, { variantId: variantId.trim(), locationId: locationId.trim(), quantity, label: variantId.trim(), unitPrice: scannedUnitPrice, weighedBarcode: scannedBarcode }]);
     setVariantId("");
+    setScannedUnitPrice(undefined);
+    setScannedBarcode(undefined);
     setQuantity("1");
+    setSuggestions([]);
     setStatus("");
   }
 
@@ -112,7 +181,17 @@ export default function PosPage() {
       return;
     }
     setBusy(true); setStatus("Procesando…"); setChange(null);
-    const payload = { lines: lines.map((line) => ({ variantId: line.variantId, locationId: line.locationId, quantity: line.quantity })), payments, idempotencyKey: commandId };
+    const payload = {
+      lines: lines.map((line) => ({
+        variantId: line.variantId,
+        locationId: line.locationId,
+        quantity: line.quantity,
+        ...(line.unitPrice ? { unitPrice: line.unitPrice } : {}),
+        ...(line.weighedBarcode ? { weighedBarcode: line.weighedBarcode } : {}),
+      })),
+      payments,
+      idempotencyKey: commandId,
+    };
     try {
       const response = await fetch("/api/pos/checkout", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) });
       const body = await response.json() as { error?: string; change?: string; id?: string };
@@ -126,6 +205,11 @@ export default function PosPage() {
     } finally { setBusy(false); }
   }
 
+  useEffect(() => {
+    addLineRef.current = addLine;
+    checkoutRef.current = checkout;
+  });
+
   return <main className={styles.shell} aria-label="Punto de venta">
     <header><h1>POS</h1><p>Keyboard-first · F2 buscar · F4 agregar · F8 pagar · F10 confirmar · Esc limpiar</p><p role="status">{offline ? "Offline · comandos se guardan localmente" : "Online"} · En cola: {queued}</p></header>
     <section className={styles.grid}>
@@ -134,7 +218,7 @@ export default function PosPage() {
         <input id="location" value={locationId} onChange={(event) => setLocationId(event.target.value)} required />
         <label htmlFor="variant">Variante / código</label>
         <input id="variant" value={variantId} onChange={(event) => void search(event.target.value)} autoFocus required />
-        {suggestions.length > 0 && <ul aria-label="Resultados de búsqueda">{suggestions.map((item) => <li key={item.id}><button type="button" onClick={() => { setVariantId(item.id); setSuggestions([]); }}>{item.name} · {item.sku}</button></li>)}</ul>}
+        {suggestions.length > 0 && <ul aria-label="Resultados de búsqueda">{suggestions.map((item) => <li key={item.id}><button type="button" onClick={() => selectSuggestion(item)}>{item.name} · {item.sku}</button></li>)}</ul>}
         <label htmlFor="quantity">Cantidad</label>
         <input id="quantity" type="number" min="0.001" step="0.001" value={quantity} onChange={(event) => setQuantity(event.target.value)} required />
         <button type="submit">Agregar (F4)</button>

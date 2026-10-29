@@ -13,6 +13,8 @@ import { withTenant, type TransactionClient as Tx } from "./tenant-context";
 import { configuredPolicy, currentRegisterSession } from "./cash";
 import { consume } from "./approval";
 import { allocateDocumentNumber } from "./numbering";
+import { resolveWeighedBarcodeInTx } from "./weighed-barcode";
+import type { SaleLineSourceSnapshot } from "../../domain/weighed-barcode";
 
 export const inventoryPermissions: Record<Actor["role"], readonly Permission[]> = {
   CASHIER: ["cash.session.open", "cash.session.close", "inventory.sell", "inventory.catalog.read", "inventory.unverified_intake.create"],
@@ -165,7 +167,7 @@ async function storeFiscalContext(tx: Tx, actor: Actor, branchId: string): Promi
   return { storeId: store.id, storeName: store.name, country: "AR", condition: profile.condition, internalTicket: profile.internalTicket };
 }
 
-type SaleCoreLine = { locationId: string; variantId: string; lotId?: string; quantity: string; unitPrice?: string; reason?: string };
+type SaleCoreLine = { locationId: string; variantId: string; lotId?: string; quantity: string; unitPrice?: string; weighedBarcode?: string; reason?: string };
 type SaleCoreOptions = { idempotencyKey: string; allowUnverifiedIntake: boolean; approvalToken?: string; clientPrices: boolean; approvalInput: SaleInput | MultiSaleInput | PaidMultiSaleInput; payments?: PaymentInput[] };
 
 async function confirmSaleCore(tx: Tx, verified: Actor, now: Date, lines: SaleCoreLine[], options: SaleCoreOptions) {
@@ -175,11 +177,28 @@ async function confirmSaleCore(tx: Tx, verified: Actor, now: Date, lines: SaleCo
   const session = await currentRegisterSession(tx, verified, location.branchId);
   const policy = await configuredPolicy(tx, verified.tenantId);
   const approval = options.approvalToken ? await consume(tx, verified, options.approvalInput, session.id, location.branchId, now) : null;
-  const plans: Array<{ line: SaleCoreLine; variant: { name: string }; price: { amount: Decimal; currency: string }; lots: Awaited<ReturnType<typeof tx.lot.findMany>>; levels: Awaited<ReturnType<typeof tx.inventoryLevel.findMany>>; shortage: Decimal; day: string; intakeValue: string }> = [];
+  const plans: Array<{ line: SaleCoreLine; variant: { name: string }; price: { amount: Decimal; currency: string }; lots: Awaited<ReturnType<typeof tx.lot.findMany>>; levels: Awaited<ReturnType<typeof tx.inventoryLevel.findMany>>; shortage: Decimal; day: string; intakeValue: string; sourceSnapshot?: SaleLineSourceSnapshot }> = [];
 
   for (const line of lines) {
-    const { variant } = await stockAccess(tx, verified, line);
-    const price = await serverPrice(tx, verified, options.clientPrices ? line : { variantId: line.variantId }, location.branchId, now);
+    let variant: { name: string };
+    let price: { amount: Decimal; currency: string };
+    let sourceSnapshot: SaleLineSourceSnapshot | undefined;
+
+    if (line.weighedBarcode) {
+      await stockAccess(tx, verified, line);
+      const weighed = await resolveWeighedBarcodeInTx(tx, verified.tenantId, location.branchId, {
+        variantId: line.variantId,
+        unitPrice: line.unitPrice,
+        weighedBarcode: line.weighedBarcode,
+      }, now);
+      variant = weighed.variant;
+      price = weighed.price;
+      sourceSnapshot = weighed.sourceSnapshot;
+    } else {
+      const access = await stockAccess(tx, verified, line);
+      variant = access.variant;
+      price = await serverPrice(tx, verified, options.clientPrices ? line : { variantId: line.variantId }, location.branchId, now);
+    }
     if (session.currency !== price.currency || policy.currency !== session.currency) throw new InventoryError("CURRENCY_MISMATCH");
     await tx.$queryRaw`SELECT "id" FROM "InventoryLevel" WHERE "tenantId" = ${verified.tenantId}::uuid
       AND "locationId" = ${line.locationId}::uuid AND "variantId" = ${line.variantId}::uuid
@@ -199,7 +218,7 @@ async function confirmSaleCore(tx: Tx, verified: Actor, now: Date, lines: SaleCo
       if (lots.some((lot) => lot.expiresAt && lot.expiresAt <= now) && !approval) throw new InventoryError("EXPIRED_LOT");
       await intake(tx, verified, { ...line, idempotencyKey: options.idempotencyKey, unitPrice: price.amount.toString(), allowUnverifiedIntake: options.allowUnverifiedIntake }, shortage, day, session.id, intakeValue, approval !== null);
     }
-    plans.push({ line, variant, price, lots, levels, shortage, day, intakeValue });
+    plans.push({ line, variant, price, lots, levels, shortage, day, intakeValue, sourceSnapshot });
   }
 
   const total = plans.reduce((sum, plan) => sum.plus(money(new FinancialDecimal(plan.line.quantity).times(plan.price.amount.toString()), plan.price.currency)), new FinancialDecimal(0));
@@ -217,7 +236,7 @@ async function confirmSaleCore(tx: Tx, verified: Actor, now: Date, lines: SaleCo
   const created = await tx.sale.create({ data: { tenantId: verified.tenantId, locationId: first.locationId, branchId: location.branchId,
     documentNumber, actorUserId: verified.userId, total: money(total, session.currency),
     registerSessionId: session.id, currency: session.currency, createdAt: now, fiscalSnapshot: fiscalContext ? buildFiscalSnapshot(fiscalContext) : undefined,
-    lines: { create: plans.map((plan) => ({ tenantId: verified.tenantId, variantId: plan.line.variantId, quantity: plan.line.quantity, unitPrice: plan.price.amount, productName: plan.variant.name })) } }, include: { lines: true } });
+    lines: { create: plans.map((plan) => ({ tenantId: verified.tenantId, variantId: plan.line.variantId, quantity: plan.line.quantity, unitPrice: plan.price.amount, productName: plan.variant.name, sourceSnapshot: plan.sourceSnapshot ? plan.sourceSnapshot : undefined })) } }, include: { lines: true } });
 
   if (options.payments) {
     for (const payment of options.payments) {
