@@ -1,6 +1,6 @@
 # Epic 5 — Weighed EAN price verification report
 
-BLOQUEADO: implementation and functional verification complete; local delivery slicing and scoped native review remain unresolved. The reused demo database has a separately reported ledger divergence; it was not modified to make the gate pass.
+ENTREGADO: implementation, functional verification, local delivery slicing and independent verification complete. RDD/native review was explicitly cancelled and abandoned; no native approval or acknowledgement is claimed. The reused demo database has a separately reported ledger divergence; it was not modified to make the gate pass.
 
 ## Delivered behavior
 
@@ -65,7 +65,7 @@ EAN browser tests intercept lookup/checkout responses to prove UI wiring and sub
 
 ## Remaining decisions / deviations
 
-- The committed candidate assessment returned `nativeRisk: medium`, `risk: medium`, `reviewDue: false` with reason `under_budget`. The explicit item-2 escalation returned the required high verification plan; the independent S1-S6 verifier already completed with no blockers. No native approved review or acknowledgement is claimed because the returned plan did not require native review. The candidate was split into three local feature-branch slices; unrelated inherited edits remain outside those commits.
+- The committed candidate assessment returned `nativeRisk: medium`, `risk: medium`, `reviewDue: false` with reason `under_budget`. The explicit item-2 escalation returned the required high verification plan; the independent S1-S6 verifier completed with no blockers. The later native review lineage was explicitly abandoned with reason `operator_disposition`; no native approved review or acknowledgement is claimed. The candidate was split into three local feature-branch slices; unrelated inherited edits remain outside those commits.
 - The runtime reports a large accumulated branch history and the slices are reviewable behavior units; no push, PR creation, or merge was authorized.
 - Demo ledger reconciliation remains red in that reused database. Do not infer that clean-database success repairs demo data. Any data reconciliation needs its own authorized investigation and compensating procedure.
 - No business requirements were changed to bypass a gate. SUPUESTO: none concerning the historical delay or demo discrepancy cause.
