@@ -2,12 +2,14 @@ import { afterAll, describe, expect, it } from "vitest";
 import { admin, runtime, enabled, fixture, clock, addActor, now } from "./fixtures";
 import { recordReceipt, confirmPaidMultiLineSale, confirmSale, reserveStock, reviewUnverifiedIntake } from "../../src/server/inventory";
 import { recordCashMovement } from "../../src/server/cash";
+import { upsertWeighedBarcodeConfig } from "../../src/server/repositories/catalog";
 import { closeBranchDocuments } from "../../src/server/numbering";
 import { reverseSale } from "../../src/server/reversal";
 import { setSupervisorPin, approveInventorySale } from "../../src/server/supervisor";
 
 async function populatedFixture() {
   const f = await fixture();
+  await upsertWeighedBarcodeConfig(f.actor, { prefix: "20", mode: "PRICE", variantDigits: 5, valueDigits: 5, valueScale: 2 });
   await recordCashMovement(f.actor, { registerSessionId: f.registerSessionId!, type: "CASH_IN", amount: "1", reason: "RLS population", idempotencyKey: `cash-population-${f.tenantId}` }, clock);
   await admin.cashRegister.create({ data: { tenantId: f.tenantId, branchId: f.branchId, name: "Gate" } });
   await admin.barcode.create({ data: { tenantId: f.tenantId, variantId: f.variantId, code: "12345" } });
@@ -44,7 +46,8 @@ async function populatedFixture() {
 
 afterAll(async () => { await admin.$disconnect(); await runtime.$disconnect(); });
 (enabled ? describe : describe.skip)("runtime RLS and append-only boundaries", () => {
-  it("isolates every tenant table, including identity metadata", async () => {
+  // Each probe populates and checks every tenant table through real PostgreSQL transactions.
+  it("isolates every tenant table, including identity metadata", { timeout: 20000 }, async () => {
     const a = await fixture();
     const b = await populatedFixture();
     const tables = await admin.$queryRaw<{ table_name: string }[]>`SELECT table_name FROM information_schema.columns WHERE table_schema = 'public' AND column_name = 'tenantId' ORDER BY table_name`;
@@ -63,7 +66,7 @@ afterAll(async () => { await admin.$disconnect(); await runtime.$disconnect(); }
     expect(settings[0]?.tenant).toBeNull();
   });
 
-  it("blocks cross-tenant inserts and mutations in every tenant table", async () => {
+  it("blocks cross-tenant inserts and mutations in every tenant table", { timeout: 20000 }, async () => {
     const a = await fixture();
     const b = await populatedFixture();
     const tables = await admin.$queryRaw<{ table_name: string }[]>`SELECT table_name FROM information_schema.columns WHERE table_schema = 'public' AND column_name = 'tenantId'`;

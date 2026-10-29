@@ -105,9 +105,13 @@ entrega de movimientos de caja, pagos, arqueo ni contratos fiscales de Épica 3.
 
 ## Épica 5 — Fiscalidad, hardware y promociones
 
-- **Objetivo:** cumplir obligaciones fiscales y conectar periféricos.
-- **Entregables:** documentos fiscales según D-009, impresión de ticket,
-  balanza/códigos pesables en producción, promociones server-side explicables.
+- **Primer corte aprobado (D-018):** códigos pesables EAN-13 con precio
+  incrustado, configuración por tenant e integración server-side con POS;
+  sin hardware físico, impresión, emisión fiscal ni promociones en este corte.
+- **Objetivo posterior:** cumplir obligaciones fiscales y conectar periféricos.
+- **Entregables posteriores:** documentos fiscales según D-009, impresión de
+  ticket, balanza/códigos pesables en producción y promociones server-side
+  explicables; `2x1 / NxM` queda como prioridad promocional futura.
 - **Criterios:** cada línea guarda la regla que produjo su precio; el flujo
   fiscal tiene plan definido para modo sin conexión.
 
