@@ -66,6 +66,62 @@ export async function createCatalogItem(actor: Actor, input: z.input<typeof cata
   });
 }
 
+import {
+  parseConfiguredWeighedBarcode,
+  weighedBarcodeConfigSchema,
+  type WeighedBarcodeConfigInput,
+} from "../../domain/weighed-barcode";
+
+export async function upsertWeighedBarcodeConfig(actor: Actor, input: WeighedBarcodeConfigInput) {
+  const data = weighedBarcodeConfigSchema.parse(input);
+  return inventoryTransaction(actor, "inventory.catalog.write", systemClock, async (tx, verified) =>
+    tx.weighedBarcodeConfig.upsert({
+      where: { tenantId: verified.tenantId },
+      create: { tenantId: verified.tenantId, ...data },
+      update: data,
+    }));
+}
+
+export async function resolvePriceWeighedBarcode(actor: Actor, raw: string) {
+  return inventoryTransaction(actor, "inventory.catalog.read", systemClock, async (tx, verified) => {
+    const stored = await tx.weighedBarcodeConfig.findUnique({ where: { tenantId: verified.tenantId } });
+    if (!stored) throw new InventoryError("WEIGHED_BARCODE_NOT_CONFIGURED");
+    let parsed;
+    try {
+      parsed = parseConfiguredWeighedBarcode(raw, {
+        prefix: stored.prefix,
+        mode: stored.mode,
+        variantDigits: stored.variantDigits,
+        valueDigits: stored.valueDigits,
+        valueScale: stored.valueScale,
+      });
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.message === "INVALID_EAN13") throw new InventoryError("INVALID_EAN13");
+        if (error.message === "EAN13_PREFIX_MISMATCH") throw new InventoryError("EAN13_PREFIX_MISMATCH");
+        if (error.message === "INVALID_EAN13_CHECKSUM") throw new InventoryError("INVALID_EAN13_CHECKSUM");
+        if (error.message === "INVALID_EAN13_LAYOUT") throw new InventoryError("INVALID_EAN13_LAYOUT");
+        if (error.message === "WEIGHED_BARCODE_ZERO_PRICE") throw new InventoryError("WEIGHED_BARCODE_ZERO_PRICE");
+      }
+      throw error;
+    }
+    if (stored.mode !== "PRICE" || !parsed.amount) throw new InventoryError("WEIGHED_BARCODE_MODE_UNSUPPORTED");
+    if (parsed.amount.isZero() || parsed.amount.isNegative()) throw new InventoryError("WEIGHED_BARCODE_ZERO_PRICE");
+    const variant = await tx.productVariant.findFirst({
+      where: { tenantId: verified.tenantId, sku: parsed.variantCode, active: true },
+      include: { product: true },
+    });
+    if (!variant) throw new InventoryError("NOT_FOUND");
+    return {
+      variantId: variant.id,
+      sku: variant.sku,
+      name: variant.name,
+      productName: variant.product.name,
+      unitPrice: parsed.amount.toFixed(stored.valueScale),
+    };
+  });
+}
+
 export async function getCurrentPrice(actor: Actor, input: {
   variantId: string;
   channel?: "RETAIL" | "WHOLESALE" | "POS";

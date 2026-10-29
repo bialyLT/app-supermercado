@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { httpStatus, InventoryError, multiSaleSchema, quantitySchema, reviewSchema } from "../src/domain/inventory";
 import { parseWeighedEan13 } from "../src/domain/ean13";
 import { selectFefoLots } from "../src/domain/fefo";
+import { parseConfiguredWeighedBarcode, weighedBarcodeConfigSchema } from "../src/domain/weighed-barcode";
 
 describe("inventory contracts and decimal properties", () => {
   it("maps typed errors to stable HTTP statuses", () => {
@@ -29,6 +30,23 @@ describe("inventory contracts and decimal properties", () => {
       expect(parseWeighedEan13(raw, config).amount?.toFixed(2)).toBe(new Decimal(value.toString()).div("100").toFixed(2));
       expect(() => parseWeighedEan13(raw, { ...config, valueDigits: 20 })).toThrow("INVALID_EAN13_LAYOUT");
     }), { numRuns: 200, seed: 20261026 });
+  });
+
+  it("validates the tenant EAN-13 price layout and returns the embedded unit price", () => {
+    const config = weighedBarcodeConfigSchema.parse({ prefix: "20", mode: "PRICE", variantDigits: 5, valueDigits: 5, valueScale: 2 });
+    const parsed = parseConfiguredWeighedBarcode("2012345001251", config);
+    expect(parsed.variantCode).toBe("12345");
+    expect(parsed.amount?.toFixed(2)).toBe("1.25");
+    expect(() => weighedBarcodeConfigSchema.parse({ ...config, prefix: "2" })).toThrow("INVALID_EAN13_LAYOUT");
+    expect(() => parseConfiguredWeighedBarcode("2112345001251", config)).toThrow("EAN13_PREFIX_MISMATCH");
+    expect(() => parseConfiguredWeighedBarcode("2012345001251", { prefix: "20", mode: "PRICE", variantDigits: 4, valueDigits: 5, valueScale: 2 })).toThrow("INVALID_EAN13_LAYOUT");
+    expect(() => parseConfiguredWeighedBarcode("2012345000001", config)).toThrow("WEIGHED_BARCODE_ZERO_PRICE");
+  });
+
+  it("accepts optional weighedBarcode on multiline sales and rejects invalid barcode format", () => {
+    const line = { locationId: "123e4567-e89b-42d3-a456-426614174000", variantId: "123e4567-e89b-42d3-a456-426614174001", quantity: "1" };
+    expect(multiSaleSchema.safeParse({ lines: [{ ...line, weighedBarcode: "2012345001251" }], idempotencyKey: "sale" }).success).toBe(true);
+    expect(multiSaleSchema.safeParse({ lines: [{ ...line, weighedBarcode: "2012345" }], idempotencyKey: "sale" }).success).toBe(false);
   });
 
   it("rejects multiline sales with duplicate variants or different locations", () => {
