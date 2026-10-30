@@ -1,5 +1,5 @@
 import { afterAll, describe, expect, it } from "vitest";
-import { createTransfer } from "../../src/server/transfers";
+import { createTransfer, listTransfers } from "../../src/server/transfers";
 import { recordReceipt } from "../../src/server/inventory";
 import { admin, clock, enabled, fixture, addActor } from "./fixtures";
 
@@ -31,6 +31,11 @@ afterAll(async () => { await admin.$disconnect(); });
     const transfer = await createTransfer(actor, input, clock);
     const replay = await createTransfer(actor, input, clock);
     expect(replay.id).toBe(transfer.id);
+    const history = await listTransfers(actor);
+    expect(history).toHaveLength(1);
+    expect(history[0]?.originBranchId).toBe(f.branchId);
+    expect(history[0]?.destinationBranchId).toBe(destination.branch.id);
+    expect(history[0]?.lines[0]?.quantity).toBe("4");
 
     const source = await admin.inventoryLevel.findFirst({ where: { tenantId: f.tenantId, locationId: f.locationId, variantId: f.variantId, lotId: null } });
     const destinationLevel = await admin.inventoryLevel.findFirst({ where: { tenantId: f.tenantId, locationId: destination.location.id, variantId: f.variantId, lotId: null } });
