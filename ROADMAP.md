@@ -1,10 +1,9 @@
 # Roadmap operativo
 
-**Estado:** Épicas 0, 1, 3 y 4 cerradas técnicamente; Épica 2 entregada para
-aceptación del orquestador. Épica 4 cerrada en
-`.github/web-dev-loop/reports/epica-4-closure.md` (178/178 tests, 5 E2E
-passed/2 skipped, gates verdes). Entrega pendiente: push/PR por el dueño desde
-Windows. Siguiente: Épica 5; la rama `feat/pos-offline` contiene el corte.
+**Estado:** Épicas 0, 1, 2, 3, 4 y 5 cerradas técnicamente en los cortes
+aprobados. Épica 5 queda cerrada con EAN-13 con precio, perfiles fiscales
+argentinos y promociones N×M; impresión y hardware permanecen fuera de alcance.
+Épica 6 es la siguiente, condicionada a resolver D-010.
 **Reglas vinculantes:** `AGENTS.md`, `DOMAIN_RULES.md`, `DECISIONS.md`,
 `GATES.md`.
 
@@ -105,18 +104,23 @@ entrega de movimientos de caja, pagos, arqueo ni contratos fiscales de Épica 3.
 
 ## Épica 5 — Fiscalidad, hardware y promociones
 
-- **Corte activo aprobado (D-020):** promociones 2×1/N×M por categoría,
-  server-side, discretas, explicables y administrables por tenant/sucursal.
-- **Entregado en este corte:** modelo y migración aditiva, motor determinista,
-  checkout con precio efectivo/snapshot/reversión, API administrativa protegida
-  y pantalla de gestión.
-- **Pendiente de Épica 5:** códigos pesables EAN-13 de D-018/D-019, fiscalidad,
-  impresión, balanza física y hardware.
-- **Verificación:** suite PostgreSQL 219/219 tests, RLS/identidad 6/6,
-  administración 3/3; build compiló pero agotó el timeout durante TypeScript y
-  no hubo verificador browser disponible para la nueva pantalla.
+- **Estado:** cerrada en los cortes aprobados; impresión y hardware quedan fuera
+  hasta una decisión específica de dispositivo, formato y protocolo.
+- **EAN-13 D-018/D-019:** parser y configuración tenant-scoped, resolución
+  server-side, validación de precio vigente, snapshot inmutable y flujo POS.
+- **Fiscalidad D-006/D-009:** perfiles MONOTRIBUTO/RESPONSABLE_INSCRIPTO por
+  razón social, snapshot histórico en venta y aislamiento/auditoría.
+- **Promociones D-020:** N×M por categoría, motor determinista, checkout,
+  API administrativa y pantalla de gestión.
+- **Verificación consolidada:** EAN reporta 193/193 tests, cobertura de líneas
+  93.89% y ramas 84.29%, E2E 11/11 y build exit 0; el corte promocional agrega
+  suite PostgreSQL 219/219, administración 3/3, E2E específico 1/1 y build
+  exit 0. `typecheck`, `lint`, Prisma validate y `git diff --check` terminan en
+  0 en el corte promocional.
 
 ## Épica 6 — Escala, reportes y despliegue
+
+**Prerequisito pendiente:** aprobar D-010 con proveedor y región de despliegue.
 
 - **Objetivo:** operar múltiples sucursales y publicar con seguridad.
 - **Entregables:** compras, transferencias entre sucursales, reportes,
