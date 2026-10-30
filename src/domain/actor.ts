@@ -3,6 +3,7 @@ import type { RoleName } from "./contracts";
 export type Permission =
   | "inventory.write"
   | "inventory.receive"
+  | "inventory.transfer"
   | "inventory.sell"
   | "inventory.reserve"
   | "inventory.catalog.write"

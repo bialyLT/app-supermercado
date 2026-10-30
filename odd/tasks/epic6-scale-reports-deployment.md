@@ -61,8 +61,8 @@ S27. «Neon» — free PostgreSQL in São Paulo; Vercel remains the app host; ba
 ## Tasks
 
 T1 | S1-S7 | planning | pending | Approve D-010/D-021 and define the release/backup contract; commit: pending.
-T2 | S8,S15,S23 | implementation | pending | Implement direct purchase receipts with server-side pricing, tax totals, stock ledger and audit; commit: pending.
-T3 | S8,S16,S24 | implementation | pending | Implement automatic inter-branch transfers with idempotency, ledger movements and audit; commit: pending.
+T2 | S8,S15,S23 | implementation | done | Implement direct purchase receipts with server-side pricing, tax totals, stock ledger and audit; commit: pending.
+T3 | S8,S16,S24 | implementation | done | Implement automatic inter-branch transfers with idempotency, ledger movements and audit; commit: pending.
 T4 | S9,S17,S21,S25 | implementation | pending | Implement management reports and authorized CSV export; commit: pending.
 T5 | S10,S12,S18,S20,S26 | implementation | pending | Add structured observability, synthetic demo fixtures and retention/runbook controls; commit: pending.
 T6 | S3,S6,S7,S13,S22,S27 | implementation | pending | Prepare Neon/Vercel release, migrations, CI PR gates, `pg_dump` automation, off-site copy and restore drill; no production deploy; commit: pending.
@@ -74,3 +74,4 @@ L1. Dueño: «excelente ya mergee todo, si la epica 5 esta cerrada avnzamos a la
 L2. Dueño: if deploying for testing, «lo haria en supabase con vercel»; production deployment is not to happen yet.
 L3. Dueño answered the collected Epic 6 scope questions: small kiosk, production-only strategy, basic RPO/RTO, production-ready preparation, purchases plus transfers, management reports, logs/dashboard only, provider subdomain, PR-required CI, controlled demo data with complete reports, CSV export, temporary account transferred to owner, direct receipt with taxes, automatic transfers, one-year retention, and Neon as the free provider after moving backups to business operations.
 L4. Research found no indefinitely free managed provider with all provider-managed backup guarantees; business-managed `pg_dump` was selected to preserve zero provider cost. This changes the backup gate from provider-managed backup to tested operational backup/restore and must be documented explicitly.
+L5. T2/T3 implementation evidence: migration deploy applied all migrations successfully; focused domain tests 11/11; PostgreSQL integration purchases/API/RLS/inventory 39/39; transfer/purchase focused integration 15/15; Prisma validate, typecheck, lint and diff hygiene exit 0. No production deployment performed.

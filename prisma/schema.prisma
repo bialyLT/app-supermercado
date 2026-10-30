@@ -61,6 +61,11 @@ model Tenant {
   weighedBarcodeConfig WeighedBarcodeConfig?
   promotions    Promotion[]
   categories    ProductCategory[]
+  suppliers     Supplier[]
+  purchaseReceipts PurchaseReceipt[]
+  purchaseReceiptLines PurchaseReceiptLine[]
+  transfers InventoryTransfer[]
+  transferLines InventoryTransferLine[]
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
 }
@@ -179,6 +184,9 @@ model Branch {
   documentSequences DocumentSequence[]
   documentClosures DocumentClosure[]
   promotions    Promotion[]
+  purchaseReceipts PurchaseReceipt[]
+  outgoingTransfers InventoryTransfer[] @relation("TransferOriginBranch")
+  incomingTransfers InventoryTransfer[] @relation("TransferDestinationBranch")
   createdAt     DateTime       @default(now())
   @@unique([tenantId, code])
   @@unique([tenantId, id])
@@ -222,6 +230,8 @@ model User {
   documentClosures DocumentClosure[]
   requestedApprovals SupervisorApproval[] @relation("ApprovalRequester")
   grantedApprovals SupervisorApproval[] @relation("ApprovalApprover")
+  purchaseReceipts PurchaseReceipt[]
+  transfers InventoryTransfer[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   @@unique([tenantId, email])
@@ -375,6 +385,8 @@ model ProductVariant {
   saleLines   SaleLine[]
   lots        Lot[]
   intakeReviews UnverifiedIntakeReview[]
+  purchaseLines PurchaseReceiptLine[]
+  transferLines InventoryTransferLine[]
   @@unique([tenantId, sku])
   @@unique([tenantId, id])
   @@index([tenantId, productId])
@@ -433,6 +445,9 @@ model Location {
   reservations Reservation[]
   branch    Branch? @relation(fields: [tenantId, branchId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction, map: "Location_tenant_branch_fkey")
   intakeReviews UnverifiedIntakeReview[]
+  purchaseReceipts PurchaseReceipt[]
+  outgoingTransfers InventoryTransfer[] @relation("TransferOriginLocation")
+  incomingTransfers InventoryTransfer[] @relation("TransferDestinationLocation")
   @@unique([tenantId, code])
   @@unique([tenantId, id])
   @@index([tenantId, branchId])
@@ -449,6 +464,8 @@ model Lot {
   levels      InventoryLevel[]
   movements   InventoryMovement[]
   reservations Reservation[]
+  purchaseLines PurchaseReceiptLine[]
+  transferLines InventoryTransferLine[]
   @@unique([tenantId, variantId, lotNumber])
   @@unique([tenantId, id])
 }
@@ -922,4 +939,135 @@ model Promotion {
   @@unique([tenantId, id])
   @@index([tenantId, categoryId, active])
   @@index([tenantId, branchId])
+}
+
+model Supplier {
+  id          String            @id @default(uuid()) @db.Uuid
+  tenantId    String            @db.Uuid
+  code        String
+  name        String
+  taxId       String?
+  email       String?
+  phone       String?
+  address     String?
+  active      Boolean           @default(true)
+  createdAt   DateTime          @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime          @updatedAt @db.Timestamptz(3)
+
+  tenant      Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  receipts    PurchaseReceipt[]
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, code])
+  @@index([tenantId, name])
+  @@index([tenantId, active])
+}
+
+model PurchaseReceipt {
+  id             String                @id @default(uuid()) @db.Uuid
+  tenantId       String                @db.Uuid
+  branchId       String                @db.Uuid
+  locationId     String                @db.Uuid
+  supplierId     String                @db.Uuid
+  receiptNumber  String?
+  issuedAt       DateTime              @default(now()) @db.Timestamptz(3)
+  receivedAt     DateTime              @default(now()) @db.Timestamptz(3)
+  currency       String
+  subtotal       Decimal               @db.Decimal(22, 4)
+  taxTotal       Decimal               @default(0) @db.Decimal(22, 4)
+  discountTotal  Decimal               @default(0) @db.Decimal(22, 4)
+  total          Decimal               @db.Decimal(22, 4)
+  notes          String?
+  actorUserId    String?               @db.Uuid
+  idempotencyKey String
+  createdAt      DateTime              @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime              @updatedAt @db.Timestamptz(3)
+
+  tenant         Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  branch         Branch                @relation(fields: [tenantId, branchId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction)
+  location       Location              @relation(fields: [tenantId, locationId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction)
+  supplier       Supplier              @relation(fields: [tenantId, supplierId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction)
+  actor          User?                 @relation(fields: [tenantId, actorUserId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction)
+  lines          PurchaseReceiptLine[]
+  scopedLines    PurchaseReceiptLine[] @relation("ScopedPurchaseReceiptLine")
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, idempotencyKey])
+  @@index([tenantId, branchId, receivedAt])
+  @@index([tenantId, supplierId])
+}
+
+model InventoryTransfer {
+  id                   String                    @id @default(uuid()) @db.Uuid
+  tenantId             String                    @db.Uuid
+  originBranchId       String                    @db.Uuid
+  destinationBranchId  String                    @db.Uuid
+  originLocationId     String                    @db.Uuid
+  destinationLocationId String                   @db.Uuid
+  status               InventoryTransferStatus   @default(COMPLETED)
+  reason               String?
+  actorUserId          String                    @db.Uuid
+  idempotencyKey       String
+  createdAt            DateTime                  @default(now()) @db.Timestamptz(3)
+
+  tenant               Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  originBranch         Branch                    @relation("TransferOriginBranch", fields: [tenantId, originBranchId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction)
+  destinationBranch    Branch                    @relation("TransferDestinationBranch", fields: [tenantId, destinationBranchId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction)
+  originLocation       Location                  @relation("TransferOriginLocation", fields: [tenantId, originLocationId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction)
+  destinationLocation  Location                  @relation("TransferDestinationLocation", fields: [tenantId, destinationLocationId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction)
+  actor                User                      @relation(fields: [tenantId, actorUserId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction)
+  lines                InventoryTransferLine[]
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, idempotencyKey])
+  @@index([tenantId, originBranchId, createdAt])
+  @@index([tenantId, destinationBranchId, createdAt])
+}
+
+model InventoryTransferLine {
+  id          String            @id @default(uuid()) @db.Uuid
+  tenantId    String            @db.Uuid
+  transferId  String            @db.Uuid
+  variantId   String            @db.Uuid
+  lotId       String?           @db.Uuid
+  quantity    Decimal           @db.Decimal(18, 6)
+
+  tenant      Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  transfer    InventoryTransfer @relation(fields: [transferId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  variant     ProductVariant    @relation(fields: [tenantId, variantId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction)
+  lot         Lot?              @relation(fields: [tenantId, lotId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([tenantId, id])
+  @@index([tenantId, transferId])
+  @@index([tenantId, variantId])
+}
+
+enum InventoryTransferStatus {
+  COMPLETED
+}
+
+model PurchaseReceiptLine {
+  id             String          @id @default(uuid()) @db.Uuid
+  tenantId       String          @db.Uuid
+  receiptId      String          @db.Uuid
+  variantId      String          @db.Uuid
+  lotId          String?         @db.Uuid
+  quantity       Decimal         @db.Decimal(18, 6)
+  unitCost       Decimal         @db.Decimal(22, 4)
+  subtotal       Decimal         @db.Decimal(22, 4)
+  taxRate        Decimal?        @db.Decimal(8, 4)
+  taxAmount      Decimal         @default(0) @db.Decimal(22, 4)
+  discountAmount Decimal         @default(0) @db.Decimal(22, 4)
+  total          Decimal         @db.Decimal(22, 4)
+  createdAt      DateTime        @default(now()) @db.Timestamptz(3)
+
+  tenant         Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  receipt        PurchaseReceipt @relation(fields: [receiptId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  scopedReceipt  PurchaseReceipt @relation("ScopedPurchaseReceiptLine", fields: [tenantId, receiptId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction)
+  variant        ProductVariant  @relation(fields: [tenantId, variantId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction)
+  lot            Lot?            @relation(fields: [tenantId, lotId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([tenantId, id])
+  @@index([tenantId, receiptId])
+  @@index([tenantId, variantId])
 }
