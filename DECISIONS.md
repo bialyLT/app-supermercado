@@ -29,6 +29,10 @@ la recomendación como `SUPUESTO:` reversible.
 | D-019 | Layout inicial EAN-13: prefijo 20 + SKU 5 dígitos + precio 5 dígitos + dígito de control, escala 2; el precio incrustado se usa como precio unitario validado contra el precio vigente del servidor | APROBADA | Épica 5 |
 | D-020 | El corte promocional N×M por categoría aprobado en el brief de Épica 5 es el siguiente corte entregable; supersede únicamente la cláusula de D-018 que postergaba promociones, mientras D-018/D-019 siguen rigiendo el alcance EAN-13 | APROBADA | Épica 5 |
 | D-021 | Backups operativos gestionados por el negocio mediante `pg_dump`, copia externa cifrada y restauración cronometrada; no se depende del backup administrado del proveedor gratuito. La retención de logs, auditoría y exportaciones es de un año. | APROBADA | Épica 6 |
+| D-022 | La interfaz de la Épica 7 será responsive para escritorio y tablets, con navegación keyboard-first, foco visible, estados de carga/error y acciones rápidas. | APROBADA | Épica 7 |
+| D-023 | Los reportes de la Épica 7 serán tablas filtrables con exportación CSV; no se agregan gráficos en el primer corte. | APROBADA | Épica 7 |
+| D-024 | La Épica 7 completa la interfaz de las capacidades operativas existentes: shell, compras, transferencias, reportes, usuarios, configuración, códigos pesables y proveedores donde haya contrato backend; no agrega alcance público ni despliegue productivo. | APROBADA | Épica 7 |
+| D-025 | Roles gerenciales: `ADMIN` como gerente tenant-wide, `STOCK_MANAGER` como gerente de inventario y `SUPERVISOR` como gerente de turno/caja; `CASHIER` queda operativo. No se crea un rol `MANAGER` nuevo. | APROBADA | Épica 7 |
 
 ## Decisión de continuidad de Épica 5
 

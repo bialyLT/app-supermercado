@@ -3,7 +3,7 @@
 **Estado:** Épicas 0, 1, 2, 3, 4 y 5 cerradas técnicamente en los cortes
 aprobados. Épica 5 queda cerrada con EAN-13 con precio, perfiles fiscales
 argentinos y promociones N×M; impresión y hardware permanecen fuera de alcance.
-Épica 6 es la siguiente, condicionada a resolver D-010.
+Épica 6 queda cerrada técnicamente; Épica 7 queda planificada para completar la interfaz operativa y administrativa.
 **Reglas vinculantes:** `AGENTS.md`, `DOMAIN_RULES.md`, `DECISIONS.md`,
 `GATES.md`.
 
@@ -133,6 +133,16 @@ publicará producción durante esta épica.
 - **Criterios:** release reproducible; migración reversible cuando sea
   posible; **restauración de backup probada y cronometrada**; prueba de carga
   con números; revisión OWASP final.
+
+## Épica 7 — Interfaz operativa y administración (planificada)
+
+**Brief:** `odd/tasks/epic7-operations-ui.md`.
+
+- **Objetivo:** completar la interfaz de las capacidades backend existentes para que el sistema sea operable desde pantallas, no sólo mediante APIs.
+- **Alcance aprobado:** shell responsive para escritorio/tablets, navegación keyboard-first, compras, transferencias, reportes tabulares con CSV sin gráficos, usuarios, configuración, códigos pesables y proveedores donde exista contrato.
+- **Roles aprobados:** `ADMIN` tenant-wide, `STOCK_MANAGER` para inventario, `SUPERVISOR` para turno/caja y `CASHIER` operativo. No se crea un rol `MANAGER` nuevo; la navegación por rol puede implementarse con D-025.
+- **Criterios:** no mouse obligatorio, foco visible, estados de error/pending, Decimal y tenant server-side, Playwright por flujo, responsive sin scroll horizontal en acciones principales y todos los gates de `GATES.md`.
+- **Fuera:** e-commerce, delivery, picking, fidelización, marketplaces y deploy productivo.
 
 ## Plantilla de cierre de cualquier épica
 
