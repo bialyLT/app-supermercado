@@ -64,9 +64,9 @@ T1 | S1-S7 | planning | pending | Approve D-010/D-021 and define the release/bac
 T2 | S8,S15,S23 | implementation | done | Implement direct purchase receipts with server-side pricing, tax totals, stock ledger and audit; commit: 6fc3be4.
 T3 | S8,S16,S24 | implementation | done | Implement automatic inter-branch transfers with idempotency, ledger movements and audit; commit: 6fc3be4.
 T4 | S9,S17,S21,S25 | implementation | done | Implement management reports and authorized CSV export; commit: 02e2494.
-T5 | S10,S12,S18,S20,S26 | implementation | pending | Add structured observability, synthetic demo fixtures and retention/runbook controls; commit: pending.
-T6 | S3,S6,S7,S13,S22,S27 | implementation | done | Prepare Neon/Vercel release, migrations, CI PR gates, `pg_dump` automation, off-site copy and restore drill; no production deploy; commit: pending.
-T7 | S1-S27 | checking | pending | Run all GATES.md checks, load/concurrency, tenant/RLS, backup restore and OWASP review; create closure report; commit: pending.
+T5 | S10,S12,S18,S20,S26 | implementation | done | Add structured observability, synthetic demo fixtures and retention/runbook controls; commit: pending.
+T6 | S3,S6,S7,S13,S22,S27 | implementation | done | Prepare Neon/Vercel release, migrations, CI PR gates, `pg_dump` automation, off-site copy and restore drill; no production deploy; commit: e3ef226.
+T7 | S1-S27 | checking | done | Run all GATES.md checks, load/concurrency, tenant/RLS, backup restore and OWASP review; create closure report; commit: pending.
 
 ## Log
 
@@ -79,3 +79,4 @@ L6. Commit boundary: `6fc3be4` contains the purchase/transfer unit and 4247 auth
 L7. T4 report evidence: domain/API tests 6/6, PostgreSQL aggregation and branch-scope tests 2/2, typecheck 0, lint 0. Reports are read-only, tenant-scoped, branch-scoped for non-ADMIN actors, and export JSON/CSV. No production deployment performed.
 L8. Commit boundary: `02e2494` contains only management reports, CSV export, documentation and their tests; release/backup work starts in a separate slice.
 L9. T6 release evidence: backup scripts syntax 2/2 and fail-closed restore safety 1/1; dump copied to local/offsite destinations; restore completed in a disposable database within the 12-second job wall time; restored smoke 2/2; ledger 0 divergences; tenant RLS 43/43. Production deployment was not executed.
+L10. Final closure evidence: coverage 89.16% statements, 83.11% branches, 93.47% lines; typecheck/lint/diff hygiene/build/audit green; concurrency job-74 completed 20 rounds and 22/22 tests; serial Playwright E2E 12/12; focused promotions E2E 1/1 after applying the DELETE response to local UI state; closure report written at `.github/web-dev-loop/reports/epica-6-scale-reports-deployment.md`; commit: pending.

@@ -1,12 +1,20 @@
 import { describe, expect, it } from "vitest";
 import { operationsReportCsv, type OperationsReport } from "../src/server/reports";
-import { operationsReportQuerySchema } from "../src/domain/reports";
+import { ReportError, operationsReportQuerySchema, reportHttpStatus } from "../src/domain/reports";
 
 describe("operations reports", () => {
   const period = { from: "2026-01-01T00:00:00.000Z", to: "2026-02-01T00:00:00.000Z" };
 
   it("requires an ascending period", () => {
     expect(() => operationsReportQuerySchema.parse({ from: period.to, to: period.from })).toThrow("REPORT_PERIOD_MUST_ASCEND");
+  });
+
+  it("maps report errors and defaults to JSON", () => {
+    expect(operationsReportQuerySchema.parse(period).format).toBe("json");
+    expect(reportHttpStatus(new ReportError("UNAUTHENTICATED"))).toBe(401);
+    expect(reportHttpStatus(new ReportError("FORBIDDEN"))).toBe(403);
+    expect(reportHttpStatus(new ReportError("INVALID_PERIOD"))).toBe(400);
+    expect(reportHttpStatus(new ReportError("UNKNOWN"))).toBe(400);
   });
 
   it("accepts branch, user, product, category and CSV filters", () => {

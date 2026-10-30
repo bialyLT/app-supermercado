@@ -187,6 +187,15 @@ describe("purchases domain logic", () => {
     expect(supplierInputSchema.safeParse({ ...validSupplier, name: "" }).success).toBe(false);
   });
 
+  it("rejects mismatched tax and discount totals and invalid line tax inputs", () => {
+    const line = { variantId: "a0000000-0000-4000-8000-000000000001", quantity: "1", unitCost: "10.00", taxRate: "0.21", discountAmount: "1.00" };
+    expect(() => calculatePurchaseTotals({ currency: "ARS", discountTotal: "2.00", lines: [line] })).toThrowError("INVALID_TOTALS");
+    expect(() => calculatePurchaseTotals({ currency: "ARS", taxTotal: "1.00", lines: [line] })).toThrowError("INVALID_TOTALS");
+    expect(() => calculatePurchaseTotals({ currency: "ARS", lines: [{ ...line, taxRate: "-0.1" }] })).toThrowError();
+    expect(() => calculatePurchaseTotals({ currency: "ARS", lines: [{ ...line, taxAmount: "-1.00", taxRate: undefined }] })).toThrowError();
+    expect(() => calculatePurchaseTotals({ currency: "ARS", lines: [{ ...line, discountAmount: "11.00", taxRate: undefined }] })).toThrowError();
+  });
+
   it("maps domain error codes to correct HTTP status codes", () => {
     expect(purchaseHttpStatus(new PurchaseError("UNAUTHENTICATED"))).toBe(401);
     expect(purchaseHttpStatus(new PurchaseError("FORBIDDEN"))).toBe(403);
@@ -195,5 +204,8 @@ describe("purchases domain logic", () => {
     expect(purchaseHttpStatus(new PurchaseError("INVALID_TOTALS"))).toBe(400);
     expect(purchaseHttpStatus(new PurchaseError("INVALID_INPUT"))).toBe(400);
     expect(purchaseHttpStatus(new PurchaseError("INVALID_QUANTITY_PRECISION"))).toBe(400);
+    expect(purchaseHttpStatus(new PurchaseError("CURRENCY_MISMATCH"))).toBe(409);
+    expect(purchaseHttpStatus(new PurchaseError("MONETARY_CONFIGURATION_REQUIRED"))).toBe(400);
+    expect(purchaseHttpStatus(new PurchaseError("TENANT_ACCESS_DENIED"))).toBe(404);
   });
 });

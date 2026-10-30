@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { transferInputSchema } from "../src/domain/transfers";
+import { TransferError, transferHttpStatus, transferInputSchema } from "../src/domain/transfers";
 
 describe("transfer input", () => {
   const base = {
@@ -26,10 +26,21 @@ describe("transfer input", () => {
     })).toThrow();
   });
 
-  it("rejects zero quantities", () => {
+  it("accepts an explicit lot and rejects malformed input", () => {
+    expect(transferInputSchema.parse({ ...base, lines: [{ ...base.lines[0], lotId: "66666666-6666-4666-8666-666666666666" }] }).lines[0]?.lotId).toBeDefined();
+    expect(() => transferInputSchema.parse({ ...base, reason: 3 })).toThrow();
+  });
+
+  it("rejects zero quantities and maps transfer errors", () => {
     expect(() => transferInputSchema.parse({
       ...base,
       lines: [{ ...base.lines[0], quantity: "0" }],
     })).toThrow();
+    expect(transferHttpStatus(new TransferError("UNAUTHENTICATED"))).toBe(401);
+    expect(transferHttpStatus(new TransferError("FORBIDDEN"))).toBe(403);
+    expect(transferHttpStatus(new TransferError("NOT_FOUND"))).toBe(404);
+    expect(transferHttpStatus(new TransferError("IDEMPOTENCY_CONFLICT"))).toBe(409);
+    expect(transferHttpStatus(new TransferError("INSUFFICIENT_STOCK"))).toBe(409);
+    expect(transferHttpStatus(new TransferError("INVALID_QUANTITY_PRECISION"))).toBe(400);
   });
 });
