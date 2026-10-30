@@ -65,7 +65,7 @@ T2 | S1,S3,S5 | implementation | done | Build responsive role-aware application 
 T3 | S3,S5 | implementation | done | Build purchases interface and end-to-end flow; commit: pending.
 T4 | S3,S5 | implementation | done | Build transfers interface and end-to-end flow; commit: aab718d.
 T5 | S2,S3,S5 | implementation | done | Build tabular reports and CSV export interface without charts; commit: 4181d33.
-T6 | S3,S5 | implementation | pending | Build users, settings, weighed-barcode, and supplier interfaces supported by existing APIs; commit: pending.
+T6 | S3,S5 | implementation | done | Build users, settings, weighed-barcode, and supplier interfaces supported by existing APIs; commit: pending.
 T7 | S1,S2,S3,S5 | checking | pending | Run responsive, accessibility, keyboard, E2E, performance, and GATES.md verification; create closure report; commit: pending.
 T8 | S1,S3,S5 | implementation | done | Expose tenant-scoped assigned branch and active location context for staff forms; commit: 4160e3b.
 
@@ -84,3 +84,4 @@ L10. T4 evidence: transfer UI uses server-derived branch/location selectors, deb
 L11. Commit boundary: `aab718d` contains the transfer UI, persisted history read contract, and its tests. The next unit is tabular reports UI and CSV download; it remains separate.
 L12. T5 evidence: reports UI provides period/branch/operator/variant/category filters, server-derived branch options, tabular consolidated and branch detail views, CSV download, keyboard shortcuts, responsive tablet layout, and no chart dependency; focused tests 15/15, full Vitest 164 passed with 160 skips, typecheck/lint/build green.
 L13. Commit boundary: `4181d33` contains the reports UI, CSV interaction, and its tests. The next unit is remaining API-backed administration screens; it remains separate.
+L14. T6 evidence: users/branch assignments, tenant settings, weighed-barcode configuration/simulator, and suppliers screens implemented with responsive/tablet layout, keyboard shortcuts, server-derived branch options, role-aware navigation, and explicit loading/error states; focused tests 17/17, full runnable suite 181/181 with 160 DB-gated skips, typecheck/lint/build green.

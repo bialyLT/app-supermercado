@@ -25,6 +25,13 @@ export const ADMIN_NAV_ITEMS: readonly NavItem[] = [
     shortcut: "Alt+C",
   },
   {
+    label: "Proveedores",
+    href: "/admin/suppliers",
+    roles: ["ADMIN", "STOCK_MANAGER"],
+    description: "Gestión y catálogo de proveedores comerciales",
+    shortcut: "Alt+V",
+  },
+  {
     label: "Transferencias",
     href: "/admin/transfers",
     roles: ["ADMIN", "STOCK_MANAGER"],
@@ -127,6 +134,7 @@ export function getVisibleNavItems(role: RoleName): NavItem[] {
 const ROUTE_LABELS: Record<string, string> = {
   "/admin": "Inicio",
   "/admin/purchases": "Compras",
+  "/admin/suppliers": "Proveedores",
   "/admin/transfers": "Transferencias",
   "/admin/reports": "Reportes",
   "/admin/promotions": "Promociones N×M",
