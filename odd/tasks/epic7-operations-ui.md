@@ -61,7 +61,7 @@ This mapping is approved for role-aware navigation; no new `MANAGER` role is int
 ## Tasks
 
 T1 | S1,S5 | planning | done | Approve shell, responsive, keyboard-first, and UI component conventions; commit: pending.
-T2 | S1,S3,S5 | implementation | done | Build responsive role-aware application shell and navigation; commit: pending.
+T2 | S1,S3,S5 | implementation | done | Build responsive role-aware application shell and navigation; commit: 81497d2.
 T3 | S3,S5 | implementation | pending | Build purchases interface and end-to-end flow; commit: pending.
 T4 | S3,S5 | implementation | pending | Build transfers interface and end-to-end flow; commit: pending.
 T5 | S2,S3,S5 | implementation | pending | Build tabular reports and CSV export interface without charts; commit: pending.
@@ -75,3 +75,4 @@ L2. The existing backend roles are `ADMIN`, `STOCK_MANAGER`, `SUPERVISOR`, and `
 L3. Dueño confirmed the proposed role mapping: `ADMIN` tenant-wide manager, `STOCK_MANAGER` inventory manager, `SUPERVISOR` shift/cash manager, and `CASHIER` operator.
 L4. T1 approved: implementation may proceed sequentially by bounded interface unit; responsive desktop/tablet, keyboard-first, tabular reports without charts, complete existing operational interface scope, and the existing role mapping are authoritative.
 L5. T2 evidence: responsive `/admin` shell, role-aware server-derived navigation, keyboard shortcuts, visible focus, tablet drawer, neutral empty branch state, and admin loading/error boundaries implemented; focused shell tests 18/18, full Vitest 120 passed with 23 integration tests skipped without gate DB, typecheck/lint/build green. Client role preview and fake branch defaults were removed during parent review.
+L6. Commit boundary: `81497d2` contains the Epic 7 planning decisions and responsive admin shell slice. The next unit is purchases UI; it must remain a separate reviewable slice.
