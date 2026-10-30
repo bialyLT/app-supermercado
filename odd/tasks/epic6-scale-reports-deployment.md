@@ -61,11 +61,11 @@ S27. «Neon» — free PostgreSQL in São Paulo; Vercel remains the app host; ba
 ## Tasks
 
 T1 | S1-S7 | planning | pending | Approve D-010/D-021 and define the release/backup contract; commit: pending.
-T2 | S8,S15,S23 | implementation | done | Implement direct purchase receipts with server-side pricing, tax totals, stock ledger and audit; commit: pending.
-T3 | S8,S16,S24 | implementation | done | Implement automatic inter-branch transfers with idempotency, ledger movements and audit; commit: pending.
-T4 | S9,S17,S21,S25 | implementation | pending | Implement management reports and authorized CSV export; commit: pending.
+T2 | S8,S15,S23 | implementation | done | Implement direct purchase receipts with server-side pricing, tax totals, stock ledger and audit; commit: 6fc3be4.
+T3 | S8,S16,S24 | implementation | done | Implement automatic inter-branch transfers with idempotency, ledger movements and audit; commit: 6fc3be4.
+T4 | S9,S17,S21,S25 | implementation | done | Implement management reports and authorized CSV export; commit: 02e2494.
 T5 | S10,S12,S18,S20,S26 | implementation | pending | Add structured observability, synthetic demo fixtures and retention/runbook controls; commit: pending.
-T6 | S3,S6,S7,S13,S22,S27 | implementation | pending | Prepare Neon/Vercel release, migrations, CI PR gates, `pg_dump` automation, off-site copy and restore drill; no production deploy; commit: pending.
+T6 | S3,S6,S7,S13,S22,S27 | implementation | done | Prepare Neon/Vercel release, migrations, CI PR gates, `pg_dump` automation, off-site copy and restore drill; no production deploy; commit: pending.
 T7 | S1-S27 | checking | pending | Run all GATES.md checks, load/concurrency, tenant/RLS, backup restore and OWASP review; create closure report; commit: pending.
 
 ## Log
@@ -75,3 +75,7 @@ L2. Dueño: if deploying for testing, «lo haria en supabase con vercel»; produ
 L3. Dueño answered the collected Epic 6 scope questions: small kiosk, production-only strategy, basic RPO/RTO, production-ready preparation, purchases plus transfers, management reports, logs/dashboard only, provider subdomain, PR-required CI, controlled demo data with complete reports, CSV export, temporary account transferred to owner, direct receipt with taxes, automatic transfers, one-year retention, and Neon as the free provider after moving backups to business operations.
 L4. Research found no indefinitely free managed provider with all provider-managed backup guarantees; business-managed `pg_dump` was selected to preserve zero provider cost. This changes the backup gate from provider-managed backup to tested operational backup/restore and must be documented explicitly.
 L5. T2/T3 implementation evidence: migration deploy applied all migrations successfully; focused domain tests 11/11; PostgreSQL integration purchases/API/RLS/inventory 39/39; transfer/purchase focused integration 15/15; Prisma validate, typecheck, lint and diff hygiene exit 0. No production deployment performed.
+L6. Commit boundary: `6fc3be4` contains the purchase/transfer unit and 4247 authored changed lines since `origin/main`; before the next commit, keep the report implementation as a separate focused delivery slice and avoid adding unrelated release/runbook work.
+L7. T4 report evidence: domain/API tests 6/6, PostgreSQL aggregation and branch-scope tests 2/2, typecheck 0, lint 0. Reports are read-only, tenant-scoped, branch-scoped for non-ADMIN actors, and export JSON/CSV. No production deployment performed.
+L8. Commit boundary: `02e2494` contains only management reports, CSV export, documentation and their tests; release/backup work starts in a separate slice.
+L9. T6 release evidence: backup scripts syntax 2/2 and fail-closed restore safety 1/1; dump copied to local/offsite destinations; restore completed in a disposable database within the 12-second job wall time; restored smoke 2/2; ledger 0 divergences; tenant RLS 43/43. Production deployment was not executed.
