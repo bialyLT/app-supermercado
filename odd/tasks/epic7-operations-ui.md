@@ -67,6 +67,7 @@ T4 | S3,S5 | implementation | pending | Build transfers interface and end-to-end
 T5 | S2,S3,S5 | implementation | pending | Build tabular reports and CSV export interface without charts; commit: pending.
 T6 | S3,S5 | implementation | pending | Build users, settings, weighed-barcode, and supplier interfaces supported by existing APIs; commit: pending.
 T7 | S1,S2,S3,S5 | checking | pending | Run responsive, accessibility, keyboard, E2E, performance, and GATES.md verification; create closure report; commit: pending.
+T8 | S1,S3,S5 | implementation | done | Expose tenant-scoped assigned branch and active location context for staff forms; commit: pending.
 
 ## Log
 
@@ -76,3 +77,5 @@ L3. Dueño confirmed the proposed role mapping: `ADMIN` tenant-wide manager, `ST
 L4. T1 approved: implementation may proceed sequentially by bounded interface unit; responsive desktop/tablet, keyboard-first, tabular reports without charts, complete existing operational interface scope, and the existing role mapping are authoritative.
 L5. T2 evidence: responsive `/admin` shell, role-aware server-derived navigation, keyboard shortcuts, visible focus, tablet drawer, neutral empty branch state, and admin loading/error boundaries implemented; focused shell tests 18/18, full Vitest 120 passed with 23 integration tests skipped without gate DB, typecheck/lint/build green. Client role preview and fake branch defaults were removed during parent review.
 L6. Commit boundary: `81497d2` contains the Epic 7 planning decisions and responsive admin shell slice. The next unit is purchases UI; it must remain a separate reviewable slice.
+L7. T8 added after parent review found that purchase forms would otherwise require manual branch/location UUIDs; the context contract must expose only server-derived tenant-scoped assigned branches and active locations before purchase/transfer UI closure.
+L8. T8 evidence: `GET /api/admin/context` returns authenticated tenant-scoped assigned branches and active locations; focused context tests 11/11 with 3 integration skips without gate DB; full Vitest 142 passed with 160 skips; typecheck/lint green. Client query parameters cannot override tenant or branch authority.
