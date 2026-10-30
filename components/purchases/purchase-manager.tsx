@@ -165,8 +165,10 @@ export function PurchaseManager({
         const data = await res.json();
 
         if (!res.ok) {
-          if (res.status === 409) {
+          if (data.error === "IDEMPOTENCY_CONFLICT") {
             setServerError("Conflicto de idempotencia: el comprobante ya fue registrado con esta clave.");
+          } else if (data.error === "CURRENCY_MISMATCH") {
+            setServerError("La moneda seleccionada no coincide con la configuración monetaria del tenant.");
           } else if (res.status === 403) {
             setServerError("Permisos insuficientes: el usuario no tiene permisos de recepción para esta sucursal.");
           } else if (res.status === 404) {

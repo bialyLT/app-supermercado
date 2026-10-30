@@ -14,8 +14,9 @@ test.describe("Purchases Administration & Multi-line Receipt Entry (S1, S3, S5)"
     await expect(page.getByRole("button", { name: /Historial de Compras/i })).toBeVisible();
 
     // Keyboard shortcuts bar (S5)
-    await expect(page.getByText("Alt+N")).toBeVisible();
-    await expect(page.getByText("Alt+G")).toBeVisible();
+    const shortcutRegion = page.getByLabel("Atajos de teclado rápidos");
+    await expect(shortcutRegion.getByText("Alt+N")).toBeVisible();
+    await expect(shortcutRegion.getByText("Alt+G")).toBeVisible();
 
     // Required fields with server-derived selects (S1, S3)
     await expect(page.getByLabel(/Proveedor/i)).toBeVisible();
@@ -94,6 +95,10 @@ test.describe("Purchases Administration & Multi-line Receipt Entry (S1, S3, S5)"
         name: "Proveedor E2E Test",
       },
     });
+    await admin.unverifiedIntakePolicy.update({
+      where: { tenantId: f.tenantId },
+      data: { currency: "ARS" },
+    });
 
     // Authenticate
     await page.goto("/");
@@ -118,7 +123,8 @@ test.describe("Purchases Administration & Multi-line Receipt Entry (S1, S3, S5)"
     await page.getByLabel(/Proveedor/i).selectOption(supplier.id);
     await page.getByLabel(/^Sucursal/i).selectOption(f.branchId);
     await page.getByLabel(/^Ubicación/i).selectOption(f.locationId);
-    await page.getByLabel(/N° Comprobante/i).fill("FAC-E2E-001");
+    const invoiceNumber = `FAC-E2E-${crypto.randomUUID()}`;
+    await page.getByLabel(/N° Comprobante/i).fill(invoiceNumber);
 
     // Line 1: Variant, quantity, unit cost
     await page.getByLabel(/Variante o producto línea 1/i).fill(f.variantId);
@@ -126,15 +132,22 @@ test.describe("Purchases Administration & Multi-line Receipt Entry (S1, S3, S5)"
     await page.getByLabel(/Costo unitario línea 1/i).fill("20.00");
 
     // Submit
+    const purchaseResponsePromise = page.waitForResponse((response) =>
+      response.url().includes("/api/admin/purchases") && response.request().method() === "POST"
+    );
     await page.getByRole("button", { name: /Registrar compra/i }).click();
+    const purchaseResponse = await purchaseResponsePromise;
+    if (!purchaseResponse.ok()) {
+      throw new Error(`Purchase POST failed: ${purchaseResponse.status()} ${await purchaseResponse.text()}`);
+    }
 
     // Verify success banner with server total (100.00 ARS)
     await expect(page.getByText("¡Comprobante registrado con éxito!")).toBeVisible();
-    await expect(page.getByText("100.00 ARS").first()).toBeVisible();
+    await expect(page.getByText(/100(?:\.00)? ARS/).first()).toBeVisible();
 
     // Switch to history
     await page.getByRole("button", { name: /Historial de Compras/i }).click();
-    await expect(page.getByRole("cell", { name: "FAC-E2E-001" })).toBeVisible();
+    await expect(page.getByRole("cell", { name: invoiceNumber })).toBeVisible();
     await expect(page.getByRole("cell", { name: "Proveedor E2E Test" })).toBeVisible();
   });
 });

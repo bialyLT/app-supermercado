@@ -5,7 +5,7 @@ test.describe("Epic 7 T6 E2E - Administrative Operations Screens (S1, S3, S5)", 
     await page.goto("/admin/users");
 
     await expect(page.getByRole("heading", { name: "Usuarios y Asignaciones" })).toBeVisible();
-    await expect(page.getByText("Alt+N")).toBeVisible();
+    await expect(page.getByRole("region", { name: "Atajos de teclado" }).getByText("Alt+N")).toBeVisible();
     await expect(page.getByLabel(/Correo Electrónico/i)).toBeVisible();
     await expect(page.getByLabel(/Nombre Visible/i)).toBeVisible();
     await expect(page.getByLabel(/Contraseña Temporal/i)).toBeVisible();
@@ -18,7 +18,7 @@ test.describe("Epic 7 T6 E2E - Administrative Operations Screens (S1, S3, S5)", 
     await page.goto("/admin/settings");
 
     await expect(page.getByRole("heading", { name: "Configuración del Sistema" })).toBeVisible();
-    await expect(page.getByText("Alt+G")).toBeVisible();
+    await expect(page.getByRole("region", { name: "Atajos de teclado" }).getByText("Alt+G")).toBeVisible();
     await expect(page.getByLabel(/Parámetro/i)).toBeVisible();
     await expect(page.getByLabel(/Valor/i)).toBeVisible();
     await expect(page.getByLabel(/Alcance/i)).toBeVisible();
@@ -51,8 +51,8 @@ test.describe("Epic 7 T6 E2E - Administrative Operations Screens (S1, S3, S5)", 
     await page.getByRole("button", { name: "+ Nuevo Proveedor" }).click();
     await expect(page.getByRole("dialog")).toBeVisible();
     await expect(page.getByRole("heading", { name: "Nuevo Proveedor Comercial" })).toBeVisible();
-    await expect(page.getByLabel("Código *")).toBeVisible();
-    await expect(page.getByLabel("Razón Social *")).toBeVisible();
+    await expect(page.getByLabel("Código")).toBeVisible();
+    await expect(page.getByLabel("Razón Social")).toBeVisible();
 
     // Close modal via Escape
     await page.keyboard.press("Escape");

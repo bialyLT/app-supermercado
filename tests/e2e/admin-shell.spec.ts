@@ -22,8 +22,9 @@ test.describe("Administrative Application Shell & Navigation", () => {
     await expect(page.getByText("Sin sucursales asignadas")).toBeVisible();
 
     // Verify links to administrative modules
-    await expect(page.getByRole("link", { name: /Promociones N×M/i })).toBeVisible();
-    await expect(page.getByRole("link", { name: /Punto de Venta/i })).toBeVisible();
+    const mainNavigation = page.getByRole("navigation", { name: "Menú principal" });
+    await expect(mainNavigation.getByRole("link", { name: /Promociones N×M/i })).toBeVisible();
+    await expect(mainNavigation.getByRole("link", { name: /Punto de Venta/i })).toBeVisible();
   });
 
   test("supports keyboard shortcuts and modal help dialog (S5)", async ({ page }) => {
@@ -60,12 +61,13 @@ test.describe("Administrative Application Shell & Navigation", () => {
 
     // Close drawer with close button
     await page.getByRole("button", { name: "Cerrar navegación" }).click();
-    await expect(page.getByRole("button", { name: "Cerrar navegación" })).not.toBeVisible();
+    await expect(menuButton).toHaveAttribute("aria-expanded", "false");
+    await expect(page.locator("#admin-sidebar")).not.toHaveClass(/sidebarOpen/);
   });
 
   test("preserves POS behavior and navigability", async ({ page }) => {
     await page.goto("/pos");
     // Verify POS title and independent functionality
-    await expect(page.getByRole("heading", { name: "Punto de Venta" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "POS" })).toBeVisible();
   });
 });

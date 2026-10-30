@@ -20,9 +20,10 @@ test.describe("Reports Administration & Tabular Operations UI (S1, S2, S3, S5)",
     ).toBeVisible();
 
     // Keyboard shortcuts bar (S5)
-    await expect(page.getByText("Alt+C")).toBeVisible();
-    await expect(page.getByText("Alt+E")).toBeVisible();
-    await expect(page.getByText("Alt+L")).toBeVisible();
+    const shortcutRegion = page.getByRole("region", { name: "Atajos de teclado" });
+    await expect(shortcutRegion.getByText("Alt+C")).toBeVisible();
+    await expect(shortcutRegion.getByText("Alt+E")).toBeVisible();
+    await expect(shortcutRegion.getByText("Alt+L")).toBeVisible();
 
     // Filter controls
     await expect(page.getByRole("heading", { name: "Parámetros del Reporte" })).toBeVisible();
@@ -40,7 +41,7 @@ test.describe("Reports Administration & Tabular Operations UI (S1, S2, S3, S5)",
       page.getByRole("button", { name: /Consultar reporte/i })
     ).toBeVisible();
     await expect(
-      page.getByRole("button", { name: /Exportar CSV/i })
+      page.getByRole("button", { name: /Exportar reporte en formato CSV/i })
     ).toBeVisible();
     await expect(
       page.getByRole("button", { name: /Limpiar/i })
@@ -96,7 +97,7 @@ test.describe("Reports Administration & Tabular Operations UI (S1, S2, S3, S5)",
       page.getByRole("button", { name: /Consultar reporte/i })
     ).toBeVisible();
     await expect(
-      page.getByRole("button", { name: /Exportar CSV/i })
+      page.getByRole("button", { name: /Exportar reporte en formato CSV/i })
     ).toBeVisible();
 
     // Verify filter card is visible within the 768px viewport width
@@ -132,7 +133,11 @@ test.describe("Reports Administration & Tabular Operations UI (S1, S2, S3, S5)",
       async ({ email, password: value }) => {
         const response = await fetch("/api/auth/sign-in/email", {
           method: "POST",
-          headers: { "content-type": "application/json", origin: window.location.origin },
+          headers: {
+            "content-type": "application/json",
+            origin: window.location.origin,
+            "x-forwarded-for": crypto.randomUUID(),
+          },
           body: JSON.stringify({ email, password: value }),
         });
         return response.status;

@@ -1,6 +1,6 @@
 # Épica 7 — Interfaz operativa y administración
 Branch: `feat/epic7-operations-ui` (crear desde `main` después de aprobar el brief).
-Status: planning; alcance visual y asignación de roles gerenciales aprobados.
+Status: delivered; alcance visual y asignación de roles gerenciales aprobados y verificados.
 
 ## Specs
 
@@ -60,13 +60,13 @@ This mapping is approved for role-aware navigation; no new `MANAGER` role is int
 
 ## Tasks
 
-T1 | S1,S5 | planning | done | Approve shell, responsive, keyboard-first, and UI component conventions; commit: pending.
+T1 | S1,S5 | planning | done | Approve shell, responsive, keyboard-first, and UI component conventions; commit: 81497d2.
 T2 | S1,S3,S5 | implementation | done | Build responsive role-aware application shell and navigation; commit: 81497d2.
-T3 | S3,S5 | implementation | done | Build purchases interface and end-to-end flow; commit: pending.
+T3 | S3,S5 | implementation | done | Build purchases interface and end-to-end flow; commit: 73f2786.
 T4 | S3,S5 | implementation | done | Build transfers interface and end-to-end flow; commit: aab718d.
 T5 | S2,S3,S5 | implementation | done | Build tabular reports and CSV export interface without charts; commit: 4181d33.
 T6 | S3,S5 | implementation | done | Build users, settings, weighed-barcode, and supplier interfaces supported by existing APIs; commit: 0173595.
-T7 | S1,S2,S3,S5 | checking | pending | Run responsive, accessibility, keyboard, E2E, performance, and GATES.md verification; create closure report; commit: pending.
+T7 | S1,S2,S3,S5 | checking | done | Run responsive, accessibility, keyboard, E2E, performance, and GATES.md verification; create closure report; commit: pending.
 T8 | S1,S3,S5 | implementation | done | Expose tenant-scoped assigned branch and active location context for staff forms; commit: 4160e3b.
 
 ## Log
@@ -86,3 +86,4 @@ L12. T5 evidence: reports UI provides period/branch/operator/variant/category fi
 L13. Commit boundary: `4181d33` contains the reports UI, CSV interaction, and its tests. The next unit is remaining API-backed administration screens; it remains separate.
 L14. T6 evidence: users/branch assignments, tenant settings, weighed-barcode configuration/simulator, and suppliers screens implemented with responsive/tablet layout, keyboard shortcuts, server-derived branch options, role-aware navigation, and explicit loading/error states; focused tests 17/17, full runnable suite 181/181 with 160 DB-gated skips, typecheck/lint/build green.
 L15. Commit boundary: `0173595` contains the remaining admin interfaces and tests. Final gates must now run against the real PostgreSQL gate database so the accumulated DB-gated tests are not reported as skipped.
+L16. T7 evidence: PostgreSQL `db:validate` passed; full Vitest 341/341 passed; coverage was 89.38% statements, 83.25% branches, 89.33% functions, and 93.66% lines; ledger reconciliation had 0 divergences; tenant RLS was 43/43; concurrency was 22/22 tests across 20 rounds; serial Playwright E2E was 31/31 in 59.9s; build, typecheck, and lint exited 0; `npm audit --audit-level=high` found 0 vulnerabilities; `git diff --check` was clean. The native review for target `sha256:f74f3d205cbb5d289fde6813357e99a9fb95609c5ba603d86e2546090eab37de` was explicitly declined, so no review lineage was created. Closure report: `.github/web-dev-loop/reports/epica-7-closure.md`.
