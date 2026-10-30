@@ -17,7 +17,7 @@ la recomendación como `SUPUESTO:` reversible.
 | D-007 | Redondeo `HALF_UP` por línea; total = suma de líneas | APROBADA | — |
 | D-008 | Política offline: ventana de horas (un turno); sin red se permite vender, anular y dar de alta productos (ajustes de stock prohibidos offline). Conflictos automáticos: A2 venta aceptada siempre, discrepancia solo si el stock da negativo; B1 idempotencia por `(tenant, command_id)` + 409 ante payload distinto; C1 primer escritor gana, duplicado offline marcado para fusión; D1 anulación idempotente si coincide, 409 si difiere | APROBADA | Épica 4 |
 | D-009 | Argentina; monotributista o responsable inscripto por razón social; ticket interno inicial, sin emisión fiscal | APROBADA (alcance inicial) | Integración fiscal e impresora pendientes para Épica 5 |
-| D-010 | Proveedor de despliegue y región | PENDIENTE | Épica 6 |
+| D-010 | Neon Free en São Paulo para PostgreSQL y Vercel para la aplicación; subdominio del proveedor inicial; sin despliegue productivo durante esta épica | APROBADA | Épica 6 |
 | D-011 | Memoria persistente externa | PENDIENTE | cuando convenga |
 | D-012 | Override de supervisor por PIN con token de un solo uso | PROPUESTA | Épica 3 |
 | D-013 | Fuera de alcance: e-commerce, delivery, picking, fidelización | PROPUESTA | — |
@@ -28,6 +28,7 @@ la recomendación como `SUPUESTO:` reversible.
 | D-018 | Primer corte de Épica 5: códigos pesables EAN-13 con precio incrustado, configuración por tenant y sin hardware físico; promociones 2x1/NxM quedan para un corte posterior | APROBADA | Épica 5 |
 | D-019 | Layout inicial EAN-13: prefijo 20 + SKU 5 dígitos + precio 5 dígitos + dígito de control, escala 2; el precio incrustado se usa como precio unitario validado contra el precio vigente del servidor | APROBADA | Épica 5 |
 | D-020 | El corte promocional N×M por categoría aprobado en el brief de Épica 5 es el siguiente corte entregable; supersede únicamente la cláusula de D-018 que postergaba promociones, mientras D-018/D-019 siguen rigiendo el alcance EAN-13 | APROBADA | Épica 5 |
+| D-021 | Backups operativos gestionados por el negocio mediante `pg_dump`, copia externa cifrada y restauración cronometrada; no se depende del backup administrado del proveedor gratuito. La retención de logs, auditoría y exportaciones es de un año. | APROBADA | Épica 6 |
 
 ## Decisión de continuidad de Épica 5
 

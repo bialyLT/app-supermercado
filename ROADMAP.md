@@ -120,7 +120,10 @@ entrega de movimientos de caja, pagos, arqueo ni contratos fiscales de Épica 3.
 
 ## Épica 6 — Escala, reportes y despliegue
 
-**Prerequisito pendiente:** aprobar D-010 con proveedor y región de despliegue.
+**Prerequisito:** D-010 y D-021 aprobadas. PostgreSQL se prepara sobre Neon Free
+São Paulo y la aplicación sobre Vercel; los backups son operados por el negocio
+con `pg_dump`, copias externas cifradas y restauración cronometrada. No se
+publicará producción durante esta épica.
 
 - **Objetivo:** operar múltiples sucursales y publicar con seguridad.
 - **Entregables:** compras, transferencias entre sucursales, reportes,
