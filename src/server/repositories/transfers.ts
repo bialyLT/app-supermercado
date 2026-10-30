@@ -18,6 +18,60 @@ function verifyPermission(actor: Actor): void {
   }
 }
 
+export async function listTransfers(actor: Actor) {
+  verifyPermission(actor);
+  return withTenant(prisma, actor, async (tx) => {
+    const branchScope = actor.role === "ADMIN" && actor.branchIds.length === 0
+      ? undefined
+      : { in: [...actor.branchIds] };
+    const transfers = await tx.inventoryTransfer.findMany({
+      where: {
+        tenantId: actor.tenantId,
+        ...(branchScope ? {
+          OR: [{ originBranchId: branchScope }, { destinationBranchId: branchScope }],
+        } : {}),
+      },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: 50,
+      include: {
+        originBranch: { select: { name: true, code: true } },
+        destinationBranch: { select: { name: true, code: true } },
+        originLocation: { select: { name: true, code: true } },
+        destinationLocation: { select: { name: true, code: true } },
+        lines: {
+          include: {
+            variant: { select: { name: true, sku: true } },
+          },
+        },
+      },
+    });
+
+    return transfers.map((transfer) => ({
+      id: transfer.id,
+      originBranchId: transfer.originBranchId,
+      destinationBranchId: transfer.destinationBranchId,
+      originLocationId: transfer.originLocationId,
+      destinationLocationId: transfer.destinationLocationId,
+      originBranchName: `${transfer.originBranch.name} (${transfer.originBranch.code})`,
+      destinationBranchName: `${transfer.destinationBranch.name} (${transfer.destinationBranch.code})`,
+      originLocationName: `${transfer.originLocation.name} (${transfer.originLocation.code})`,
+      destinationLocationName: `${transfer.destinationLocation.name} (${transfer.destinationLocation.code})`,
+      reason: transfer.reason,
+      status: transfer.status,
+      createdAt: transfer.createdAt.toISOString(),
+      idempotencyKey: transfer.idempotencyKey,
+      lines: transfer.lines.map((line) => ({
+        id: line.id,
+        variantId: line.variantId,
+        variantName: line.variant.name,
+        sku: line.variant.sku,
+        lotId: line.lotId,
+        quantity: line.quantity.toString(),
+      })),
+    }));
+  });
+}
+
 export async function createTransfer(actor: Actor, input: TransferInput, clock: Clock = systemClock) {
   verifyPermission(actor);
   const parsed = transferInputSchema.parse(input);

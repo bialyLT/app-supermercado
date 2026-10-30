@@ -63,7 +63,7 @@ This mapping is approved for role-aware navigation; no new `MANAGER` role is int
 T1 | S1,S5 | planning | done | Approve shell, responsive, keyboard-first, and UI component conventions; commit: pending.
 T2 | S1,S3,S5 | implementation | done | Build responsive role-aware application shell and navigation; commit: 81497d2.
 T3 | S3,S5 | implementation | done | Build purchases interface and end-to-end flow; commit: pending.
-T4 | S3,S5 | implementation | pending | Build transfers interface and end-to-end flow; commit: pending.
+T4 | S3,S5 | implementation | done | Build transfers interface and end-to-end flow; commit: pending.
 T5 | S2,S3,S5 | implementation | pending | Build tabular reports and CSV export interface without charts; commit: pending.
 T6 | S3,S5 | implementation | pending | Build users, settings, weighed-barcode, and supplier interfaces supported by existing APIs; commit: pending.
 T7 | S1,S2,S3,S5 | checking | pending | Run responsive, accessibility, keyboard, E2E, performance, and GATES.md verification; create closure report; commit: pending.
@@ -80,3 +80,4 @@ L6. Commit boundary: `81497d2` contains the Epic 7 planning decisions and respon
 L7. T8 added after parent review found that purchase forms would otherwise require manual branch/location UUIDs; the context contract must expose only server-derived tenant-scoped assigned branches and active locations before purchase/transfer UI closure.
 L8. T8 evidence: `GET /api/admin/context` returns authenticated tenant-scoped assigned branches and active locations; focused context tests 11/11 with 3 integration skips without gate DB; full Vitest 142 passed with 160 skips; typecheck/lint green. Client query parameters cannot override tenant or branch authority.
 L9. T3 evidence: purchases UI now consumes `GET /api/admin/context` for branch/location selectors, rejects invented or inactive IDs, preserves Decimal/idempotent receipt behavior, and supports history/detail. Focused purchase UI tests 15/15, context unit tests 7/7, full Vitest 146 passed with 160 skips, typecheck/lint/build green. Purchases is a separate reviewable slice after `4160e3b`.
+L10. T4 evidence: transfer UI uses server-derived branch/location selectors, debounced catalog variant search, quantity/duplicate/branch validation, keyboard dispatch confirmation, idempotency errors, and persisted tenant-scoped history through `GET /api/admin/transfers`; helper tests 3/3, full Vitest 149 passed with 160 skips, typecheck/lint/build green. Integration history scope assertion added; gate DB execution remains part of final gates.

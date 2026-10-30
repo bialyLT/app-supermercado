@@ -3,7 +3,7 @@ import { z } from "zod";
 import { requirePermission } from "../../../../src/auth/authorization";
 import { getServerActor } from "../../../../src/auth/session";
 import { TransferError, transferHttpStatus, transferInputSchema } from "../../../../src/domain/transfers";
-import { createTransfer } from "../../../../src/server/transfers";
+import { createTransfer, listTransfers } from "../../../../src/server/transfers";
 
 function errorResponse(error: unknown) {
   if (error instanceof TransferError) return NextResponse.json({ error: error.code, detail: error.detail }, { status: transferHttpStatus(error) });
@@ -12,6 +12,16 @@ function errorResponse(error: unknown) {
   if (error instanceof Error && error.message === "FORBIDDEN") return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   if (error instanceof Error && error.message === "NOT_FOUND") return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
   return NextResponse.json({ error: "REQUEST_FAILED" }, { status: 400 });
+}
+
+export async function GET() {
+  try {
+    await requirePermission("inventory:write");
+    const actor = await getServerActor();
+    return NextResponse.json({ transfers: await listTransfers(actor) });
+  } catch (error) {
+    return errorResponse(error);
+  }
 }
 
 export async function POST(request: Request) {
