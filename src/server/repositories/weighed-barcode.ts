@@ -15,7 +15,9 @@ export async function resolveWeighedBarcodeInTx(
   now: Date,
 ): Promise<{
   price: { amount: Decimal; currency: string };
-  variant: { name: string };
+  variant: { name: string; categoryId: string | null };
+  categoryId: string | null;
+  quantityPrecision: number;
   sourceSnapshot: SaleLineSourceSnapshot;
 }> {
   const stored = await tx.weighedBarcodeConfig.findUnique({ where: { tenantId } });
@@ -90,7 +92,9 @@ export async function resolveWeighedBarcodeInTx(
 
   return {
     price: { amount: new Decimal(price.amount.toString()), currency: price.currency },
-    variant: { name: variant.name },
+    variant: { name: variant.name, categoryId: variant.product.categoryId },
+    categoryId: variant.product.categoryId,
+    quantityPrecision: variant.quantityPrecision,
     sourceSnapshot,
   };
 }

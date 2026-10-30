@@ -105,15 +105,16 @@ entrega de movimientos de caja, pagos, arqueo ni contratos fiscales de Épica 3.
 
 ## Épica 5 — Fiscalidad, hardware y promociones
 
-- **Primer corte aprobado (D-018):** códigos pesables EAN-13 con precio
-  incrustado, configuración por tenant e integración server-side con POS;
-  sin hardware físico, impresión, emisión fiscal ni promociones en este corte.
-- **Objetivo posterior:** cumplir obligaciones fiscales y conectar periféricos.
-- **Entregables posteriores:** documentos fiscales según D-009, impresión de
-  ticket, balanza/códigos pesables en producción y promociones server-side
-  explicables; `2x1 / NxM` queda como prioridad promocional futura.
-- **Criterios:** cada línea guarda la regla que produjo su precio; el flujo
-  fiscal tiene plan definido para modo sin conexión.
+- **Corte activo aprobado (D-020):** promociones 2×1/N×M por categoría,
+  server-side, discretas, explicables y administrables por tenant/sucursal.
+- **Entregado en este corte:** modelo y migración aditiva, motor determinista,
+  checkout con precio efectivo/snapshot/reversión, API administrativa protegida
+  y pantalla de gestión.
+- **Pendiente de Épica 5:** códigos pesables EAN-13 de D-018/D-019, fiscalidad,
+  impresión, balanza física y hardware.
+- **Verificación:** suite PostgreSQL 219/219 tests, RLS/identidad 6/6,
+  administración 3/3; build compiló pero agotó el timeout durante TypeScript y
+  no hubo verificador browser disponible para la nueva pantalla.
 
 ## Épica 6 — Escala, reportes y despliegue
 

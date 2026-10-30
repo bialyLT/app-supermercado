@@ -27,15 +27,15 @@ la recomendación como `SUPUESTO:` reversible.
 | D-017 | POS en la misma app Next (ruta `/pos`, módulos aislados por boundaries): evita duplicar auth/tenant/validación y otro deploy; coherente con D-001 | APROBADA | Épica 4 |
 | D-018 | Primer corte de Épica 5: códigos pesables EAN-13 con precio incrustado, configuración por tenant y sin hardware físico; promociones 2x1/NxM quedan para un corte posterior | APROBADA | Épica 5 |
 | D-019 | Layout inicial EAN-13: prefijo 20 + SKU 5 dígitos + precio 5 dígitos + dígito de control, escala 2; el precio incrustado se usa como precio unitario validado contra el precio vigente del servidor | APROBADA | Épica 5 |
+| D-020 | El corte promocional N×M por categoría aprobado en el brief de Épica 5 es el siguiente corte entregable; supersede únicamente la cláusula de D-018 que postergaba promociones, mientras D-018/D-019 siguen rigiendo el alcance EAN-13 | APROBADA | Épica 5 |
 
 ## Decisión de continuidad de Épica 5
 
-D-018 fija el primer corte en `odd/tasks/epic5-weighed-ean-price.md`: el parser
-EAN-13 con precio debe integrarse con catálogo/POS server-side, resolver la
-variante dentro del tenant y conservar el precio de origen. D-019 fija el
-layout inicial 20/5/5 con escala 2 y validación del precio unitario vigente.
-No se implementan en este corte balanza física, impresión, emisión fiscal ni
-promociones.
+D-020 fija el corte promocional N×M por categoría en
+`odd/tasks/epic5-promotions-nxm.md`, con evaluación server-side, snapshot
+inmutable y administración protegida. La cláusula promocional de D-018 queda
+supersedida; D-018/D-019 siguen fijando el alcance EAN-13, sin balanza física,
+impresión ni emisión fiscal.
 
 ## Decisiones de continuidad de Épica 3
 

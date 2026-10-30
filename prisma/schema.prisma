@@ -59,6 +59,8 @@ model Tenant {
   documentClosures DocumentClosure[]
   syncConflicts SyncConflict[]
   weighedBarcodeConfig WeighedBarcodeConfig?
+  promotions    Promotion[]
+  categories    ProductCategory[]
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
 }
@@ -176,6 +178,7 @@ model Branch {
   sales         Sale[]
   documentSequences DocumentSequence[]
   documentClosures DocumentClosure[]
+  promotions    Promotion[]
   createdAt     DateTime       @default(now())
   @@unique([tenantId, code])
   @@unique([tenantId, id])
@@ -340,12 +343,15 @@ model Product {
   kind        ProductKind @default(UNIT)
   active      Boolean  @default(true)
   baseUnitId  String   @db.Uuid
+  categoryId  String?  @db.Uuid
   tenant      Tenant   @relation(fields: [tenantId], references: [id])
   baseUnit    UnitOfMeasure @relation(fields: [tenantId, baseUnitId], references: [tenantId, id])
+  category    ProductCategory? @relation(fields: [tenantId, categoryId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction)
   variants    ProductVariant[]
   @@unique([tenantId, sku])
   @@unique([tenantId, id])
   @@index([tenantId, name])
+  @@index([tenantId, categoryId])
 }
 
 model ProductVariant {
@@ -875,4 +881,45 @@ model DocumentClosure {
   @@unique([tenantId, id])
   @@unique([tenantId, idempotencyKey])
   @@index([tenantId, branchId, createdAt])
+}
+
+model ProductCategory {
+  id          String      @id @default(uuid()) @db.Uuid
+  tenantId    String      @db.Uuid
+  code        String
+  name        String
+  description String?
+  active      Boolean     @default(true)
+  createdAt   DateTime    @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime    @updatedAt @db.Timestamptz(3)
+  tenant      Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  products    Product[]
+  promotions  Promotion[]
+  @@unique([tenantId, id])
+  @@unique([tenantId, code])
+  @@index([tenantId, name])
+  @@index([tenantId, active])
+}
+
+model Promotion {
+  id          String           @id @default(uuid()) @db.Uuid
+  tenantId    String           @db.Uuid
+  branchId    String?          @db.Uuid
+  categoryId  String           @db.Uuid
+  name        String
+  n           Int
+  m           Int
+  active      Boolean          @default(true)
+  validFrom   DateTime?        @db.Timestamptz(3)
+  validTo     DateTime?        @db.Timestamptz(3)
+  createdAt   DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime         @updatedAt @db.Timestamptz(3)
+
+  tenant      Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  branch      Branch?          @relation(fields: [tenantId, branchId], references: [tenantId, id], onDelete: Cascade, onUpdate: NoAction)
+  category    ProductCategory  @relation(fields: [tenantId, categoryId], references: [tenantId, id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([tenantId, id])
+  @@index([tenantId, categoryId, active])
+  @@index([tenantId, branchId])
 }
