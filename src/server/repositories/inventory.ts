@@ -14,6 +14,8 @@ import { configuredPolicy, currentRegisterSession } from "./cash";
 import { consume } from "./approval";
 import { allocateDocumentNumber } from "./numbering";
 import { resolveWeighedBarcodeInTx } from "./weighed-barcode";
+import type { EvaluatedPromotionLine, PromotionRule, PromotionSnapshot } from "../../domain/promotions";
+import { evaluatePromotions as evaluatePromotionLines } from "../../domain/promotions";
 import type { SaleLineSourceSnapshot } from "../../domain/weighed-barcode";
 
 export const inventoryPermissions: Record<Actor["role"], readonly Permission[]> = {
@@ -89,7 +91,10 @@ export async function locationAccess(tx: Tx, actor: Actor, locationId: string) {
 
 async function stockAccess(tx: Tx, actor: Actor, input: { locationId: string; variantId: string; lotId?: string; quantity: string }) {
   const location = await locationAccess(tx, actor, input.locationId);
-  const variant = await tx.productVariant.findFirst({ where: { id: input.variantId, tenantId: actor.tenantId, active: true } });
+  const variant = await tx.productVariant.findFirst({
+    where: { id: input.variantId, tenantId: actor.tenantId, active: true },
+    include: { product: { select: { categoryId: true } } },
+  });
   if (!variant) throw new InventoryError("NOT_FOUND");
   assertQuantityPrecision(input.quantity, variant.quantityPrecision);
   if (input.lotId && !await tx.lot.findFirst({ where: { id: input.lotId, tenantId: actor.tenantId, variantId: input.variantId } }))
@@ -168,6 +173,43 @@ async function storeFiscalContext(tx: Tx, actor: Actor, branchId: string): Promi
 }
 
 type SaleCoreLine = { locationId: string; variantId: string; lotId?: string; quantity: string; unitPrice?: string; weighedBarcode?: string; reason?: string };
+type SalePlan = { line: SaleCoreLine; variant: { name: string }; categoryId: string | null; quantityPrecision: number; price: { amount: Decimal; currency: string }; lots: Array<{ id: string; expiresAt: Date | null }>; shortage: Decimal; day: string; intakeValue: string; sourceSnapshot?: SaleLineSourceSnapshot };
+type PromotionSourceSnapshot = PromotionSnapshot | (SaleLineSourceSnapshot & { promotion: NonNullable<EvaluatedPromotionLine["appliedPromotion"]> });
+
+function regularPromotionLine(plan: SalePlan): EvaluatedPromotionLine {
+  const regularUnitPrice = money(plan.price.amount.toString(), plan.price.currency);
+  const regularTotal = money(new FinancialDecimal(plan.line.quantity).times(plan.price.amount.toString()), plan.price.currency);
+  return {
+    variantId: plan.line.variantId,
+    categoryId: plan.categoryId ?? "00000000-0000-0000-0000-000000000000",
+    quantity: plan.line.quantity,
+    regularUnitPrice,
+    regularTotal,
+    discountAmount: money("0", plan.price.currency),
+    effectiveTotal: regularTotal,
+    effectiveUnitPrice: new FinancialDecimal(plan.price.amount.toString()).toDecimalPlaces(4).toFixed(4),
+    discountedUnits: "0",
+    appliedPromotion: null,
+  };
+}
+
+function promotionSourceSnapshot(source: SaleLineSourceSnapshot | undefined, line: EvaluatedPromotionLine): Prisma.InputJsonValue | undefined {
+  if (!line.appliedPromotion || line.discountAmount === "0.00") return source;
+  const promotion = line.appliedPromotion;
+  const snapshot: PromotionSourceSnapshot = source
+    ? { ...source, promotion }
+    : {
+        type: "PROMOTION",
+        regularUnitPrice: line.regularUnitPrice,
+        regularTotal: line.regularTotal,
+        discountAmount: line.discountAmount,
+        effectiveTotal: line.effectiveTotal,
+        effectiveUnitPrice: line.effectiveUnitPrice,
+        discountedUnits: line.discountedUnits,
+        promotion,
+      };
+  return snapshot as Prisma.InputJsonObject;
+}
 type SaleCoreOptions = { idempotencyKey: string; allowUnverifiedIntake: boolean; approvalToken?: string; clientPrices: boolean; approvalInput: SaleInput | MultiSaleInput | PaidMultiSaleInput; payments?: PaymentInput[] };
 
 async function confirmSaleCore(tx: Tx, verified: Actor, now: Date, lines: SaleCoreLine[], options: SaleCoreOptions) {
@@ -177,10 +219,12 @@ async function confirmSaleCore(tx: Tx, verified: Actor, now: Date, lines: SaleCo
   const session = await currentRegisterSession(tx, verified, location.branchId);
   const policy = await configuredPolicy(tx, verified.tenantId);
   const approval = options.approvalToken ? await consume(tx, verified, options.approvalInput, session.id, location.branchId, now) : null;
-  const plans: Array<{ line: SaleCoreLine; variant: { name: string }; price: { amount: Decimal; currency: string }; lots: Awaited<ReturnType<typeof tx.lot.findMany>>; levels: Awaited<ReturnType<typeof tx.inventoryLevel.findMany>>; shortage: Decimal; day: string; intakeValue: string; sourceSnapshot?: SaleLineSourceSnapshot }> = [];
+  const plans: SalePlan[] = [];
 
   for (const line of lines) {
     let variant: { name: string };
+    let categoryId: string | null = null;
+    let quantityPrecision = 0;
     let price: { amount: Decimal; currency: string };
     let sourceSnapshot: SaleLineSourceSnapshot | undefined;
 
@@ -192,11 +236,15 @@ async function confirmSaleCore(tx: Tx, verified: Actor, now: Date, lines: SaleCo
         weighedBarcode: line.weighedBarcode,
       }, now);
       variant = weighed.variant;
+      categoryId = weighed.categoryId;
+      quantityPrecision = weighed.quantityPrecision;
       price = weighed.price;
       sourceSnapshot = weighed.sourceSnapshot;
     } else {
       const access = await stockAccess(tx, verified, line);
       variant = access.variant;
+      categoryId = access.variant.product.categoryId;
+      quantityPrecision = access.variant.quantityPrecision;
       price = await serverPrice(tx, verified, options.clientPrices ? line : { variantId: line.variantId }, location.branchId, now);
     }
     if (session.currency !== price.currency || policy.currency !== session.currency) throw new InventoryError("CURRENCY_MISMATCH");
@@ -218,10 +266,43 @@ async function confirmSaleCore(tx: Tx, verified: Actor, now: Date, lines: SaleCo
       if (lots.some((lot) => lot.expiresAt && lot.expiresAt <= now) && !approval) throw new InventoryError("EXPIRED_LOT");
       await intake(tx, verified, { ...line, idempotencyKey: options.idempotencyKey, unitPrice: price.amount.toString(), allowUnverifiedIntake: options.allowUnverifiedIntake }, shortage, day, session.id, intakeValue, approval !== null);
     }
-    plans.push({ line, variant, price, lots, levels, shortage, day, intakeValue, sourceSnapshot });
+    plans.push({ line, variant, categoryId, quantityPrecision, price, lots, shortage, day, intakeValue, sourceSnapshot });
   }
 
-  const total = plans.reduce((sum, plan) => sum.plus(money(new FinancialDecimal(plan.line.quantity).times(plan.price.amount.toString()), plan.price.currency)), new FinancialDecimal(0));
+  const categoryIds = [...new Set(plans.map((plan) => plan.categoryId).filter((categoryId): categoryId is string => categoryId !== null))];
+  const storedPromotions = categoryIds.length === 0 ? [] : await tx.promotion.findMany({
+    where: { tenantId: verified.tenantId, categoryId: { in: categoryIds }, active: true },
+  });
+  const promotionRules: PromotionRule[] = storedPromotions.map((promotion) => ({
+    id: promotion.id,
+    tenantId: promotion.tenantId,
+    branchId: promotion.branchId,
+    categoryId: promotion.categoryId,
+    name: promotion.name,
+    n: promotion.n.toString(),
+    m: promotion.m.toString(),
+    active: promotion.active,
+    validFrom: promotion.validFrom,
+    validTo: promotion.validTo,
+  }));
+  const promotionPlanIndexes = plans.map((plan, index) => plan.quantityPrecision === 0 ? index : null).filter((index): index is number => index !== null);
+  const promotionEvaluation = promotionPlanIndexes.length === 0 ? null : evaluatePromotionLines(
+    promotionPlanIndexes.map((index) => {
+      const plan = plans[index];
+      return {
+        variantId: plan.line.variantId,
+        categoryId: plan.categoryId ?? "00000000-0000-0000-0000-000000000000",
+        quantity: plan.line.quantity,
+        unitPrice: plan.price.amount.toString(),
+        currency: plan.price.currency,
+      };
+    }),
+    promotionRules,
+    { tenantId: verified.tenantId, branchId: location.branchId, now, currency: session.currency },
+  );
+  const evaluatedByPlanIndex = new Map(promotionPlanIndexes.map((planIndex, evaluationIndex) => [planIndex, promotionEvaluation?.lines[evaluationIndex]]));
+  const evaluatedPlans = plans.map((plan, index) => ({ ...plan, evaluatedLine: evaluatedByPlanIndex.get(index) ?? regularPromotionLine(plan) }));
+  const total = evaluatedPlans.reduce((sum, plan) => sum.plus(plan.evaluatedLine.effectiveTotal), new FinancialDecimal(0));
   let change = new FinancialDecimal(0);
   if (options.payments) {
     const paid = options.payments.reduce((sum, payment) => sum.plus(payment.amount), new FinancialDecimal(0));
@@ -236,7 +317,14 @@ async function confirmSaleCore(tx: Tx, verified: Actor, now: Date, lines: SaleCo
   const created = await tx.sale.create({ data: { tenantId: verified.tenantId, locationId: first.locationId, branchId: location.branchId,
     documentNumber, actorUserId: verified.userId, total: money(total, session.currency),
     registerSessionId: session.id, currency: session.currency, createdAt: now, fiscalSnapshot: fiscalContext ? buildFiscalSnapshot(fiscalContext) : undefined,
-    lines: { create: plans.map((plan) => ({ tenantId: verified.tenantId, variantId: plan.line.variantId, quantity: plan.line.quantity, unitPrice: plan.price.amount, productName: plan.variant.name, sourceSnapshot: plan.sourceSnapshot ? plan.sourceSnapshot : undefined })) } }, include: { lines: true } });
+    lines: { create: evaluatedPlans.map((plan) => ({
+      tenantId: verified.tenantId,
+      variantId: plan.line.variantId,
+      quantity: plan.line.quantity,
+      unitPrice: new Prisma.Decimal(plan.evaluatedLine.effectiveUnitPrice),
+      productName: plan.variant.name,
+      sourceSnapshot: promotionSourceSnapshot(plan.sourceSnapshot, plan.evaluatedLine),
+    })) } }, include: { lines: true } });
 
   if (options.payments) {
     for (const payment of options.payments) {

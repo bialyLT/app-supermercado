@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { parseWeighedEan13, type Ean13Config } from "./ean13";
+import { appliedPromotionSnapshotSchema, type AppliedPromotionSnapshot } from "./promotions";
 
 export const weighedBarcodeConfigSchema = z.object({
   prefix: z.string().regex(/^\d+$/).min(1).max(6),
@@ -25,9 +26,11 @@ export const saleLineSourceSnapshotSchema = z.object({
   valueDigits: z.number(),
   valueScale: z.number(),
   unitPrice: z.string(),
+  promotion: appliedPromotionSnapshotSchema.optional(),
 }).strict();
 
 export type SaleLineSourceSnapshot = z.infer<typeof saleLineSourceSnapshotSchema>;
+export type SaleLinePromotionSnapshot = AppliedPromotionSnapshot;
 
 export function parseConfiguredWeighedBarcode(raw: string, input: WeighedBarcodeConfigInput) {
   if (input.prefix.length + input.variantDigits + input.valueDigits !== 12 || !/^\d+$/.test(input.prefix)) {

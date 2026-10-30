@@ -9,6 +9,8 @@ import { setSupervisorPin, approveInventorySale } from "../../src/server/supervi
 
 async function populatedFixture() {
   const f = await fixture();
+  const category = await admin.productCategory.create({ data: { tenantId: f.tenantId, code: "rls-category", name: "RLS category" } });
+  await admin.product.update({ where: { id: f.productId }, data: { categoryId: category.id } });
   await upsertWeighedBarcodeConfig(f.actor, { prefix: "20", mode: "PRICE", variantDigits: 5, valueDigits: 5, valueScale: 2 });
   await recordCashMovement(f.actor, { registerSessionId: f.registerSessionId!, type: "CASH_IN", amount: "1", reason: "RLS population", idempotencyKey: `cash-population-${f.tenantId}` }, clock);
   await admin.cashRegister.create({ data: { tenantId: f.tenantId, branchId: f.branchId, name: "Gate" } });
@@ -41,6 +43,7 @@ async function populatedFixture() {
   await confirmPaidMultiLineSale(actor2, { lines: [{ locationId: location2.id, variantId: f.variantId, quantity: "2", unitPrice: "1" }],
     payments: [{ method: "CASH", amount: "2" }], allowUnverifiedIntake: false, idempotencyKey: "rls-w4-sale" }, clock);
   await closeBranchDocuments(actor2, { branchId: branch2.id, currency: "XTS", reason: "RLS population", idempotencyKey: `close-${f.tenantId}` }, clock);
+  await admin.promotion.create({ data: { tenantId: f.tenantId, categoryId: category.id, name: "RLS promotion", n: 2, m: 1 } });
   return f;
 }
 
