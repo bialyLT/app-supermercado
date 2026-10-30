@@ -6,6 +6,8 @@ import { upsertWeighedBarcodeConfig } from "../../src/server/repositories/catalo
 import { closeBranchDocuments } from "../../src/server/numbering";
 import { reverseSale } from "../../src/server/reversal";
 import { setSupervisorPin, approveInventorySale } from "../../src/server/supervisor";
+import { createDirectPurchaseReceipt, createSupplier } from "../../src/server/purchases";
+import { createTransfer } from "../../src/server/transfers";
 
 async function populatedFixture() {
   const f = await fixture();
@@ -44,6 +46,18 @@ async function populatedFixture() {
     payments: [{ method: "CASH", amount: "2" }], allowUnverifiedIntake: false, idempotencyKey: "rls-w4-sale" }, clock);
   await closeBranchDocuments(actor2, { branchId: branch2.id, currency: "XTS", reason: "RLS population", idempotencyKey: `close-${f.tenantId}` }, clock);
   await admin.promotion.create({ data: { tenantId: f.tenantId, categoryId: category.id, name: "RLS promotion", n: 2, m: 1 } });
+  const supplier = await createSupplier(f.actor, { code: "RLS-SUPPLIER", name: "RLS Supplier" });
+  await createDirectPurchaseReceipt(f.actor, {
+    supplierId: supplier.id, branchId: f.branchId, locationId: f.locationId, currency: "XTS",
+    idempotencyKey: `rls-purchase-${f.tenantId}`, subtotal: "2.00", total: "2.00",
+    lines: [{ variantId: f.variantId, quantity: "2", unitCost: "1.00" }],
+  }, clock);
+  await admin.userBranch.create({ data: { tenantId: f.tenantId, userId: actor2.userId, branchId: f.branchId } });
+  await createTransfer({ ...actor2, branchIds: [branch2.id, f.branchId] }, {
+    originBranchId: f.branchId, destinationBranchId: branch2.id, originLocationId: f.locationId,
+    destinationLocationId: location2.id, idempotencyKey: `rls-transfer-${f.tenantId}`,
+    lines: [{ variantId: f.variantId, quantity: "1" }],
+  }, clock);
   return f;
 }
 

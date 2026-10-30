@@ -136,9 +136,9 @@ export default function PromotionManager() {
     setStatus("Desactivando…");
     try {
       const response = await fetch(`/api/admin/promotions/${id}`, { method: "DELETE" });
-      const body = (await response.json()) as { error?: string };
-      if (!response.ok) throw new Error(body.error ?? "REQUEST_FAILED");
-      await loadPromotions();
+      const body = (await response.json()) as Promotion | { error?: string };
+      if (!response.ok || !("id" in body)) throw new Error(("error" in body && body.error) || "REQUEST_FAILED");
+      setPromotions((current) => current.map((promotion) => promotion.id === body.id ? body : promotion));
       setStatus("Promoción desactivada");
     } catch (error: unknown) {
       setStatus(error instanceof Error ? error.message : "REQUEST_FAILED");

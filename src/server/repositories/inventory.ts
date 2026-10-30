@@ -20,9 +20,9 @@ import type { SaleLineSourceSnapshot } from "../../domain/weighed-barcode";
 
 export const inventoryPermissions: Record<Actor["role"], readonly Permission[]> = {
   CASHIER: ["cash.session.open", "cash.session.close", "inventory.sell", "inventory.catalog.read", "inventory.unverified_intake.create"],
-  STOCK_MANAGER: ["inventory.receive", "inventory.reserve", "inventory.catalog.read", "inventory.catalog.write", "inventory.unverified_intake.review", "fiscal.profile.read"],
+  STOCK_MANAGER: ["inventory.receive", "inventory.transfer", "inventory.reserve", "inventory.catalog.read", "inventory.catalog.write", "inventory.unverified_intake.review", "fiscal.profile.read"],
   SUPERVISOR: ["cash.session.open", "cash.session.close", "cash.session.close.other", "identity.supervisor_pin.manage", "inventory.sale.approve", "inventory.sell", "inventory.reserve", "inventory.catalog.read", "inventory.unverified_intake.create", "inventory.unverified_intake.review", "inventory.expired.override"],
-  ADMIN: ["inventory.policy.manage", "cash.session.open", "cash.session.close", "cash.session.close.other", "identity.supervisor_pin.manage", "inventory.sale.approve", "inventory.write", "inventory.receive", "inventory.sell", "inventory.reserve", "inventory.catalog.read", "inventory.catalog.write", "inventory.unverified_intake.create", "inventory.unverified_intake.review", "inventory.expired.override", "fiscal.profile.manage", "fiscal.profile.read"],
+  ADMIN: ["inventory.policy.manage", "cash.session.open", "cash.session.close", "cash.session.close.other", "identity.supervisor_pin.manage", "inventory.sale.approve", "inventory.write", "inventory.receive", "inventory.transfer", "inventory.sell", "inventory.reserve", "inventory.catalog.read", "inventory.catalog.write", "inventory.unverified_intake.create", "inventory.unverified_intake.review", "inventory.expired.override", "fiscal.profile.manage", "fiscal.profile.read"],
 };
 export const systemClock = { now: () => new Date() };
 export type Clock = { now(): Date };
