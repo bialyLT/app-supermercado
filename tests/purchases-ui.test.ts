@@ -347,6 +347,8 @@ describe("Purchases UI — Server-derived selectors & Component rendering (S1, S
     // Suppliers selector
     expect(markup).toContain("Distribuidora Mayorista SA");
     expect(markup).toContain("Lácteos del Sur");
+    expect(markup).not.toContain("purchase-idempotency");
+    expect(markup).not.toContain("Regenerar");
   });
 
   it("renders warning and disables submit when no branches are assigned in context", () => {

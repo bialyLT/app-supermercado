@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import React from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import {
   calculateTransferQuantity,
   createEmptyTransferLine,
@@ -6,6 +8,7 @@ import {
   validateTransferForm,
   type TransferFormState,
 } from "../components/transfers/types";
+import { TransferForm } from "../components/transfers/transfer-form";
 
 const context = {
   tenantId: "tenant-1",
@@ -38,6 +41,15 @@ describe("transfers UI helpers", () => {
   it("accepts comma decimal quantities", () => {
     const commaQuantity = { ...valid, lines: [{ ...valid.lines[0], quantity: "1,5" }] };
     expect(validateTransferForm(commaQuantity, context).lineErrors?.[0]?.quantity).toBeUndefined();
+  });
+
+  it("does not expose the technical idempotency key in the transfer form", () => {
+    const markup = renderToStaticMarkup(
+      React.createElement(TransferForm, { branches: context.branches, onSubmit: async () => true })
+    );
+    expect(markup).not.toContain("transfer-idempotency");
+    expect(markup).not.toContain("Clave de Idempotencia");
+    expect(markup).not.toContain("Nueva clave");
   });
 
   it("validates server-derived branches and locations", () => {

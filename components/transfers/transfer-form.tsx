@@ -10,7 +10,6 @@ import type {
 import {
   createEmptyTransferLine,
   createInitialTransferFormState,
-  generateIdempotencyKey,
   normalizeDecimalInput,
   updateVariantSearchText,
   validateTransferForm,
@@ -161,13 +160,6 @@ export function TransferForm({
     },
     []
   );
-
-  const handleRegenerateIdempotencyKey = useCallback(() => {
-    setForm((prev) => ({
-      ...prev,
-      idempotencyKey: generateIdempotencyKey(),
-    }));
-  }, []);
 
   const handleOpenConfirm = useCallback(() => {
     onClearServerError?.();
@@ -562,34 +554,7 @@ export function TransferForm({
           {errors.reason && <span className={styles.errorText}>{errors.reason}</span>}
         </div>
 
-        <div className={styles.formGroup}>
-          <label htmlFor="transfer-idempotency" className={styles.label}>
-            Clave de Idempotencia
-          </label>
-          <div style={{ display: "flex", gap: "0.5rem" }}>
-            <input
-              id="transfer-idempotency"
-              type="text"
-              className={styles.input}
-              value={form.idempotencyKey}
-              readOnly
-              aria-label="Clave de idempotencia única generada por el sistema"
-            />
-            <button
-              type="button"
-              className={`${styles.btn} ${styles.btnSecondary}`}
-              onClick={handleRegenerateIdempotencyKey}
-              title="Regenerar clave de idempotencia"
-              aria-label="Regenerar clave"
-              style={{ whiteSpace: "nowrap" }}
-            >
-              🔄 Nueva clave
-            </button>
-          </div>
-          <span className={styles.helperText}>
-            Garantiza que la solicitud no se procese dos veces ante cortes de red.
-          </span>
-        </div>
+
       </div>
 
       {/* Action Submit Bar */}
