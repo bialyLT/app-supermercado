@@ -11,6 +11,7 @@ import {
   createEmptyTransferLine,
   createInitialTransferFormState,
   generateIdempotencyKey,
+  normalizeDecimalInput,
   validateTransferForm,
 } from "./types";
 import styles from "./transfers.module.css";
@@ -98,9 +99,10 @@ export function TransferForm({
   const handleLineChange = useCallback(
     (index: number, field: keyof TransferLineState, value: string) => {
       onClearServerError?.();
-      setForm((prev) => {
+      const normalizedValue = field === "quantity" ? normalizeDecimalInput(value) : value;
+    setForm((prev) => {
         const updated = [...prev.lines];
-        updated[index] = { ...updated[index], [field]: value };
+        updated[index] = { ...updated[index], [field]: normalizedValue };
         return { ...prev, lines: updated };
       });
     },

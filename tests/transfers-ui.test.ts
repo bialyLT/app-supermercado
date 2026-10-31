@@ -26,6 +26,11 @@ const valid: TransferFormState = {
 };
 
 describe("transfers UI helpers", () => {
+  it("accepts comma decimal quantities", () => {
+    const commaQuantity = { ...valid, lines: [{ ...valid.lines[0], quantity: "1,5" }] };
+    expect(validateTransferForm(commaQuantity, context).lineErrors?.[0]?.quantity).toBeUndefined();
+  });
+
   it("validates server-derived branches and locations", () => {
     expect(validateTransferForm(valid, context)).toEqual({});
     expect(validateTransferForm({ ...valid, destinationBranchId: valid.originBranchId }, context).destinationBranchId).toBeTruthy();

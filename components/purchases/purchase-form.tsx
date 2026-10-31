@@ -14,6 +14,7 @@ import {
   createEmptyPurchaseLine,
   createInitialPurchaseFormState,
   generateIdempotencyKey,
+  normalizeDecimalInput,
   validatePurchaseReceiptForm,
 } from "./types";
 import { SupplierModal } from "./supplier-modal";
@@ -112,9 +113,12 @@ export function PurchaseForm({
 
   const handleLineChange = useCallback(
     (index: number, field: keyof PurchaseLineState, value: string) => {
+      const normalizedValue = ["quantity", "unitCost", "taxRate", "taxAmount", "discountAmount"].includes(field)
+        ? normalizeDecimalInput(value)
+        : value;
       setForm((prev) => {
         const nextLines = [...prev.lines];
-        nextLines[index] = { ...nextLines[index], [field]: value };
+        nextLines[index] = { ...nextLines[index], [field]: normalizedValue };
         return { ...prev, lines: nextLines };
       });
       if (errors.lineErrors?.[index]) {

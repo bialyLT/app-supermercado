@@ -90,6 +90,10 @@ export type FormValidationErrors = {
   lineErrors?: Record<number, LineValidationError>;
 };
 
+export function normalizeDecimalInput(value: string): string {
+  return value.trim().replace(/,/g, ".");
+}
+
 export function generateIdempotencyKey(): string {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
     return `transf-${crypto.randomUUID()}`;
@@ -238,7 +242,7 @@ export function validateTransferForm(
         lErr.quantity = "Ingrese una cantidad";
       } else {
         try {
-          const dec = new Decimal(line.quantity.trim());
+          const dec = new Decimal(normalizeDecimalInput(line.quantity));
           if (!dec.isFinite() || dec.lte(0)) {
             lErr.quantity = "La cantidad debe ser mayor a 0";
           }
