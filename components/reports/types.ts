@@ -22,6 +22,12 @@ export type OperationalContext = {
 
 export type DatePreset = "today" | "last7days" | "thisMonth" | "custom";
 
+export type ReportFilterSources = {
+  actors: Array<{ id: string; label: string }>;
+  variants: Array<{ id: string; label: string }>;
+  categories: Array<{ id: string; label: string }>;
+};
+
 export type ReportFilterState = {
   preset: DatePreset;
   from: string;

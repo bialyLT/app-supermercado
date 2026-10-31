@@ -5,6 +5,7 @@ import type {
   DatePreset,
   OperationalContext,
   OperationsReportData,
+  ReportFilterSources,
   ReportFilterState,
 } from "./types";
 import {
@@ -31,6 +32,7 @@ export function ReportsManager({
   initialError = null,
 }: ReportsManagerProps) {
   const [context, setContext] = useState<OperationalContext | null>(initialContext);
+  const [filterSources, setFilterSources] = useState<ReportFilterSources>({ actors: [], variants: [], categories: [] });
   const [report, setReport] = useState<OperationsReportData | null>(initialReport);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isExporting, setIsExporting] = useState<boolean>(false);
@@ -61,6 +63,16 @@ export function ReportsManager({
       categoryId: "",
     };
   });
+
+  useEffect(() => {
+    fetch("/api/admin/reports/filters")
+      .then(async (res) => {
+        if (!res.ok) throw new Error("No se pudieron cargar los filtros autorizados");
+        return res.json() as Promise<ReportFilterSources>;
+      })
+      .then(setFilterSources)
+      .catch(() => setFilterSources({ actors: [], variants: [], categories: [] }));
+  }, []);
 
   // Load operational context (branches) from /api/admin/context if not preloaded
   useEffect(() => {
@@ -261,6 +273,7 @@ export function ReportsManager({
       <ReportFilters
         filters={filters}
         branches={context?.branches || []}
+        filterSources={filterSources}
         validationErrors={validationErrors}
         isLoading={isLoading}
         isExporting={isExporting}
