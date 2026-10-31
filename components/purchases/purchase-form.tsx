@@ -18,6 +18,7 @@ import {
   updateVariantSearchText,
   validatePurchaseReceiptForm,
 } from "./types";
+import { ProductCombobox } from "../product-combobox";
 import { SupplierModal } from "./supplier-modal";
 import styles from "./purchases.module.css";
 
@@ -537,54 +538,28 @@ export function PurchaseForm({
                       {/* Variant autocomplete search */}
                       <td>
                         <div className={styles.variantSearchContainer}>
-                          <input
-                            type="text"
-                            className={`${styles.tableInput} ${lineErr?.variantId ? styles.inputError : ""}`}
+                          <ProductCombobox
+                            label={`Variante o producto línea ${idx + 1}`}
                             placeholder="Buscar por SKU, nombre o pegar UUID..."
                             value={line.variantName || line.variantId}
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              // If looks like UUID directly:
-                              if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val)) {
-                                handleLineChange(idx, "variantId", val);
-                                handleLineChange(idx, "variantName", val);
+                            options={activeSearchLineIndex === idx ? searchResults : []}
+                            isLoading={activeSearchLineIndex === idx && isSearchingCatalog}
+                            disabled={isSubmitting}
+                            inputClassName={`${styles.tableInput} ${lineErr?.variantId ? styles.inputError : ""}`}
+                            onChange={(value) => {
+                              if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)) {
+                                handleLineChange(idx, "variantId", value);
+                                handleLineChange(idx, "variantName", value);
                               } else {
-                                handleVariantQueryChange(idx, val);
+                                handleVariantQueryChange(idx, value);
                               }
                             }}
                             onFocus={() => {
-                              if (line.variantName && searchResults.length > 0) {
-                                setActiveSearchLineIndex(idx);
-                              }
+                              if (line.variantName && searchResults.length > 0) setActiveSearchLineIndex(idx);
                             }}
-                            disabled={isSubmitting}
-                            aria-label={`Variante o producto línea ${idx + 1}`}
+                            onSelect={(item) => handleSelectVariant(idx, item)}
+                            noResultsText="Sin coincidencias (puede pegar el UUID directamente)"
                           />
-                          {activeSearchLineIndex === idx && (
-                            <ul className={styles.variantDropdown} role="listbox">
-                              {isSearchingCatalog ? (
-                                <li className={styles.variantOption} style={{ color: "var(--color-text-muted)" }}>
-                                  Buscando en catálogo…
-                                </li>
-                              ) : searchResults.length > 0 ? (
-                                searchResults.map((item) => (
-                                  <li
-                                    key={item.id}
-                                    className={styles.variantOption}
-                                    role="option"
-                                    aria-selected="false"
-                                    onClick={() => handleSelectVariant(idx, item)}
-                                  >
-                                    <strong>{item.sku}</strong> — {item.productName} ({item.name})
-                                  </li>
-                                ))
-                              ) : (
-                                <li className={styles.variantOption} style={{ color: "var(--color-text-muted)" }}>
-                                  Sin coincidencias (puede pegar el UUID directamente)
-                                </li>
-                              )}
-                            </ul>
-                          )}
                           {lineErr?.variantId && <span className={styles.errorText}>{lineErr.variantId}</span>}
                         </div>
                       </td>

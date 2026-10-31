@@ -1,9 +1,6 @@
 # Roadmap operativo
 
-**Estado:** Épicas 0, 1, 2, 3, 4 y 5 cerradas técnicamente en los cortes
-aprobados. Épica 5 queda cerrada con EAN-13 con precio, perfiles fiscales
-argentinos y promociones N×M; impresión y hardware permanecen fuera de alcance.
-Épica 6 queda cerrada técnicamente; Épica 7 queda planificada para completar la interfaz operativa y administrativa.
+**Estado:** Épicas 0, 1, 2, 3, 4, 5, 6 y 7 cerradas técnicamente en los cortes aprobados. Épica 5 queda cerrada con EAN-13 con precio, perfiles fiscales argentinos y promociones N×M; impresión y hardware permanecen fuera de alcance. Épica 7 y Frontend Audit Wave 0 están entregadas y mergeadas; Frontend Audit Wave 1 queda activa para teclado y tablet.
 **Reglas vinculantes:** `AGENTS.md`, `DOMAIN_RULES.md`, `DECISIONS.md`,
 `GATES.md`.
 
@@ -139,7 +136,7 @@ publicará producción durante esta épica.
   posible; **restauración de backup probada y cronometrada**; prueba de carga
   con números; revisión OWASP final.
 
-## Épica 7 — Interfaz operativa y administración (planificada)
+## Épica 7 — Interfaz operativa y administración (cerrada técnicamente)
 
 **Brief:** `odd/tasks/epic7-operations-ui.md`.
 
@@ -165,6 +162,8 @@ los hallazgos marcados ⚠ y se resuelven las decisiones de producto/security.
 La especificación operativa y las decisiones requeridas están en
 `odd/tasks/frontend-audit-remediation.md`. La primera ejecución tiene brief en
 `odd/tasks/frontend-audit-wave0.md` y criterios medibles antes de modificar código.
+
+**Estado actual:** Ola 0 entregada y mergeada. El siguiente corte activo es Ola 1 · Teclado y tablet, con brief en `odd/tasks/frontend-audit-wave1.md`.
 
 ## Plantilla de cierre de cualquier épica
 

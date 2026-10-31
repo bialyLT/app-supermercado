@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { ProductCombobox } from "../../components/product-combobox";
 import { enqueue, pendingCommands, remove, type OfflineCommand } from "../../src/pos/offline-queue";
 import styles from "./pos.module.css";
 
@@ -246,9 +247,16 @@ export default function PosPage() {
     <section className={styles.grid}>
       <form onSubmit={(event) => { event.preventDefault(); addLine(); }} aria-label="Agregar producto">
         <p role="status">{locationReady ? "Ubicación autorizada por el servidor" : "Resolviendo ubicación autorizada…"}</p>
-        <label htmlFor="variant">Variante / código</label>
-        <input id="variant" value={variantId} onChange={(event) => void search(event.target.value)} autoFocus required />
-        {suggestions.length > 0 && <ul aria-label="Resultados de búsqueda">{suggestions.map((item) => <li key={item.id}><button type="button" onClick={() => selectSuggestion(item)}>{item.name} · {item.sku}</button></li>)}</ul>}
+        <ProductCombobox
+          id="variant"
+          label="Variante / código"
+          placeholder="Buscar por SKU, nombre o código..."
+          value={variantId}
+          options={suggestions}
+          autoFocus
+          onChange={(value) => void search(value)}
+          onSelect={selectSuggestion}
+        />
         <label htmlFor="quantity">Cantidad</label>
         <input id="quantity" type="number" min="0.001" step="0.001" value={quantity} onChange={(event) => setQuantity(event.target.value)} required />
         <button type="submit">Agregar (F4)</button>
