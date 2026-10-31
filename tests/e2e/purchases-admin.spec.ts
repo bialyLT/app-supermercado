@@ -1,8 +1,20 @@
-import { hashPassword } from "better-auth/crypto";
 import { expect, test } from "@playwright/test";
-import { admin, enabled, fixture } from "../integration/fixtures";
+import { admin, authenticateAdmin, enabled, type AuthenticatedAdminSession } from "./helpers/auth";
 
 test.describe("Purchases Administration & Multi-line Receipt Entry (S1, S3, S5)", () => {
+  test.skip(!enabled, "Requires disposable PostgreSQL gate database and runtime roles");
+  test.afterAll(async () => {
+    if (enabled) {
+      await admin.$disconnect();
+    }
+  });
+
+  let session: AuthenticatedAdminSession;
+
+  test.beforeEach(async ({ page }) => {
+    test.setTimeout(60000);
+    session = await authenticateAdmin(page);
+  });
   test("renders purchases interface, shortcut hints, supplier selector, and responsive table", async ({
     page,
   }) => {
@@ -55,6 +67,9 @@ test.describe("Purchases Administration & Multi-line Receipt Entry (S1, S3, S5)"
   test("validates required fields on client without submitting invalid requests", async ({ page }) => {
     await page.goto("/admin/purchases");
 
+    // Deselect auto-selected branch and location to verify required validation
+    await page.getByLabel(/^Sucursal/i).selectOption("");
+
     // Try submitting empty form
     await page.getByRole("button", { name: /Registrar compra/i }).click();
 
@@ -74,19 +89,7 @@ test.describe("Purchases Administration & Multi-line Receipt Entry (S1, S3, S5)"
   });
 
   test("admin can register purchase receipt end-to-end and view in history", async ({ page }) => {
-    test.skip(!enabled, "Requires disposable PostgreSQL gate database and runtime roles");
-
-    const f = await fixture("ADMIN");
-    const user = await admin.user.findUniqueOrThrow({ where: { id: f.actor.userId } });
-    const password = "Synthetic-gate-only-2026!";
-    await admin.account.create({
-      data: {
-        userId: user.id,
-        accountId: user.id,
-        providerId: "credential",
-        password: await hashPassword(password),
-      },
-    });
+    const f = session.fixture;
 
     const supplier = await admin.supplier.create({
       data: {
@@ -100,21 +103,6 @@ test.describe("Purchases Administration & Multi-line Receipt Entry (S1, S3, S5)"
       data: { currency: "ARS" },
     });
 
-    // Authenticate
-    await page.goto("/");
-    const loginStatus = await page.evaluate(
-      async ({ email, password: value }) => {
-        const response = await fetch("/api/auth/sign-in/email", {
-          method: "POST",
-          headers: { "content-type": "application/json", origin: window.location.origin },
-          body: JSON.stringify({ email, password: value }),
-        });
-        return response.status;
-      },
-      { email: user.email, password }
-    );
-    expect(loginStatus).toBe(200);
-
     // Navigate to Purchases
     await page.goto("/admin/purchases");
     await expect(page.getByRole("heading", { name: "Gestión de Compras y Recepción" })).toBeVisible();
@@ -127,7 +115,8 @@ test.describe("Purchases Administration & Multi-line Receipt Entry (S1, S3, S5)"
     await page.getByLabel(/N° Comprobante/i).fill(invoiceNumber);
 
     // Line 1: Variant, quantity, unit cost
-    await page.getByLabel(/Variante o producto línea 1/i).fill(f.variantId);
+    await page.getByLabel(/Variante o producto línea 1/i).fill("Variant");
+    await page.getByRole("option", { name: /Variant/i }).click();
     await page.getByLabel(/Cantidad línea 1/i).fill("5");
     await page.getByLabel(/Costo unitario línea 1/i).fill("20.00");
 

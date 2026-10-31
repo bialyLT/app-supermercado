@@ -1,12 +1,17 @@
-import { hashPassword } from "better-auth/crypto";
 import { expect, test } from "@playwright/test";
-import { admin, enabled, fixture } from "../integration/fixtures";
+import { admin, authenticateAdmin, enabled } from "./helpers/auth";
 
 test.describe("Reports Administration & Tabular Operations UI (S1, S2, S3, S5)", () => {
+  test.skip(!enabled, "Requires disposable PostgreSQL gate database and runtime roles");
   test.afterAll(async () => {
     if (enabled) {
       await admin.$disconnect();
     }
+  });
+
+  test.beforeEach(async ({ page }) => {
+    test.setTimeout(60000);
+    await authenticateAdmin(page);
   });
 
   test("renders reports interface, shortcut hints, filters and action buttons (S3, S5)", async ({
@@ -113,39 +118,6 @@ test.describe("Reports Administration & Tabular Operations UI (S1, S2, S3, S5)",
   test("authenticated admin can query operations report and trigger CSV download", async ({
     page,
   }) => {
-    test.skip(!enabled, "Requires disposable PostgreSQL gate database and runtime roles");
-
-    const f = await fixture("ADMIN");
-    const user = await admin.user.findUniqueOrThrow({ where: { id: f.actor.userId } });
-    const password = "Synthetic-gate-only-2026!";
-    await admin.account.create({
-      data: {
-        userId: user.id,
-        accountId: user.id,
-        providerId: "credential",
-        password: await hashPassword(password),
-      },
-    });
-
-    // Authenticate
-    await page.goto("/");
-    const loginStatus = await page.evaluate(
-      async ({ email, password: value }) => {
-        const response = await fetch("/api/auth/sign-in/email", {
-          method: "POST",
-          headers: {
-            "content-type": "application/json",
-            origin: window.location.origin,
-            "x-forwarded-for": crypto.randomUUID(),
-          },
-          body: JSON.stringify({ email, password: value }),
-        });
-        return response.status;
-      },
-      { email: user.email, password }
-    );
-    expect(loginStatus).toBe(200);
-
     // Navigate to Reports
     await page.goto("/admin/reports");
     await expect(
@@ -154,7 +126,13 @@ test.describe("Reports Administration & Tabular Operations UI (S1, S2, S3, S5)",
 
     // Click "Este mes" preset and submit
     await page.getByRole("button", { name: "Este mes" }).click();
+    const reportPromise = page.waitForResponse(
+      (response) =>
+        response.url().includes("/api/admin/reports/operations") &&
+        response.request().method() === "GET"
+    );
     await page.getByRole("button", { name: /Consultar reporte/i }).click();
+    await reportPromise;
 
     // Summary sections should be visible
     await expect(

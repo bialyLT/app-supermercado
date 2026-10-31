@@ -1,6 +1,18 @@
 import { expect, test } from "@playwright/test";
+import { admin, authenticateAdmin, enabled } from "./helpers/auth";
 
 test.describe("Epic 7 T6 E2E - Administrative Operations Screens (S1, S3, S5)", () => {
+  test.skip(!enabled, "Requires disposable PostgreSQL gate database and runtime roles");
+  test.afterAll(async () => {
+    if (enabled) {
+      await admin.$disconnect();
+    }
+  });
+
+  test.beforeEach(async ({ page }) => {
+    await authenticateAdmin(page);
+  });
+
   test("renders Users administration interface with keyboard shortcuts and role assignments", async ({ page }) => {
     await page.goto("/admin/users");
 
