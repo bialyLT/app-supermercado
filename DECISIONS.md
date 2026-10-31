@@ -33,6 +33,10 @@ la recomendación como `SUPUESTO:` reversible.
 | D-023 | Los reportes de la Épica 7 serán tablas filtrables con exportación CSV; no se agregan gráficos en el primer corte. | APROBADA | Épica 7 |
 | D-024 | La Épica 7 completa la interfaz de las capacidades operativas existentes: shell, compras, transferencias, reportes, usuarios, configuración, códigos pesables y proveedores donde haya contrato backend; no agrega alcance público ni despliegue productivo. | APROBADA | Épica 7 |
 | D-025 | Roles gerenciales: `ADMIN` como gerente tenant-wide, `STOCK_MANAGER` como gerente de inventario y `SUPERVISOR` como gerente de turno/caja; `CASHIER` queda operativo. No se crea un rol `MANAGER` nuevo. | APROBADA | Épica 7 |
+| D-026 | Frontend Wave 0: migrar scripts/styles inline para mantener una CSP de producción estricta, sin resolver la violación agregando `unsafe-inline`. | APROBADA | Ola 0 de remediación frontend |
+| D-027 | La interfaz debe publicar Arqueos y Turnos como pantalla operativa; no se oculta el acceso 404. La implementación debe reutilizar los contratos backend de caja existentes y no inventar capacidades. | APROBADA | Ola 0 de remediación frontend |
+| D-028 | Cuando un usuario tenga varios roles, la UI usa precedencia de mayor alcance: `ADMIN` > `STOCK_MANAGER` > `SUPERVISOR` > `CASHIER`. La autorización real sigue siendo server-side. | APROBADA | Ola 0 de remediación frontend |
+| D-029 | Los filtros avanzados de reportes/promociones deben alimentarse con fuentes read-only server-scoped; no se mantienen UUID crudos como interfaz final. | APROBADA | Ola 0 de remediación frontend |
 
 ## Decisión de continuidad de Épica 5
 

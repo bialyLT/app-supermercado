@@ -163,7 +163,8 @@ los hallazgos marcados ⚠ y se resuelven las decisiones de producto/security.
 | 3 · Consistencia | Formatos es-AR, tokens, contraste, estilos inline y copy | Contraste AA; estilos/tokens centralizados; copy consistente |
 
 La especificación operativa y las decisiones requeridas están en
-`odd/tasks/frontend-audit-remediation.md`.
+`odd/tasks/frontend-audit-remediation.md`. La primera ejecución tiene brief en
+`odd/tasks/frontend-audit-wave0.md` y criterios medibles antes de modificar código.
 
 ## Plantilla de cierre de cualquier épica
 
