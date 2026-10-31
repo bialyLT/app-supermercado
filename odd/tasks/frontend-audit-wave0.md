@@ -46,7 +46,7 @@ T3 | S2,S5 | implementation | done | Fix session fallback, effective role, logou
 T4 | S2,S7 | implementation | done | Fix server-derived POS location authority and safe Escape behavior; commit: b1f930d.
 T5 | S2,S8 | implementation | done | Fix variant selection integrity, timezone/date handling, comma decimals, and idempotency UX; commits: 4ca21ac, 317fb8d, fdba315, 37c22a1.
 T6 | S4,S6 | implementation | done | Implement cash-shifts UI and server-backed advanced filter sources; commits: b6ad6ca, 0472519.
-T7 | S2-S8 | checking | in_progress | Run Wave 0 focused and full gates; update audit evidence and closure report; commit: pending.
+T7 | S2-S8 | checking | blocked | Run Wave 0 focused and full gates; update audit evidence and closure report; commit: pending; blocked by unavailable disposable gate database and pending native-review disposition.
 
 ## Log
 
@@ -62,3 +62,4 @@ L9. DAT-07 RED reproduced because purchase and transfer forms exposed technical 
 L10. POS-01/03 policy and UI integration now resolve the single active authorized location through `/api/pos/context`; the POS page no longer accepts a manual location UUID. Escape preserves a non-empty cart and reports a recovery message instead of clearing it. Focused POS/forms tests passed 20/20; typecheck, lint, and diff passed. NAV-01 remains open.
 L11. NAV-01 cash-shifts route/UI now exposes opening, cash movement, blind close, and close operations through existing server cash services. Cash-shifts UI test passed 1/1; typecheck, lint, and diff passed. Advanced server-scoped filter sources remain a separate open dependency in T6.
 L12. D-029 filter sources now come from tenant/branch-scoped server queries for operators, active variants, and active categories. The reports UI consumes them as selects instead of free-form UUID fields. Reports/domain tests passed 16/16; typecheck, lint, and diff passed.
+L13. Wave 0 verification report records Vitest 193/193, typecheck/lint/build/diff GREEN, production CSP E2E 1/1, and smoke E2E 3 passed/2 failed because DATABASE_URL was unavailable. Full E2E/RLS/ledger/concurrency proof remains blocked by the disposable gate environment; native review was inspected but not started by extension policy.
