@@ -82,6 +82,12 @@ describe("Reports UI — Filter validation and date presets (S3, S5)", () => {
     expect(thisMonth.from).toContain("2026-03-01");
   });
 
+  it("uses Argentina local midnight for the today preset", () => {
+    const range = getPresetDateRange("today", new Date("2026-01-15T12:00:00.000Z"));
+    expect(range.from).toBe("2026-01-15T03:00:00.000Z");
+    expect(range.to).toBe("2026-01-16T03:00:00.000Z");
+  });
+
   it("validates required ascending period and rejects to <= from", () => {
     const valid: ReportFilterState = {
       preset: "custom",

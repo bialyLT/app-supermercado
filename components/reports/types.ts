@@ -74,76 +74,41 @@ export function isValidUuid(value: string): boolean {
   return UUID_REGEX.test(value.trim());
 }
 
+const ARGENTINA_OFFSET_HOURS = 3;
+
+function argentinaLocalDate(now: Date): Date {
+  return new Date(now.getTime() - ARGENTINA_OFFSET_HOURS * 60 * 60 * 1000);
+}
+
+function argentinaMidnightUtc(year: number, month: number, day: number): Date {
+  return new Date(Date.UTC(year, month, day, ARGENTINA_OFFSET_HOURS, 0, 0, 0));
+}
+
 export function getPresetDateRange(
   preset: DatePreset,
   now: Date = new Date()
 ): { from: string; to: string } {
-  const current = new Date(now);
+  const current = argentinaLocalDate(new Date(now));
+  const year = current.getUTCFullYear();
+  const month = current.getUTCMonth();
+  const day = current.getUTCDate();
 
   switch (preset) {
     case "today": {
-      const from = new Date(
-        Date.UTC(
-          current.getUTCFullYear(),
-          current.getUTCMonth(),
-          current.getUTCDate(),
-          0,
-          0,
-          0,
-          0
-        )
-      );
-      const to = new Date(
-        Date.UTC(
-          current.getUTCFullYear(),
-          current.getUTCMonth(),
-          current.getUTCDate() + 1,
-          0,
-          0,
-          0,
-          0
-        )
-      );
+      const from = argentinaMidnightUtc(year, month, day);
+      const to = argentinaMidnightUtc(year, month, day + 1);
       return { from: from.toISOString(), to: to.toISOString() };
     }
     case "last7days": {
-      const to = new Date(current.getTime());
-      const from = new Date(current.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const to = new Date(now);
+      const from = new Date(to.getTime() - 7 * 24 * 60 * 60 * 1000);
       return { from: from.toISOString(), to: to.toISOString() };
     }
-    case "thisMonth": {
-      const from = new Date(
-        Date.UTC(current.getUTCFullYear(), current.getUTCMonth(), 1, 0, 0, 0, 0)
-      );
-      const to = new Date(
-        Date.UTC(
-          current.getUTCFullYear(),
-          current.getUTCMonth() + 1,
-          1,
-          0,
-          0,
-          0,
-          0
-        )
-      );
-      return { from: from.toISOString(), to: to.toISOString() };
-    }
+    case "thisMonth":
     case "custom":
     default: {
-      const from = new Date(
-        Date.UTC(current.getUTCFullYear(), current.getUTCMonth(), 1, 0, 0, 0, 0)
-      );
-      const to = new Date(
-        Date.UTC(
-          current.getUTCFullYear(),
-          current.getUTCMonth() + 1,
-          1,
-          0,
-          0,
-          0,
-          0
-        )
-      );
+      const from = argentinaMidnightUtc(year, month, 1);
+      const to = argentinaMidnightUtc(year, month + 1, 1);
       return { from: from.toISOString(), to: to.toISOString() };
     }
   }
@@ -151,7 +116,10 @@ export function getPresetDateRange(
 
 export function toIsoStringSafe(val: string): string | null {
   if (!val) return null;
-  const parsed = Date.parse(val);
+  const normalized = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(val)
+    ? `${val}:00-03:00`
+    : val;
+  const parsed = Date.parse(normalized);
   if (isNaN(parsed)) return null;
   return new Date(parsed).toISOString();
 }
