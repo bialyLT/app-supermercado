@@ -27,7 +27,7 @@ S4. Server contracts remain authoritative for tenant, branch, permission, totals
 
 T1 | S1-S4 | planning | done | Create this brief, link it from the roadmap/remediation plan, and record the first bounded slice; commit: pending.
 T2 | S1,S3,S4 | researching | done | Map existing modal, combobox, field, tabs, shell drawer, purchase table, POS, and responsive CSS surfaces; commit: pending.
-T3 | S1,S3,S4 | implementation | done | Implement the shared ProductCombobox slice for purchases, transfers, and POS with RED/GREEN tests; commit: pending.
+T3 | S1,S3,S4 | implementation | done | Implement the shared ProductCombobox slice for purchases, transfers, and POS with RED/GREEN tests; commit: b60da57.
 T4 | S1,S3,S4 | implementation | pending | Integrate corrected keyboard semantics into purchases, transfers, POS, admin shell, and modal/tab consumers; commit: pending.
 T5 | S1,S3,S4 | implementation | pending | Resolve tablet layout, touch-target, focus-visible, and responsive purchase/POS issues; commit: pending.
 T6 | S1-S4 | checking | pending | Run keyboard/tablet/a11y gates, update the Wave 1 report, and close only with numeric evidence; commit: pending.
@@ -39,3 +39,4 @@ L2. Wave 0 is merged and its final technical evidence is GREEN: Vitest 353/353, 
 L3. The first implementation slice must remain bounded and preserve server-side authority, strict CSP, and the existing modular-monolith boundaries.
 L4. Inspection found duplicated product search patterns in `components/purchases/purchase-form.tsx`, `components/transfers/transfer-form.tsx`, and `app/pos/page.tsx`; current options expose inconsistent listbox semantics and click-first behavior. Existing dialogs use `div role="dialog"` without uniform focus capture/restoration, and the tablet drawer uses transform-only hiding without removing closed links from keyboard traversal. The first code slice is ProductCombobox because it serves three repeated product-selection flows.
 L5. ProductCombobox was integrated into purchases, transfers, and POS with ARIA combobox/listbox semantics, ArrowUp/ArrowDown navigation, Enter selection, Escape dismissal, live result counts, and server-backed option callbacks. Focused unit/UI tests passed 19/19, typecheck passed, diff check passed, and POS E2E passed 7/7 including unauthenticated mutation rejection and existing weighed/catalog flows.
+L6. Commit boundary: `b60da57` contains the bounded ProductCombobox slice, its tests, Wave 1 brief/evidence, and roadmap links. The next slice is Modal/focus behavior; it remains separate.
