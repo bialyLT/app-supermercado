@@ -41,7 +41,7 @@ S8. Reports and dates use fixed `America/Argentina/Buenos_Aires`; offline POS su
 ## Tasks
 
 T1 | S2-S3 | researching | done | Confirm CSP behavior and read Next 16.4.3 guidance; commit: 780182c.
-T2 | S2 | implementation | done | Fix production CSP inline violations and add production-browser regression coverage; commit: pending.
+T2 | S2 | implementation | done | Fix production CSP inline violations and add production-browser regression coverage; commit: a79c290.
 T3 | S2,S5 | implementation | pending | Fix session fallback, effective role, logout, and route behavior; commit: pending.
 T4 | S2,S7 | implementation | pending | Fix server-derived POS location authority and safe Escape behavior; commit: pending.
 T5 | S2,S8 | implementation | pending | Fix variant selection integrity, timezone/date handling, comma decimals, and idempotency UX; commit: pending.
