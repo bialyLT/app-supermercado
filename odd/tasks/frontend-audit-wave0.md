@@ -46,7 +46,7 @@ T3 | S2,S5 | implementation | done | Fix session fallback, effective role, logou
 T4 | S2,S7 | implementation | done | Fix server-derived POS location authority and safe Escape behavior; commit: b1f930d.
 T5 | S2,S8 | implementation | done | Fix variant selection integrity, timezone/date handling, comma decimals, and idempotency UX; commits: 4ca21ac, 317fb8d, fdba315, 37c22a1.
 T6 | S4,S6 | implementation | done | Implement cash-shifts UI and server-backed advanced filter sources; commits: b6ad6ca, 0472519.
-T7 | S2-S8 | checking | done | Run Wave 0 focused and full gates; update audit evidence and closure report; commit: pending.
+T7 | S2-S8 | checking | done | Run Wave 0 focused and full gates; update audit evidence and closure report; commit: 00ee9c2.
 
 ## Log
 
