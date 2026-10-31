@@ -43,10 +43,10 @@ S8. Reports and dates use fixed `America/Argentina/Buenos_Aires`; offline POS su
 T1 | S2-S3 | researching | done | Confirm CSP behavior and read Next 16.4.3 guidance; commit: 780182c.
 T2 | S2 | implementation | done | Fix production CSP inline violations and add production-browser regression coverage; commit: a79c290.
 T3 | S2,S5 | implementation | done | Fix session fallback, effective role, logout, and route behavior; commit: c871d7f.
-T4 | S2,S7 | implementation | pending | Fix server-derived POS location authority and safe Escape behavior; commit: pending.
-T5 | S2,S8 | implementation | pending | Fix variant selection integrity, timezone/date handling, comma decimals, and idempotency UX; commit: pending.
-T6 | S4,S6 | implementation | pending | Implement cash-shifts UI and server-backed advanced filter sources; commit: pending.
-T7 | S2-S8 | checking | pending | Run Wave 0 focused and full gates; update audit evidence and closure report; commit: pending.
+T4 | S2,S7 | implementation | done | Fix server-derived POS location authority and safe Escape behavior; commit: b1f930d.
+T5 | S2,S8 | implementation | done | Fix variant selection integrity, timezone/date handling, comma decimals, and idempotency UX; commits: 4ca21ac, 317fb8d, fdba315, 37c22a1.
+T6 | S4,S6 | implementation | done | Implement cash-shifts UI and server-backed advanced filter sources; commits: b6ad6ca, 0472519.
+T7 | S2-S8 | checking | in_progress | Run Wave 0 focused and full gates; update audit evidence and closure report; commit: pending.
 
 ## Log
 
