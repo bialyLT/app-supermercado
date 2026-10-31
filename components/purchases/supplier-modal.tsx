@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { Modal } from "../modal";
 import type { Supplier } from "./types";
 import styles from "./purchases.module.css";
 
@@ -64,7 +65,7 @@ export function SupplierModal({ isOpen, onClose, onCreated }: SupplierModalProps
   }
 
   return (
-    <div className={styles.modalBackdrop} role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <Modal ariaLabelledBy="modal-title" closeDisabled={isBusy} onRequestClose={onClose}>
       <div className={styles.modalContent}>
         <div className={styles.modalHeader}>
           <h2 id="modal-title" className={styles.title} style={{ fontSize: "1.2rem" }}>
@@ -203,6 +204,6 @@ export function SupplierModal({ isOpen, onClose, onCreated }: SupplierModalProps
           </div>
         </form>
       </div>
-    </div>
+    </Modal>
   );
 }

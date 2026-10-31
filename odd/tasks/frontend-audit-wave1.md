@@ -29,9 +29,10 @@ T1 | S1-S4 | planning | done | Create this brief, link it from the roadmap/remed
 T2 | S1,S3,S4 | researching | done | Map existing modal, combobox, field, tabs, shell drawer, purchase table, POS, and responsive CSS surfaces; commit: pending.
 T3 | S1,S3,S4 | implementation | done | Implement the shared ProductCombobox slice for purchases, transfers, and POS with RED/GREEN tests; commit: b60da57.
 T4 | S1,S3,S4 | implementation | done | Implement shared Modal focus behavior and integrate the admin-shell shortcuts dialog; commit: 99789fb.
-T5 | S1,S3,S4 | implementation | pending | Integrate corrected keyboard semantics into remaining modal/tab consumers; commit: pending.
-T6 | S1,S3,S4 | implementation | pending | Resolve tablet layout, touch-target, focus-visible, and responsive purchase/POS issues; commit: pending.
-T7 | S1-S4 | checking | pending | Run keyboard/tablet/a11y gates, update the Wave 1 report, and close only with numeric evidence; commit: pending.
+T5 | S1,S3,S4 | implementation | done | Integrate shared Modal into the purchase SupplierModal with submission-safe close behavior; commit: pending.
+T6 | S1,S3,S4 | implementation | pending | Integrate corrected keyboard semantics into remaining modal/tab consumers; commit: pending.
+T7 | S1,S3,S4 | implementation | pending | Resolve tablet layout, touch-target, focus-visible, and responsive purchase/POS issues; commit: pending.
+T8 | S1-S4 | checking | pending | Run keyboard/tablet/a11y gates, update the Wave 1 report, and close only with numeric evidence; commit: pending.
 
 ## Log
 
@@ -43,3 +44,4 @@ L5. ProductCombobox was integrated into purchases, transfers, and POS with ARIA 
 L6. Commit boundary: `b60da57` contains the bounded ProductCombobox slice, its tests, Wave 1 brief/evidence, and roadmap links. The next slice is Modal/focus behavior; it remains separate.
 L7. Shared `Modal` focus behavior was added and integrated only into the admin-shell shortcuts dialog. Focused tests passed 14/14, typecheck and diff check passed, and admin-shell E2E passed 4/4. The component focuses the first control, traps Tab, closes on Escape, restores the invoking focus, and marks sibling content inert while open. Purchase, transfer, supplier, and detail dialogs remain outside this slice.
 L8. Commit boundary: `99789fb` contains the focus-safe Modal shell slice, its tests, and updated Wave 1 evidence. The next slice remains separate: additional modal consumers or shared Field semantics.
+L9. SupplierModal now uses the shared Modal and prevents Escape/backdrop closure while its POST is in flight. Focused purchases/modal tests passed 12/12, typecheck and diff check passed, and purchases E2E passed 5/5. The remaining purchase-detail, transfer-confirmation, and supplier-management dialogs remain separate.

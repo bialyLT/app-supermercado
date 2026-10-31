@@ -1,6 +1,6 @@
 # Frontend audit — Wave 1 slice verification
 
-Estado: `ENTREGADO: ProductCombobox and admin-shell Modal/focus slices are verified; remaining Wave 1 slices are still planned.`
+Estado: `ENTREGADO: ProductCombobox, admin-shell Modal/focus, and SupplierModal slices are verified; remaining Wave 1 slices are still planned.`
 
 ## Delivered slices
 
@@ -14,8 +14,9 @@ Estado: `ENTREGADO: ProductCombobox and admin-shell Modal/focus slices are verif
 ### Modal/focus
 
 - Added shared `components/modal.tsx` and `components/modal.module.css`.
-- Integrated the component into the admin-shell keyboard-shortcuts dialog only.
+- Integrated the component into the admin-shell keyboard-shortcuts dialog and purchase `SupplierModal`.
 - Initial focus moves to the first control; Tab cycles within the dialog; Escape closes; focus returns to the invoking control; sibling content is inert while open.
+- SupplierModal prevents Escape/backdrop closure while its server submission is in flight.
 - No server contracts, authorization rules, or CSP policy were changed.
 
 ## Numeric verification
@@ -23,8 +24,10 @@ Estado: `ENTREGADO: ProductCombobox and admin-shell Modal/focus slices are verif
 - ProductCombobox focused Vitest/UI suite: **3 files, 19/19 tests passed**, 1.79s.
 - POS Playwright E2E: **7/7 passed**, 1.1m, including ArrowDown/Enter selection and existing POS flows.
 - Modal/admin-shell focused Vitest suite: **2 files, 14/14 tests passed**, 1.39s.
+- SupplierModal focused purchases/modal suite: **2 files, 12/12 tests passed**, 1.72s.
 - TypeScript typecheck: **passed**, 0 errors.
 - Admin-shell Playwright E2E: **4/4 passed**, 54.7s.
+- Purchases Playwright E2E: **5/5 passed**, 45.6s.
 - `git diff --check`: **passed**.
 
 ## RED/GREEN evidence
@@ -34,7 +37,7 @@ Estado: `ENTREGADO: ProductCombobox and admin-shell Modal/focus slices are verif
 
 ## Remaining Wave 1 scope
 
-- Integrate focus-safe Modal behavior into purchase, transfer, supplier, and purchase-detail dialogs.
+- Integrate focus-safe Modal behavior into purchase-detail, transfer-confirmation, and supplier-management dialogs.
 - Shared Field error association and first-invalid focus.
 - Tabs semantics and roving keyboard focus.
 - Tablet drawer focus/inert behavior.
