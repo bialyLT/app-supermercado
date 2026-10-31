@@ -13,6 +13,7 @@ const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}
 
 export default function PosPage() {
   const [locationId, setLocationId] = useState("");
+  const [locationReady, setLocationReady] = useState(false);
   const [variantId, setVariantId] = useState("");
   const [scannedUnitPrice, setScannedUnitPrice] = useState<string | undefined>();
   const [scannedBarcode, setScannedBarcode] = useState<string | undefined>();
@@ -30,8 +31,31 @@ export default function PosPage() {
   const searchSeq = useRef(0);
   const addLineRef = useRef<() => void>(() => {});
   const checkoutRef = useRef<() => Promise<void>>(async () => {});
+  const linesRef = useRef(lines);
 
   useEffect(() => {
+    linesRef.current = lines;
+  }, [lines]);
+
+  useEffect(() => {
+    const loadLocation = async () => {
+      const response = await fetch("/api/pos/context").catch(() => null);
+      if (!response) {
+        setStatus("No se pudo resolver la ubicación autorizada");
+        return;
+      }
+      const body = await response.json().catch(() => ({})) as { locationId?: string; error?: string };
+      if (!response.ok || !body.locationId) {
+        setStatus(body.error === "POS_LOCATION_AMBIGUOUS"
+          ? "POS bloqueado: hay múltiples ubicaciones activas autorizadas"
+          : "POS bloqueado: no hay una única ubicación activa autorizada");
+        return;
+      }
+      setLocationId(body.locationId);
+      setLocationReady(true);
+    };
+    void loadLocation();
+
     const refreshQueue = () => void pendingCommands().then((items) => setQueued(items.length)).catch(() => undefined);
     const replay = async () => {
       const items = await pendingCommands().catch(() => []);
@@ -62,7 +86,14 @@ export default function PosPage() {
       if (event.key === "F4") { event.preventDefault(); addLineRef.current(); }
       if (event.key === "F8") { event.preventDefault(); document.getElementById("payment")?.focus(); }
       if (event.key === "F10") { event.preventDefault(); void checkoutRef.current(); }
-      if (event.key === "Escape") { setLines([]); setStatus(""); setChange(null); }
+      if (event.key === "Escape") {
+        if (linesRef.current.length > 0) {
+          setStatus("El carrito sigue intacto. Confirmá o quitá las líneas manualmente.");
+          return;
+        }
+        setStatus("");
+        setChange(null);
+      }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => { window.removeEventListener("keydown", onKeyDown); window.removeEventListener("online", onOnline); window.removeEventListener("offline", onOffline); };
@@ -158,7 +189,7 @@ export default function PosPage() {
   }
 
   function addLine() {
-    if (!locationId.trim() || !uuidPattern.test(locationId.trim())) { setStatus("Ingresá una ubicación válida"); return; }
+    if (!locationReady || !locationId.trim() || !uuidPattern.test(locationId.trim())) { setStatus("POS bloqueado: ubicación autorizada no disponible"); return; }
     if (!uuidPattern.test(variantId.trim())) { setStatus("Seleccioná un producto del catálogo"); return; }
     ++searchSeq.current;
     setLines((current) => [...current, { variantId: variantId.trim(), locationId: locationId.trim(), quantity, label: variantId.trim(), unitPrice: scannedUnitPrice, weighedBarcode: scannedBarcode }]);
@@ -211,11 +242,10 @@ export default function PosPage() {
   });
 
   return <main className={styles.shell} aria-label="Punto de venta">
-    <header><h1>POS</h1><p>Keyboard-first · F2 buscar · F4 agregar · F8 pagar · F10 confirmar · Esc limpiar</p><p role="status">{offline ? "Offline · comandos se guardan localmente" : "Online"} · En cola: {queued}</p></header>
+    <header><h1>POS</h1><p>Keyboard-first · F2 buscar · F4 agregar · F8 pagar · F10 confirmar · Esc conserva el carrito</p><p role="status">{offline ? "Offline · comandos se guardan localmente" : "Online"} · En cola: {queued}</p></header>
     <section className={styles.grid}>
       <form onSubmit={(event) => { event.preventDefault(); addLine(); }} aria-label="Agregar producto">
-        <label htmlFor="location">Ubicación</label>
-        <input id="location" value={locationId} onChange={(event) => setLocationId(event.target.value)} required />
+        <p role="status">{locationReady ? "Ubicación autorizada por el servidor" : "Resolviendo ubicación autorizada…"}</p>
         <label htmlFor="variant">Variante / código</label>
         <input id="variant" value={variantId} onChange={(event) => void search(event.target.value)} autoFocus required />
         {suggestions.length > 0 && <ul aria-label="Resultados de búsqueda">{suggestions.map((item) => <li key={item.id}><button type="button" onClick={() => selectSuggestion(item)}>{item.name} · {item.sku}</button></li>)}</ul>}
