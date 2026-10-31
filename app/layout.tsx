@@ -7,6 +7,8 @@ export const metadata: Metadata = {
   description: "Retail foundation scaffold",
 };
 
+export const dynamic = "force-dynamic";
+
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="es">

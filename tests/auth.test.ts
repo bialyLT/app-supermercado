@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { roleHasPermission } from "../src/auth/authorization";
+import { getHighestRole, roleHasPermission } from "../src/auth/authorization";
 import { checkRateLimit, resetRateLimits } from "../src/server/rate-limit";
 import { z } from "zod";
 
@@ -10,6 +10,12 @@ describe("Epic 1 authorization and abuse controls", () => {
     expect(roleHasPermission("CASHIER", "settings:write")).toBe(false);
     expect(roleHasPermission("SUPERVISOR", "settings:write")).toBe(false);
     expect(roleHasPermission("ADMIN", "settings:write")).toBe(true);
+  });
+
+  it("resolves multiple roles by approved highest-scope precedence", () => {
+    expect(getHighestRole(["CASHIER", "SUPERVISOR"])).toBe("SUPERVISOR");
+    expect(getHighestRole(["STOCK_MANAGER", "ADMIN", "CASHIER"])).toBe("ADMIN");
+    expect(getHighestRole([])).toBeUndefined();
   });
 
   it("limits repeated attempts by stable client key", () => {

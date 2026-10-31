@@ -1,4 +1,11 @@
 import { test, expect } from "@playwright/test";
+import { admin, authenticateAdmin, enabled } from "./helpers/auth";
+
+test.afterAll(async () => {
+  if (enabled) {
+    await admin.$disconnect();
+  }
+});
 
 test("POS exposes keyboard-first controls and touch-sized actions", async ({ page }) => {
   await page.goto("/pos");
@@ -12,6 +19,7 @@ test("POS exposes keyboard-first controls and touch-sized actions", async ({ pag
 });
 
 test("POS mutations reject unauthenticated callers", async ({ request }) => {
+  test.skip(!enabled, "Requires disposable PostgreSQL gate database and runtime roles");
   const checkout = await request.post("/api/pos/checkout", { data: { lines: [], payments: [], idempotencyKey: "e2e-pos" } });
   const product = await request.post("/api/pos/products", { data: { sku: "offline", name: "Offline", unitCode: "u", unitName: "Unit" } });
   const reversal = await request.post("/api/pos/reversals", { data: { saleId: "00000000-0000-4000-8000-000000000000", type: "ANNULMENT", lines: [], reason: "e2e", idempotencyKey: "e2e-reversal" } });
@@ -21,6 +29,9 @@ test("POS mutations reject unauthenticated callers", async ({ request }) => {
 });
 
 test("POS resolves weighed barcode, preserves unit price and barcode, adds to cart via F4, and clears input", async ({ page }) => {
+  test.skip(!enabled, "Requires disposable PostgreSQL gate database and runtime roles");
+  const { fixture } = await authenticateAdmin(page);
+
   let checkoutBody: { lines: Array<{ variantId: string; locationId: string; quantity: string; unitPrice?: string; weighedBarcode?: string }> } | null = null;
   await page.route("**/api/pos/checkout", async (route) => {
     checkoutBody = route.request().postDataJSON();
@@ -46,7 +57,7 @@ test("POS resolves weighed barcode, preserves unit price and barcode, adds to ca
   });
 
   await page.goto("/pos");
-  await page.locator("#location").fill("123e4567-e89b-42d3-a456-426614174099");
+  await expect(page.getByText("Ubicación autorizada por el servidor")).toBeVisible();
   await page.locator("#variant").fill("2012345001251");
   await expect(page.getByRole("status").filter({ hasText: "Código pesable: precio unitario 1.25" })).toBeVisible();
 
@@ -67,7 +78,7 @@ test("POS resolves weighed barcode, preserves unit price and barcode, adds to ca
   expect(checkoutBody!.lines).toHaveLength(1);
   expect(checkoutBody!.lines[0]).toMatchObject({
     variantId: "123e4567-e89b-42d3-a456-426614174000",
-    locationId: "123e4567-e89b-42d3-a456-426614174099",
+    locationId: fixture.locationId,
     quantity: "1",
     unitPrice: "1.25",
     weighedBarcode: "2012345001251",
@@ -75,6 +86,9 @@ test("POS resolves weighed barcode, preserves unit price and barcode, adds to ca
 });
 
 test("POS normal catalogue checkout omits provenance", async ({ page }) => {
+  test.skip(!enabled, "Requires disposable PostgreSQL gate database and runtime roles");
+  const { fixture } = await authenticateAdmin(page);
+
   let checkoutBody: { lines: Array<{ variantId: string; locationId: string; quantity: string; unitPrice?: string; weighedBarcode?: string }> } | null = null;
   await page.route("**/api/pos/checkout", async (route) => {
     checkoutBody = route.request().postDataJSON();
@@ -100,7 +114,7 @@ test("POS normal catalogue checkout omits provenance", async ({ page }) => {
   });
 
   await page.goto("/pos");
-  await page.locator("#location").fill("123e4567-e89b-42d3-a456-426614174099");
+  await expect(page.getByText("Ubicación autorizada por el servidor")).toBeVisible();
   await page.locator("#variant").fill("Gaseosa");
   const suggestion = page.getByRole("button", { name: /Gaseosa/ });
   await expect(suggestion).toBeVisible();
@@ -117,7 +131,7 @@ test("POS normal catalogue checkout omits provenance", async ({ page }) => {
   expect(checkoutBody!.lines).toHaveLength(1);
   expect(checkoutBody!.lines[0]).toMatchObject({
     variantId: "123e4567-e89b-42d3-a456-426614174001",
-    locationId: "123e4567-e89b-42d3-a456-426614174099",
+    locationId: fixture.locationId,
     quantity: "1",
   });
   expect(checkoutBody!.lines[0].weighedBarcode).toBeUndefined();
@@ -153,6 +167,9 @@ test("POS falls back to catalog when 13-digit barcode prefix mismatches or is no
 });
 
 test("POS displays error message on invalid configured weighed barcode scan", async ({ page }) => {
+  test.skip(!enabled, "Requires disposable PostgreSQL gate database and runtime roles");
+  await authenticateAdmin(page);
+
   await page.route("**/api/pos/barcodes/price*", async (route) => {
     await route.fulfill({
       status: 400,
@@ -162,6 +179,7 @@ test("POS displays error message on invalid configured weighed barcode scan", as
   });
 
   await page.goto("/pos");
+  await expect(page.getByText("Ubicación autorizada por el servidor")).toBeVisible();
   await page.locator("#variant").fill("2012345001259");
   await expect(page.getByRole("status").filter({ hasText: "Código pesable inválido: INVALID_EAN13_CHECKSUM" })).toBeVisible();
 });

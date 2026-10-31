@@ -3,6 +3,7 @@ import { getAuth } from "./config";
 import { findIdentity } from "../server/repositories/identity";
 import { inventoryPermissions } from "../server/repositories/inventory";
 import type { Actor } from "../domain/actor";
+import { getHighestRole } from "./roles";
 
 async function serverContext() {
   const session = await getAuth().api.getSession({ headers: await headers() });
@@ -18,7 +19,7 @@ export async function getServerIdentity() {
 
 export async function getServerActor(): Promise<Actor> {
   const identity = await serverContext();
-  const role = identity?.roles[0];
+  const role = identity ? getHighestRole(identity.roles) : undefined;
   if (!identity || !role) throw new Error("UNAUTHENTICATED");
   return { ...identity, role, permissions: [...new Set(identity.roles.flatMap((value) => inventoryPermissions[value]))] };
 }

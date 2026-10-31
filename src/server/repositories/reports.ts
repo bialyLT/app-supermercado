@@ -16,6 +16,30 @@ export type BranchReport = {
   stockQuantity: string;
 };
 
+export type ReportFilterSources = {
+  actors: Array<{ id: string; label: string }>;
+  variants: Array<{ id: string; label: string }>;
+  categories: Array<{ id: string; label: string }>;
+};
+
+export async function reportFilterSources(actor: Actor): Promise<ReportFilterSources> {
+  return withTenant(prisma, actor, async (tx) => {
+    const branchFilter = actor.role === "ADMIN" && actor.branchIds.length === 0
+      ? undefined
+      : { some: { branchId: { in: [...actor.branchIds] } } };
+    const [users, variants, categories] = await Promise.all([
+      tx.user.findMany({ where: { tenantId: actor.tenantId, active: true, ...(branchFilter ? { branches: branchFilter } : {}) }, select: { id: true, displayName: true, email: true }, orderBy: { displayName: "asc" }, take: 200 }),
+      tx.productVariant.findMany({ where: { tenantId: actor.tenantId, active: true }, select: { id: true, sku: true, name: true, product: { select: { name: true } } }, orderBy: { sku: "asc" }, take: 500 }),
+      tx.productCategory.findMany({ where: { tenantId: actor.tenantId, active: true }, select: { id: true, code: true, name: true }, orderBy: { name: "asc" }, take: 200 }),
+    ]);
+    return {
+      actors: users.map((user) => ({ id: user.id, label: `${user.displayName} (${user.email})` })),
+      variants: variants.map((variant) => ({ id: variant.id, label: `${variant.sku} - ${variant.product.name} (${variant.name})` })),
+      categories: categories.map((category) => ({ id: category.id, label: `${category.code} - ${category.name}` })),
+    };
+  });
+}
+
 export type OperationsReport = {
   period: { from: string; to: string };
   filters: Omit<OperationsReportQuery, "format">;

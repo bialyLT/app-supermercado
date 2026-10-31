@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
+import React from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import {
   calculateTransferQuantity,
   createEmptyTransferLine,
+  updateVariantSearchText,
   validateTransferForm,
   type TransferFormState,
 } from "../components/transfers/types";
+import { TransferForm } from "../components/transfers/transfer-form";
 
 const context = {
   tenantId: "tenant-1",
@@ -26,6 +30,28 @@ const valid: TransferFormState = {
 };
 
 describe("transfers UI helpers", () => {
+  it("clears stale variant identity when search text changes", () => {
+    const line = { ...valid.lines[0], variantName: "Producto", sku: "SKU-1" };
+    const updated = updateVariantSearchText(line, "Otro producto");
+    expect(updated.variantId).toBe("");
+    expect(updated.sku).toBe("");
+    expect(updated.variantName).toBe("Otro producto");
+  });
+
+  it("accepts comma decimal quantities", () => {
+    const commaQuantity = { ...valid, lines: [{ ...valid.lines[0], quantity: "1,5" }] };
+    expect(validateTransferForm(commaQuantity, context).lineErrors?.[0]?.quantity).toBeUndefined();
+  });
+
+  it("does not expose the technical idempotency key in the transfer form", () => {
+    const markup = renderToStaticMarkup(
+      React.createElement(TransferForm, { branches: context.branches, onSubmit: async () => true })
+    );
+    expect(markup).not.toContain("transfer-idempotency");
+    expect(markup).not.toContain("Clave de Idempotencia");
+    expect(markup).not.toContain("Nueva clave");
+  });
+
   it("validates server-derived branches and locations", () => {
     expect(validateTransferForm(valid, context)).toEqual({});
     expect(validateTransferForm({ ...valid, destinationBranchId: valid.originBranchId }, context).destinationBranchId).toBeTruthy();

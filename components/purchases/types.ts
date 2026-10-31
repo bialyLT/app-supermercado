@@ -115,6 +115,15 @@ export type PurchaseReceiptSummary = {
   lines?: ReceiptLineSummary[];
 };
 
+export function normalizeDecimalInput(value: string): string {
+  return value.trim().replace(/,/g, ".");
+}
+
+export function updateVariantSearchText(line: PurchaseLineState, value: string): PurchaseLineState {
+  if (value === line.variantName) return { ...line, variantName: value };
+  return { ...line, variantName: value, variantId: "", sku: "" };
+}
+
 export function generateIdempotencyKey(): string {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
     return crypto.randomUUID();
@@ -174,8 +183,9 @@ export function calculateReceiptPreviewTotals(
   const calculatedLines: CalculatedLinePreview[] = lines.map((line) => {
     let qty = new Decimal(0);
     try {
-      if (line.quantity && !Number.isNaN(Number(line.quantity))) {
-        qty = new Decimal(line.quantity);
+      const quantity = normalizeDecimalInput(line.quantity);
+      if (quantity && !Number.isNaN(Number(quantity))) {
+        qty = new Decimal(quantity);
       }
     } catch {
       qty = new Decimal(0);
@@ -183,8 +193,9 @@ export function calculateReceiptPreviewTotals(
 
     let cost = new Decimal(0);
     try {
-      if (line.unitCost && !Number.isNaN(Number(line.unitCost))) {
-        cost = new Decimal(line.unitCost);
+      const unitCost = normalizeDecimalInput(line.unitCost);
+      if (unitCost && !Number.isNaN(Number(unitCost))) {
+        cost = new Decimal(unitCost);
       }
     } catch {
       cost = new Decimal(0);
@@ -194,8 +205,9 @@ export function calculateReceiptPreviewTotals(
 
     let lineDiscount = new Decimal(0);
     try {
-      if (line.discountAmount && !Number.isNaN(Number(line.discountAmount))) {
-        lineDiscount = new Decimal(line.discountAmount).toDecimalPlaces(decimals, Decimal.ROUND_HALF_UP);
+      const discountAmount = normalizeDecimalInput(line.discountAmount ?? "");
+      if (discountAmount && !Number.isNaN(Number(discountAmount))) {
+        lineDiscount = new Decimal(discountAmount).toDecimalPlaces(decimals, Decimal.ROUND_HALF_UP);
       }
     } catch {
       lineDiscount = new Decimal(0);
@@ -208,15 +220,17 @@ export function calculateReceiptPreviewTotals(
     const taxableAmount = lineSubtotal.minus(lineDiscount);
 
     let lineTax = new Decimal(0);
-    if (line.taxAmount && !Number.isNaN(Number(line.taxAmount))) {
+    const taxAmount = normalizeDecimalInput(line.taxAmount ?? "");
+    const taxRate = normalizeDecimalInput(line.taxRate ?? "");
+    if (taxAmount && !Number.isNaN(Number(taxAmount))) {
       try {
-        lineTax = new Decimal(line.taxAmount).toDecimalPlaces(decimals, Decimal.ROUND_HALF_UP);
+        lineTax = new Decimal(taxAmount).toDecimalPlaces(decimals, Decimal.ROUND_HALF_UP);
       } catch {
         lineTax = new Decimal(0);
       }
-    } else if (line.taxRate && !Number.isNaN(Number(line.taxRate))) {
+    } else if (taxRate && !Number.isNaN(Number(taxRate))) {
       try {
-        const rate = new Decimal(line.taxRate);
+        const rate = new Decimal(taxRate);
         lineTax = taxableAmount.times(rate).toDecimalPlaces(decimals, Decimal.ROUND_HALF_UP);
       } catch {
         lineTax = new Decimal(0);
@@ -319,7 +333,7 @@ export function validatePurchaseReceiptForm(
       }
 
       try {
-        const qty = new Decimal(line.quantity);
+        const qty = new Decimal(normalizeDecimalInput(line.quantity));
         if (qty.lte(0)) {
           err.quantity = "La cantidad debe ser mayor a 0";
         }
@@ -328,7 +342,7 @@ export function validatePurchaseReceiptForm(
       }
 
       try {
-        const cost = new Decimal(line.unitCost);
+        const cost = new Decimal(normalizeDecimalInput(line.unitCost));
         if (cost.isNegative()) {
           err.unitCost = "El costo unitario no puede ser negativo";
         }

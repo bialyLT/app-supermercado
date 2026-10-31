@@ -4,6 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import {
   calculateReceiptPreviewTotals,
   createEmptyPurchaseLine,
+  updateVariantSearchText,
   validatePurchaseReceiptForm,
   type OperationalBranch,
   type PurchaseFormState,
@@ -14,6 +15,33 @@ import { PurchaseForm } from "../components/purchases/purchase-form";
 import { PurchaseHistory } from "../components/purchases/purchase-history";
 
 describe("Purchases UI — Decimal-safe totals and validation (S3, S5)", () => {
+  it("clears stale variant identity when search text changes", () => {
+    const line = { ...createEmptyPurchaseLine(), variantId: "b0000000-0000-4000-8000-000000000001", sku: "YER-001", variantName: "Yerba" };
+    const updated = updateVariantSearchText(line, "Yerbabuena");
+    expect(updated.variantId).toBe("");
+    expect(updated.sku).toBe("");
+    expect(updated.variantName).toBe("Yerbabuena");
+  });
+
+  it("normalizes comma decimal input before calculating receipt totals", () => {
+    const line = createEmptyPurchaseLine();
+    line.variantId = "b0000000-0000-4000-8000-000000000001";
+    line.quantity = "1,5";
+    line.unitCost = "2,50";
+
+    expect(calculateReceiptPreviewTotals([line], "ARS").total).toBe("3.75");
+    expect(validatePurchaseReceiptForm({
+      supplierId: "s0000000-0000-4000-8000-000000000001",
+      branchId: "b0000000-0000-4000-8000-000000000001",
+      locationId: "l0000000-0000-4000-8000-000000000001",
+      receiptNumber: "FAC-001",
+      currency: "ARS",
+      notes: "",
+      idempotencyKey: "idem-comma",
+      lines: [line],
+    }).lineErrors?.[0]?.quantity).toBeUndefined();
+  });
+
   it("calculates multi-line preview totals using Decimal arithmetic without float drift", () => {
     const lines: PurchaseLineState[] = [
       {
@@ -319,6 +347,8 @@ describe("Purchases UI — Server-derived selectors & Component rendering (S1, S
     // Suppliers selector
     expect(markup).toContain("Distribuidora Mayorista SA");
     expect(markup).toContain("Lácteos del Sur");
+    expect(markup).not.toContain("purchase-idempotency");
+    expect(markup).not.toContain("Regenerar");
   });
 
   it("renders warning and disables submit when no branches are assigned in context", () => {

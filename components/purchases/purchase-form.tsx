@@ -14,6 +14,8 @@ import {
   createEmptyPurchaseLine,
   createInitialPurchaseFormState,
   generateIdempotencyKey,
+  normalizeDecimalInput,
+  updateVariantSearchText,
   validatePurchaseReceiptForm,
 } from "./types";
 import { SupplierModal } from "./supplier-modal";
@@ -112,9 +114,14 @@ export function PurchaseForm({
 
   const handleLineChange = useCallback(
     (index: number, field: keyof PurchaseLineState, value: string) => {
+      const normalizedValue = ["quantity", "unitCost", "taxRate", "taxAmount", "discountAmount"].includes(field)
+        ? normalizeDecimalInput(value)
+        : value;
       setForm((prev) => {
         const nextLines = [...prev.lines];
-        nextLines[index] = { ...nextLines[index], [field]: value };
+        nextLines[index] = field === "variantName"
+          ? updateVariantSearchText(nextLines[index], normalizedValue)
+          : { ...nextLines[index], [field]: normalizedValue };
         return { ...prev, lines: nextLines };
       });
       if (errors.lineErrors?.[index]) {
@@ -218,10 +225,6 @@ export function PurchaseForm({
     },
     [branches, currentLocationId, handleHeaderChange]
   );
-
-  const handleRegenerateIdempotency = useCallback(() => {
-    setForm((prev) => ({ ...prev, idempotencyKey: generateIdempotencyKey() }));
-  }, []);
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
@@ -482,38 +485,6 @@ export function PurchaseForm({
                 onChange={(e) => handleHeaderChange("notes", e.target.value)}
                 placeholder="Detalle de entrega, transporte o precinto"
                 disabled={isSubmitting}
-              />
-            </div>
-
-            <div className={styles.fieldGroup}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <label htmlFor="purchase-idempotency" className={styles.label}>
-                  Clave Idempotencia (Protección contra duplicados)
-                </label>
-                <button
-                  type="button"
-                  onClick={handleRegenerateIdempotency}
-                  disabled={isSubmitting}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: "var(--color-primary, #0284c7)",
-                    cursor: "pointer",
-                    fontSize: "0.8rem",
-                    padding: 0,
-                  }}
-                  title="Generar nueva clave"
-                >
-                  ↻ Regenerar
-                </button>
-              </div>
-              <input
-                id="purchase-idempotency"
-                type="text"
-                className={styles.input}
-                value={form.idempotencyKey}
-                readOnly
-                style={{ backgroundColor: "var(--color-surface-subtle, #f8fafc)", fontSize: "0.85rem" }}
               />
             </div>
           </div>

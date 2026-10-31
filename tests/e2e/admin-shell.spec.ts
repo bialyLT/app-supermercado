@@ -1,6 +1,18 @@
 import { expect, test } from "@playwright/test";
+import { admin, authenticateAdmin, enabled } from "./helpers/auth";
 
 test.describe("Administrative Application Shell & Navigation", () => {
+  test.skip(!enabled, "Requires disposable PostgreSQL gate database and runtime roles");
+  test.afterAll(async () => {
+    if (enabled) {
+      await admin.$disconnect();
+    }
+  });
+
+  test.beforeEach(async ({ page }) => {
+    await authenticateAdmin(page);
+  });
+
   test("renders admin dashboard, non-editable role badge, and full navigation on desktop", async ({ page }) => {
     await page.goto("/admin");
     // Verify skip link

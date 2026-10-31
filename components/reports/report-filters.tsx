@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import type {
   DatePreset,
   OperationalBranch,
+  ReportFilterSources,
   ReportFilterState,
 } from "./types";
 import styles from "./reports.module.css";
@@ -11,6 +12,7 @@ import styles from "./reports.module.css";
 export type ReportFiltersProps = {
   filters: ReportFilterState;
   branches: OperationalBranch[];
+  filterSources?: ReportFilterSources;
   validationErrors?: Record<string, string>;
   isLoading?: boolean;
   isExporting?: boolean;
@@ -24,6 +26,7 @@ export type ReportFiltersProps = {
 export function ReportFilters({
   filters,
   branches,
+  filterSources = { actors: [], variants: [], categories: [] },
   validationErrors = {},
   isLoading = false,
   isExporting = false,
@@ -192,70 +195,28 @@ export function ReportFilters({
 
         {showAdvanced && (
           <div className={styles.advancedGrid} style={{ marginTop: "0.75rem" }}>
-            {/* Actor User ID */}
             <div className={styles.filterGroup}>
-              <label htmlFor="filter-actor-user-id" className={styles.label}>
-                ID Operador / Usuario
-              </label>
-              <input
-                id="filter-actor-user-id"
-                type="text"
-                placeholder="UUID de usuario"
-                className={`${styles.input} ${validationErrors.actorUserId ? styles.inputError : ""}`}
-                value={filters.actorUserId}
-                onChange={(e) => onChange({ actorUserId: e.target.value })}
-                aria-invalid={!!validationErrors.actorUserId}
-                aria-describedby={validationErrors.actorUserId ? "error-actor" : undefined}
-              />
-              {validationErrors.actorUserId && (
-                <span id="error-actor" className={styles.errorText}>
-                  {validationErrors.actorUserId}
-                </span>
-              )}
+              <label htmlFor="filter-actor-user-id" className={styles.label}>Operador / Usuario</label>
+              <select id="filter-actor-user-id" className={styles.select} value={filters.actorUserId} onChange={(e) => onChange({ actorUserId: e.target.value })}>
+                <option value="">Todos los operadores autorizados</option>
+                {filterSources.actors.map((source) => <option key={source.id} value={source.id}>{source.label}</option>)}
+              </select>
             </div>
 
-            {/* Variant ID */}
             <div className={styles.filterGroup}>
-              <label htmlFor="filter-variant-id" className={styles.label}>
-                ID Variante de Producto
-              </label>
-              <input
-                id="filter-variant-id"
-                type="text"
-                placeholder="UUID de variante"
-                className={`${styles.input} ${validationErrors.variantId ? styles.inputError : ""}`}
-                value={filters.variantId}
-                onChange={(e) => onChange({ variantId: e.target.value })}
-                aria-invalid={!!validationErrors.variantId}
-                aria-describedby={validationErrors.variantId ? "error-variant" : undefined}
-              />
-              {validationErrors.variantId && (
-                <span id="error-variant" className={styles.errorText}>
-                  {validationErrors.variantId}
-                </span>
-              )}
+              <label htmlFor="filter-variant-id" className={styles.label}>Variante de Producto</label>
+              <select id="filter-variant-id" className={styles.select} value={filters.variantId} onChange={(e) => onChange({ variantId: e.target.value })}>
+                <option value="">Todas las variantes autorizadas</option>
+                {filterSources.variants.map((source) => <option key={source.id} value={source.id}>{source.label}</option>)}
+              </select>
             </div>
 
-            {/* Category ID */}
             <div className={styles.filterGroup}>
-              <label htmlFor="filter-category-id" className={styles.label}>
-                ID Categoría
-              </label>
-              <input
-                id="filter-category-id"
-                type="text"
-                placeholder="UUID de categoría"
-                className={`${styles.input} ${validationErrors.categoryId ? styles.inputError : ""}`}
-                value={filters.categoryId}
-                onChange={(e) => onChange({ categoryId: e.target.value })}
-                aria-invalid={!!validationErrors.categoryId}
-                aria-describedby={validationErrors.categoryId ? "error-category" : undefined}
-              />
-              {validationErrors.categoryId && (
-                <span id="error-category" className={styles.errorText}>
-                  {validationErrors.categoryId}
-                </span>
-              )}
+              <label htmlFor="filter-category-id" className={styles.label}>Categoría</label>
+              <select id="filter-category-id" className={styles.select} value={filters.categoryId} onChange={(e) => onChange({ categoryId: e.target.value })}>
+                <option value="">Todas las categorías autorizadas</option>
+                {filterSources.categories.map((source) => <option key={source.id} value={source.id}>{source.label}</option>)}
+              </select>
             </div>
           </div>
         )}

@@ -7,6 +7,11 @@ argentinos y promociones N×M; impresión y hardware permanecen fuera de alcance
 **Reglas vinculantes:** `AGENTS.md`, `DOMAIN_RULES.md`, `DECISIONS.md`,
 `GATES.md`.
 
+**Auditoría frontend:** `docs/audits/informe-auditoria-frontend.md`.
+**Plan de remediación:** `odd/tasks/frontend-audit-remediation.md`. La auditoría
+organiza el trabajo futuro en cuatro olas; cada ola requiere brief, decisiones
+pendientes resueltas y criterios medibles antes de implementar.
+
 **Verificación final (2026-10-26):** 111/111 tests, 5/5 E2E,
 20/20 rondas de 20 ventas concurrentes, ledger con 0 divergencias y RLS en
 27/27 tablas con `tenantId`. Sesiones mínimas, step-up, topes de valor y alertas
@@ -143,6 +148,23 @@ publicará producción durante esta épica.
 - **Roles aprobados:** `ADMIN` tenant-wide, `STOCK_MANAGER` para inventario, `SUPERVISOR` para turno/caja y `CASHIER` operativo. No se crea un rol `MANAGER` nuevo; la navegación por rol puede implementarse con D-025.
 - **Criterios:** no mouse obligatorio, foco visible, estados de error/pending, Decimal y tenant server-side, Playwright por flujo, responsive sin scroll horizontal en acciones principales y todos los gates de `GATES.md`.
 - **Fuera:** e-commerce, delivery, picking, fidelización, marketplaces y deploy productivo.
+
+## Remediación frontend basada en auditoría
+
+La auditoría importada identifica 79 hallazgos: 3 críticos, 27 altos, 38
+medios y 11 bajos. No se implementan automáticamente: primero se confirman
+los hallazgos marcados ⚠ y se resuelven las decisiones de producto/security.
+
+| Ola | Alcance inicial | Criterio de salida |
+|---|---|---|
+| 0 · Bloqueantes | CSP, sesión/rol, cierre de sesión, integridad de variantes y fechas, POS ubicación/Esc, navegación rota, idempotencia y coma decimal | Cada defecto tiene reproducción RED y GREEN; E2E contra build de producción verde |
+| 1 · Teclado y tablet | Modal, Combobox, Field, Tabs, foco, drawer, tablas, POS y compras responsive | axe sin violaciones serias; recorridos keyboard-only; sin scroll horizontal; controles ≥44 px |
+| 2 · Estados y errores | `apiFetch`, 401, errores consistentes, loading/empty/error/retry, cola offline | Cada pantalla prueba estados; cola offline visible y recuperable |
+| 3 · Consistencia | Formatos es-AR, tokens, contraste, estilos inline y copy | Contraste AA; estilos/tokens centralizados; copy consistente |
+
+La especificación operativa y las decisiones requeridas están en
+`odd/tasks/frontend-audit-remediation.md`. La primera ejecución tiene brief en
+`odd/tasks/frontend-audit-wave0.md` y criterios medibles antes de modificar código.
 
 ## Plantilla de cierre de cualquier épica
 
