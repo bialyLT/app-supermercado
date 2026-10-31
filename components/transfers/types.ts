@@ -94,6 +94,11 @@ export function normalizeDecimalInput(value: string): string {
   return value.trim().replace(/,/g, ".");
 }
 
+export function updateVariantSearchText(line: TransferLineState, value: string): TransferLineState {
+  if (value === line.variantName) return { ...line, variantName: value };
+  return { ...line, variantName: value, variantId: "", sku: "" };
+}
+
 export function generateIdempotencyKey(): string {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
     return `transf-${crypto.randomUUID()}`;

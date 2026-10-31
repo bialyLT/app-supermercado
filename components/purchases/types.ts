@@ -119,6 +119,11 @@ export function normalizeDecimalInput(value: string): string {
   return value.trim().replace(/,/g, ".");
 }
 
+export function updateVariantSearchText(line: PurchaseLineState, value: string): PurchaseLineState {
+  if (value === line.variantName) return { ...line, variantName: value };
+  return { ...line, variantName: value, variantId: "", sku: "" };
+}
+
 export function generateIdempotencyKey(): string {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
     return crypto.randomUUID();
@@ -200,7 +205,7 @@ export function calculateReceiptPreviewTotals(
 
     let lineDiscount = new Decimal(0);
     try {
-      const discountAmount = normalizeDecimalInput(line.discountAmount);
+      const discountAmount = normalizeDecimalInput(line.discountAmount ?? "");
       if (discountAmount && !Number.isNaN(Number(discountAmount))) {
         lineDiscount = new Decimal(discountAmount).toDecimalPlaces(decimals, Decimal.ROUND_HALF_UP);
       }
@@ -215,8 +220,8 @@ export function calculateReceiptPreviewTotals(
     const taxableAmount = lineSubtotal.minus(lineDiscount);
 
     let lineTax = new Decimal(0);
-    const taxAmount = normalizeDecimalInput(line.taxAmount);
-    const taxRate = normalizeDecimalInput(line.taxRate);
+    const taxAmount = normalizeDecimalInput(line.taxAmount ?? "");
+    const taxRate = normalizeDecimalInput(line.taxRate ?? "");
     if (taxAmount && !Number.isNaN(Number(taxAmount))) {
       try {
         lineTax = new Decimal(taxAmount).toDecimalPlaces(decimals, Decimal.ROUND_HALF_UP);

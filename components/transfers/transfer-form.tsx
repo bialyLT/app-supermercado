@@ -12,6 +12,7 @@ import {
   createInitialTransferFormState,
   generateIdempotencyKey,
   normalizeDecimalInput,
+  updateVariantSearchText,
   validateTransferForm,
 } from "./types";
 import styles from "./transfers.module.css";
@@ -102,7 +103,9 @@ export function TransferForm({
       const normalizedValue = field === "quantity" ? normalizeDecimalInput(value) : value;
     setForm((prev) => {
         const updated = [...prev.lines];
-        updated[index] = { ...updated[index], [field]: normalizedValue };
+        updated[index] = field === "variantName"
+          ? updateVariantSearchText(updated[index], normalizedValue)
+          : { ...updated[index], [field]: normalizedValue };
         return { ...prev, lines: updated };
       });
     },

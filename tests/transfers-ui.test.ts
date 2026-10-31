@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   calculateTransferQuantity,
   createEmptyTransferLine,
+  updateVariantSearchText,
   validateTransferForm,
   type TransferFormState,
 } from "../components/transfers/types";
@@ -26,6 +27,14 @@ const valid: TransferFormState = {
 };
 
 describe("transfers UI helpers", () => {
+  it("clears stale variant identity when search text changes", () => {
+    const line = { ...valid.lines[0], variantName: "Producto", sku: "SKU-1" };
+    const updated = updateVariantSearchText(line, "Otro producto");
+    expect(updated.variantId).toBe("");
+    expect(updated.sku).toBe("");
+    expect(updated.variantName).toBe("Otro producto");
+  });
+
   it("accepts comma decimal quantities", () => {
     const commaQuantity = { ...valid, lines: [{ ...valid.lines[0], quantity: "1,5" }] };
     expect(validateTransferForm(commaQuantity, context).lineErrors?.[0]?.quantity).toBeUndefined();

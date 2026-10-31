@@ -15,6 +15,7 @@ import {
   createInitialPurchaseFormState,
   generateIdempotencyKey,
   normalizeDecimalInput,
+  updateVariantSearchText,
   validatePurchaseReceiptForm,
 } from "./types";
 import { SupplierModal } from "./supplier-modal";
@@ -118,7 +119,9 @@ export function PurchaseForm({
         : value;
       setForm((prev) => {
         const nextLines = [...prev.lines];
-        nextLines[index] = { ...nextLines[index], [field]: normalizedValue };
+        nextLines[index] = field === "variantName"
+          ? updateVariantSearchText(nextLines[index], normalizedValue)
+          : { ...nextLines[index], [field]: normalizedValue };
         return { ...prev, lines: nextLines };
       });
       if (errors.lineErrors?.[index]) {
