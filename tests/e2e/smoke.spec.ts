@@ -22,6 +22,12 @@ test("login form keeps the user informed when credentials are rejected", async (
   await expect(page.getByRole("form", { name: "Inicio de sesión" }).getByRole("alert")).toHaveText("No pudimos iniciar sesión. Revisá tu correo y contraseña.");
 });
 
+test("admin pages redirect unauthenticated callers to the public sign-in entry", async ({ page }) => {
+  await page.goto("/admin");
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByRole("heading", { name: "Ingresá a tu operación" })).toBeVisible();
+});
+
 test("sensitive routes reject unauthenticated callers", async ({ request }) => {
   const response = await request.post("/api/admin/settings", {
     data: { setting: "timezone", value: "UTC" },

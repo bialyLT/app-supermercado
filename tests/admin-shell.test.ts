@@ -161,6 +161,13 @@ describe("administrative shell navigation model", () => {
   });
 
   describe("AdminShell component rendering invariants", () => {
+    it("renders a visible logout control", () => {
+      const html = renderToStaticMarkup(
+        React.createElement(AdminShell, { initialRole: "ADMIN" }, React.createElement("div", null, "Child Content"))
+      );
+      expect(html).toContain("Cerrar sesión");
+    });
+
     it("renders non-editable role badge and does not expose client-side role selector", () => {
       const html = renderToStaticMarkup(
         React.createElement(AdminShell, { initialRole: "STOCK_MANAGER" }, React.createElement("div", null, "Child Content"))

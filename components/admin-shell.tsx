@@ -35,6 +35,15 @@ export function AdminShell({
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
 
+  const handleSignOut = useCallback(async () => {
+    try {
+      await fetch("/api/auth/sign-out", { method: "POST" });
+    } finally {
+      router.push("/");
+      router.refresh();
+    }
+  }, [router]);
+
   const visibleNavItems = getVisibleNavItems(currentRole);
   const isAuthorized = isRoleAuthorizedForAdmin(currentRole);
   const breadcrumbs = getBreadcrumbs(pathname);
@@ -158,6 +167,9 @@ export function AdminShell({
               {ROLE_LABELS[currentRole]?.description}
             </div>
           </div>
+          <button type="button" className={styles.logoutButton} onClick={handleSignOut}>
+            Cerrar sesión
+          </button>
         </div>
       </aside>
 

@@ -42,7 +42,7 @@ S8. Reports and dates use fixed `America/Argentina/Buenos_Aires`; offline POS su
 
 T1 | S2-S3 | researching | done | Confirm CSP behavior and read Next 16.4.3 guidance; commit: 780182c.
 T2 | S2 | implementation | done | Fix production CSP inline violations and add production-browser regression coverage; commit: a79c290.
-T3 | S2,S5 | implementation | pending | Fix session fallback, effective role, logout, and route behavior; commit: pending.
+T3 | S2,S5 | implementation | done | Fix session fallback, effective role, logout, and route behavior; commit: pending.
 T4 | S2,S7 | implementation | pending | Fix server-derived POS location authority and safe Escape behavior; commit: pending.
 T5 | S2,S8 | implementation | pending | Fix variant selection integrity, timezone/date handling, comma decimals, and idempotency UX; commit: pending.
 T6 | S4,S6 | implementation | pending | Implement cash-shifts UI and server-backed advanced filter sources; commit: pending.
@@ -54,3 +54,4 @@ L1. The imported audit is planning input; no finding is implemented by this brie
 L2. Confirmed SEG-01 and the listed Wave 0 findings through repository inspection and production-mode browser verification.
 L3. D-026 through D-029 and POS single-location authority were approved before this brief.
 L4. SEG-01 RED reproduced when production HTML loaded but login hydration did not run. The fix uses Next Proxy nonce CSP, forces dynamic root rendering, and migrates admin loading styles to a CSS module. Production E2E passed 1/1; typecheck, lint, and diff checks passed. No `unsafe-inline` was added.
+L5. SEG-02/03 RED reproduced for unauthenticated `/admin`, missing logout, and unordered multi-role resolution. The fix redirects missing/invalid server identity to `/`, exposes POST sign-out, and resolves roles by `ADMIN > STOCK_MANAGER > SUPERVISOR > CASHIER`. Focused unit tests passed 17/17, redirect E2E passed 1/1, typecheck/lint/diff passed. Existing smoke API checks still need the configured gate database for their 401 contract.

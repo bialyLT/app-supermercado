@@ -1,7 +1,9 @@
 import React from "react";
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { AdminShell } from "../../components/admin-shell";
-import type { RoleName } from "../../src/domain/contracts";
+import { getServerIdentity } from "../../src/auth/session";
+import { getHighestRole } from "../../src/auth/roles";
 
 export const metadata: Metadata = {
   title: "Supermercado - Panel Administrativo",
@@ -13,18 +15,14 @@ export default async function AdminLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  let initialRole: RoleName = "ADMIN";
-
+  let identity: Awaited<ReturnType<typeof getServerIdentity>> = null;
   try {
-    const { getServerIdentity } = await import("../../src/auth/session");
-    const identity = await getServerIdentity();
-    if (identity && identity.roles && identity.roles.length > 0) {
-      initialRole = identity.roles[0];
-    }
+    identity = await getServerIdentity();
   } catch {
-    // Graceful fallback for non-authenticated or gate test contexts
-    initialRole = "ADMIN";
+    redirect("/");
   }
 
+  const initialRole = identity ? getHighestRole(identity.roles) : undefined;
+  if (!initialRole) redirect("/");
   return <AdminShell initialRole={initialRole}>{children}</AdminShell>;
 }
