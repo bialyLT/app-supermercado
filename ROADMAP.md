@@ -81,8 +81,9 @@ entrega de movimientos de caja, pagos, arqueo ni contratos fiscales de Épica 3.
   numeración por sucursal y tipo con cierre documental (160f72d), más fix E2E
   del mapeo 401/400 (sin commitear). Gates: 174/174 tests, typecheck/lint 0,
   build/E2E/audit verdes, ledger 0 divergencias, RLS 34/34. Informe:
-  `.github/web-dev-loop/reports/epica-3-closure.md`. Entrega (push + PR)
-  pendiente por el dueño.
+  `.github/web-dev-loop/reports/epica-3-closure.md`. La rama actual ya fue
+  publicada en `origin/feat/pos-offline`; abrir PR queda pendiente de
+  autorización explícita.
 
 ## Épica 4 — POS keyboard-first y offline
 
