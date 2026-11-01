@@ -9,6 +9,7 @@ import type {
   ReportFilterState,
 } from "./types";
 import styles from "./reports.module.css";
+import { formatDateTimeLocal, parseDateTimeLocal } from "../../src/client/presentation";
 
 export type ReportFiltersProps = {
   filters: ReportFilterState;
@@ -46,28 +47,15 @@ export function ReportFilters({
     onSubmit(e);
   };
 
-  // Convert ISO string to YYYY-MM-DDTHH:mm for datetime-local input
-  const toLocalInputValue = (isoStr: string): string => {
-    if (!isoStr) return "";
-    try {
-      const d = new Date(isoStr);
-      if (isNaN(d.getTime())) return isoStr;
-      // Format as YYYY-MM-DDTHH:mm
-      return d.toISOString().slice(0, 16);
-    } catch {
-      return isoStr;
-    }
-  };
-
   const handleDateChange = (field: "from" | "to", value: string) => {
     if (!value) {
       onChange({ [field]: "", preset: "custom" });
       return;
     }
     try {
-      const parsed = new Date(value);
-      if (!isNaN(parsed.getTime())) {
-        onChange({ [field]: parsed.toISOString(), preset: "custom" });
+      const parsed = parseDateTimeLocal(value);
+      if (parsed !== value) {
+        onChange({ [field]: parsed, preset: "custom" });
       } else {
         onChange({ [field]: value, preset: "custom" });
       }
@@ -121,7 +109,7 @@ export function ReportFilters({
               id="filter-from"
               type="datetime-local"
               className={`${styles.input} ${validationErrors.from ? styles.inputError : ""}`}
-              value={toLocalInputValue(filters.from)}
+              value={filters.from ? formatDateTimeLocal(filters.from) : ""}
               onChange={(e) => handleDateChange("from", e.target.value)}
               aria-invalid={!!validationErrors.from}
               aria-describedby={validationErrors.from ? "error-from" : undefined}
@@ -143,7 +131,7 @@ export function ReportFilters({
               id="filter-to"
               type="datetime-local"
               className={`${styles.input} ${validationErrors.to ? styles.inputError : ""}`}
-              value={toLocalInputValue(filters.to)}
+              value={filters.to ? formatDateTimeLocal(filters.to) : ""}
               onChange={(e) => handleDateChange("to", e.target.value)}
               aria-invalid={!!validationErrors.to}
               aria-describedby={validationErrors.to ? "error-to" : undefined}
@@ -185,7 +173,7 @@ export function ReportFilters({
         </div>
 
         {/* Advanced filters toggle */}
-        <div style={{ marginTop: "0.75rem" }}>
+        <div className={styles.advancedToggleWrap}>
           <button
             type="button"
             className={styles.advancedToggle}
@@ -197,7 +185,7 @@ export function ReportFilters({
         </div>
 
         {showAdvanced && (
-          <div className={styles.advancedGrid} style={{ marginTop: "0.75rem" }}>
+          <div className={`${styles.advancedGrid} ${styles.advancedGridSpaced}`}>
             <div className={styles.filterGroup}>
               <label htmlFor="filter-actor-user-id" className={styles.label}>Operador / Usuario</label>
               <select id="filter-actor-user-id" className={styles.select} value={filters.actorUserId} onChange={(e) => onChange({ actorUserId: e.target.value })}>
@@ -225,7 +213,7 @@ export function ReportFilters({
         )}
 
         {/* Actions bar */}
-        <div className={styles.actionRow} style={{ marginTop: "1rem" }}>
+        <div className={`${styles.actionRow} ${styles.actionRowSpaced}`}>
           <button
             type="button"
             className={`${styles.btn} ${styles.btnSecondary}`}

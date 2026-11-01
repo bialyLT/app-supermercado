@@ -1,3 +1,5 @@
+import { formatCurrency } from "../../src/client/presentation";
+
 export type OperationalLocation = {
   id: string;
   code: string;
@@ -233,12 +235,10 @@ export function resolveBranchName(
 }
 
 export function formatCurrencyAmount(
-  amount: string | number | null | undefined,
+  amount: string | null | undefined,
   currency?: string | null
 ): string {
-  if (amount == null) return "0.00";
-  const numStr = String(amount);
-  return currency ? `${numStr} ${currency}` : numStr;
+  return formatCurrency(amount, currency ?? "ARS");
 }
 
 export function mapReportErrorMessage(

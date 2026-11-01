@@ -253,6 +253,27 @@
   white-space: nowrap;
 }
 
+.thIndex { width: 40px; }
+.thVariant { min-width: 260px; }
+.thLot { min-width: 200px; }
+.thQuantity { width: 140px; }
+.thActions { width: 120px; text-align: center; }
+.actionsCell { text-align: center; }
+.lineActions { display: inline-flex; gap: 0.35rem; }
+.duplicateButton { padding: 0.35rem 0.6rem; font-size: 0.75rem; }
+.submitBar { display: flex; justify-content: flex-end; gap: 1rem; margin-top: 0.5rem; }
+.modalCloseButton { padding: 0.25rem 0.5rem; }
+.modalIntro { margin: 0; }
+.confirmDetails {
+  background-color: var(--color-surface-subtle, #f8fafc);
+  padding: 1rem;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.idempotencyKey { font-size: 0.75rem; }
+
 .td {
   padding: 0.5rem 0.75rem;
   border-bottom: 1px solid var(--color-border, #f1f5f9);
@@ -381,20 +402,34 @@
 }
 
 .alertError {
-  background-color: #fef2f2;
-  border: 1px solid #fecaca;
-  color: #991b1b;
+  background-color: var(--color-danger-bg);
+  border: 1px solid var(--color-danger-border);
+  color: var(--color-danger-text);
 }
 
 .alertSuccess {
-  background-color: #f0fdf4;
-  border: 1px solid #bbf7d0;
-  color: #166534;
+  background-color: var(--color-success-bg);
+  border: 1px solid var(--color-success-border);
+  color: var(--color-success-text);
 }
 
 .alertTitle {
   font-weight: 700;
 }
+
+.alertHeader, .alertActions, .historyStatus {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.alertHeader {
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.btnCompact { padding: 0.25rem 0.6rem; font-size: 0.75rem; }
+.btnIcon { padding: 0.25rem 0.5rem; font-size: 0.75rem; }
 
 /* Modal */
 .modalOverlay {
@@ -491,9 +526,24 @@
   font-size: 0.75rem;
   font-weight: 700;
   border-radius: 9999px;
-  background-color: #dcfce7;
-  color: #166534;
+  background-color: var(--color-success-bg);
+  color: var(--color-success-text);
 }
+
+.emptyHistory { text-align: center; padding: 2.5rem 1rem; color: var(--color-text-muted); }
+.emptyHistoryTitle { font-size: 1.125rem; font-weight: 600; margin: 0 0 0.5rem; }
+.emptyHistoryText { font-size: 0.875rem; margin: 0; }
+.historyList { display: flex; flex-direction: column; gap: 1rem; }
+.historyMeta { display: flex; flex-direction: column; gap: 0.25rem; }
+.separator { margin: 0 0.5rem; }
+.reason { font-size: 0.8125rem; color: var(--color-text); }
+.alignRight { text-align: right; }
+.variantName { font-weight: 600; }
+.sku { font-size: 0.75rem; color: var(--color-text-muted); }
+.lot { font-family: monospace; font-size: 0.75rem; }
+.muted, .historyFooter { color: var(--color-text-muted); }
+.historyFooter { display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; }
+.quantity { font-weight: 700; }
 
 /* Tablet / Mobile Responsive */
 @media (max-width: 768px) {

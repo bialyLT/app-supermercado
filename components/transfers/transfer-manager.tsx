@@ -174,27 +174,25 @@ export function TransferManager({
           role="status"
           aria-live="polite"
         >
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem" }}>
+          <div className={styles.alertHeader}>
             <span className={styles.alertTitle}>
               ✓ ¡Transferencia despachada con éxito!
             </span>
-            <div style={{ display: "flex", gap: "0.5rem" }}>
+            <div className={styles.alertActions}>
               <button
                 type="button"
-                className={`${styles.btn} ${styles.btnSecondary}`}
                 onClick={() => {
                   setActiveTab("history");
                   setLastSubmittedTransfer(null);
                 }}
-                style={{ padding: "0.25rem 0.6rem", fontSize: "0.75rem" }}
+                className={`${styles.btn} ${styles.btnSecondary} ${styles.btnCompact}`}
               >
                 Ver en historial
               </button>
               <button
                 type="button"
-                className={`${styles.btn} ${styles.btnSecondary}`}
                 onClick={() => setLastSubmittedTransfer(null)}
-                style={{ padding: "0.25rem 0.5rem", fontSize: "0.75rem" }}
+                className={`${styles.btn} ${styles.btnSecondary} ${styles.btnIcon}`}
                 aria-label="Cerrar notificación"
               >
                 ✕

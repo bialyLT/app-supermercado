@@ -193,8 +193,8 @@ describe("Reports UI — Tabular display without charts (S2, S3, S5)", () => {
 
     // Must be tabular presentation
     expect(markup).toContain("Resumen de Ventas");
-    expect(markup).toContain("154200.50 ARS");
-    expect(markup).toContain("89500.00 ARS");
+    expect(markup).toContain("$154.200,50");
+    expect(markup).toContain("$89.500,00");
     expect(markup).toContain("Resumen de Compras");
     expect(markup).toContain("Resumen de Transferencias");
     expect(markup).toContain("Resumen de Inventario");
@@ -212,8 +212,8 @@ describe("Reports UI — Tabular display without charts (S2, S3, S5)", () => {
     expect(markup).toContain("<table");
     expect(markup).toContain("Casa Central (CEN)");
     expect(markup).toContain("Sucursal Norte (NOR)");
-    expect(markup).toContain("98500.00 ARS");
-    expect(markup).toContain("55700.50 ARS");
+    expect(markup).toContain("$98.500,00");
+    expect(markup).toContain("$55.700,50");
   });
 
   it("renders explicit empty state when no branch data exists", () => {
@@ -268,7 +268,7 @@ describe("Reports UI — Tabular display without charts (S2, S3, S5)", () => {
       })
     );
     expect(populated).toContain("Reportes Operativos");
-    expect(populated).toContain("154200.50 ARS");
+    expect(populated).toContain("$154.200,50");
 
     // Manager with explicit error state
     const errorMarkup = renderToStaticMarkup(
