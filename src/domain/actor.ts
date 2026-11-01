@@ -18,7 +18,11 @@ export type Permission =
   | "inventory.unverified_intake.review"
   | "inventory.expired.override"
   | "fiscal.profile.manage"
-  | "fiscal.profile.read";
+  | "fiscal.profile.read"
+  | "inventory.level.read"
+  | "inventory.ledger.read"
+  | "sales.read"
+  | "cash.history.read";
 
 export type Actor = Readonly<{
   tenantId: string;

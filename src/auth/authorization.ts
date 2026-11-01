@@ -2,14 +2,18 @@ import type { RoleName } from "../domain/contracts";
 export { getHighestRole } from "./roles";
 
 const permissions: Record<RoleName, readonly string[]> = {
-  CASHIER: ["cash:read"],
-  SUPERVISOR: ["cash:read", "cash:override"],
-  STOCK_MANAGER: ["cash:read", "inventory:write"],
-  ADMIN: ["cash:read", "cash:override", "inventory:write", "settings:write"],
+  CASHIER: ["cash.read"],
+  SUPERVISOR: ["cash.read", "cash.override", "cash.history.read", "sales.read"],
+  STOCK_MANAGER: ["cash.read", "inventory.write", "inventory.level.read", "inventory.ledger.read"],
+  ADMIN: ["cash.read", "cash.override", "cash.history.read", "sales.read", "inventory.write", "inventory.level.read", "inventory.ledger.read", "settings.write"],
 };
 
+export function normalizePermission(permission: string): string {
+  return permission.includes(":") ? permission.replace(":", ".") : permission;
+}
+
 export function roleHasPermission(role: RoleName, permission: string): boolean {
-  return permissions[role].includes(permission);
+  return permissions[role].includes(normalizePermission(permission));
 }
 
 export async function requirePermission(permission: string, branchId?: string) {
