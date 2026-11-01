@@ -1,11 +1,12 @@
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import type { Actor } from "../../domain/actor";
-import { inventoryTransaction, systemClock } from "./inventory";
+import { command, inventoryTransaction, systemClock, type CommandResult } from "./inventory";
 import { currencySchema, assertMoneyPrecision } from "../../domain/cash";
 import { InventoryError } from "../../domain/inventory";
+import type { TransactionClient as Tx } from "./tenant-context";
 
-const catalogInput = z.object({
+export const catalogInput = z.object({
   sku: z.string().trim().min(1).max(64),
   name: z.string().trim().min(1).max(200),
   kind: z.enum(["UNIT", "WEIGHT", "VOLUME", "LENGTH"]).default("UNIT"),
@@ -15,21 +16,20 @@ const catalogInput = z.object({
   price: z.string().regex(/^\d{1,18}(\.\d{1,4})?$/).optional(),
   currency: currencySchema.optional(),
 }).strict();
+export const catalogRequestInput = catalogInput.extend({ commandId: z.string().trim().min(1).max(128).optional() }).strict();
 
-export async function createCatalogItem(actor: Actor, input: z.input<typeof catalogInput>) {
-  const data = catalogInput.parse(input);
-  return inventoryTransaction(actor, "inventory.catalog.write", systemClock, async (tx, verified) => {
-    const tenantId = verified.tenantId;
+async function createCatalogProduct(tx: Tx, verified: Actor, data: z.output<typeof catalogInput>) {
+  const tenantId = verified.tenantId;
     const policy = await tx.unverifiedIntakePolicy.findUnique({ where: { tenantId } });
     const currency = data.currency ?? policy?.currency;
     if (data.price && !currency) throw new InventoryError("PRICE_CURRENCY_REQUIRED");
     if (data.price && currency) assertMoneyPrecision(data.price, currency);
-    const unit = await tx.unitOfMeasure.upsert({
+  const unit = await tx.unitOfMeasure.upsert({
       where: { tenantId_code: { tenantId, code: data.unitCode } },
       create: { tenantId, code: data.unitCode, name: data.unitName },
       update: { name: data.unitName },
     });
-    const product = await tx.product.create({
+  const product = await tx.product.create({
       data: {
         tenantId,
         sku: data.sku,
@@ -62,8 +62,27 @@ export async function createCatalogItem(actor: Actor, input: z.input<typeof cata
       },
       include: { variants: { include: { barcodes: true, prices: true } } },
     });
-    return product;
-  });
+  return product;
+}
+
+export async function createCatalogItem(actor: Actor, input: z.input<typeof catalogInput>) {
+  const data = catalogInput.parse(input);
+  return inventoryTransaction(actor, "inventory.catalog.write", systemClock, async (tx, verified) =>
+    createCatalogProduct(tx, verified, data));
+}
+
+export async function createCatalogItemCommand(actor: Actor, input: z.input<typeof catalogRequestInput>): Promise<CommandResult> {
+  const data = catalogRequestInput.parse(input);
+  if (!data.commandId) {
+    const product = await createCatalogItem(actor, data);
+    return { id: product.id, type: "PRODUCT_CREATE" };
+  }
+  const { commandId, ...catalog } = data;
+  return inventoryTransaction(actor, "inventory.catalog.write", systemClock, async (tx, verified) =>
+    command(tx, verified, "PRODUCT_CREATE", { idempotencyKey: commandId, ...catalog }, async () => {
+      const product = await createCatalogProduct(tx, verified, catalog);
+      return { id: product.id, type: "PRODUCT_CREATE" };
+    }));
 }
 
 import {

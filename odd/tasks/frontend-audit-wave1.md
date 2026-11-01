@@ -1,7 +1,7 @@
 # Frontend audit — Wave 1 keyboard and tablet
 Source: `docs/audits/informe-auditoria-frontend.md`.
 Plan: `odd/tasks/frontend-audit-remediation.md`.
-Status: brief created for implementation planning; source changes remain bounded to approved task slices.
+Status: delivered; all approved keyboard/tablet scope is closed with numeric evidence in `.github/web-dev-loop/reports/frontend-audit-wave1.md`.
 
 ## Specs
 
@@ -31,8 +31,8 @@ T3 | S1,S3,S4 | implementation | done | Implement the shared ProductCombobox sli
 T4 | S1,S3,S4 | implementation | done | Implement shared Modal focus behavior and integrate the admin-shell shortcuts dialog; commit: 99789fb.
 T5 | S1,S3,S4 | implementation | done | Integrate shared Modal into the purchase SupplierModal with submission-safe close behavior; commit: c32e3dc.
 T6 | S1,S3,S4 | implementation | done | Integrate corrected keyboard semantics into purchase receipt detail, transfer confirmation, and supplier-management dialogs; commit: pending.
-T7 | S1,S3,S4 | implementation | pending | Resolve tablet layout, touch-target, focus-visible, and responsive purchase/POS issues; commit: pending.
-T8 | S1-S4 | checking | pending | Run keyboard/tablet/a11y gates, update the Wave 1 report, and close only with numeric evidence; commit: pending.
+T7 | S1,S3,S4 | implementation | done | Resolve tablet layout, touch-target, focus-visible, and responsive purchase/POS issues; closure evidence recorded.
+T8 | S1-S4 | checking | done | Run keyboard/tablet/a11y gates, update the Wave 1 report, and close with numeric evidence.
 T9 | S1,S3,S4 | implementation | done | Modernize the Promotions responsive view with structured fields, visible focus, 44px controls, and bounded table overflow; commit: pending.
 T10 | S1,S3,S4 | implementation | done | Harden POS responsive layout with tablet no-overflow coverage while preserving keyboard, checkout, offline, and location contracts; commit: pending.
 T11 | S1,S3,S4 | implementation | done | Harden the tablet AdminShell drawer so closed navigation is not keyboard-reachable while preserving desktop behavior and focus restoration; commit: pending.

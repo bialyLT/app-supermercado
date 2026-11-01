@@ -27,9 +27,12 @@ afterAll(async () => { await admin.$disconnect(); });
     expect(await admin.syncConflict.findFirst({ where: { tenantId: f.tenantId, kind: "STOCK_DISCREPANCY" } })).toMatchObject({ status: "OPEN" });
   });
 
-  it("prevents a duplicate conflict command within the tenant", async () => {
+  it("replays an identical conflict command and rejects a different payload", async () => {
     const f = await fixture("ADMIN");
-    await recordSyncConflict(f.actor, { commandId: "same-command", kind: "REVERSAL_CONFLICT", payload: { saleId: "sale" } });
-    await expect(recordSyncConflict(f.actor, { commandId: "same-command", kind: "REVERSAL_CONFLICT", payload: { saleId: "other" } })).rejects.toMatchObject({ code: "P2002" });
+    const input = { commandId: "same-command", kind: "REVERSAL_CONFLICT" as const, payload: { saleId: "sale" } };
+    const first = await recordSyncConflict(f.actor, input);
+    const replay = await recordSyncConflict(f.actor, input);
+    expect(replay).toEqual(first);
+    await expect(recordSyncConflict(f.actor, { ...input, payload: { saleId: "other" } })).rejects.toThrow("IDEMPOTENCY_CONFLICT");
   });
 });

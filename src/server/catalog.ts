@@ -1,1 +1,1 @@
-export { createCatalogItem, getCurrentPrice } from "./repositories/catalog";
+export { createCatalogItem, createCatalogItemCommand, getCurrentPrice } from "./repositories/catalog";

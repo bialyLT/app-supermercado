@@ -13,6 +13,7 @@ import {
 } from "./admin-navigation";
 import { Modal } from "./modal";
 import styles from "./admin-shell.module.css";
+import { apiFetch } from "../src/client/api-fetch";
 
 export type AdminShellProps = {
   readonly children?: React.ReactNode;
@@ -35,14 +36,25 @@ export function AdminShell({
   const [selectedBranch, setSelectedBranch] = useState<string>(branches?.[0]?.id ?? "");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
+  const [sessionExpired, setSessionExpired] = useState(false);
 
   const handleSignOut = useCallback(async () => {
     try {
-      await fetch("/api/auth/sign-out", { method: "POST" });
+      await apiFetch("/api/auth/sign-out", { method: "POST" });
     } finally {
       router.push("/");
       router.refresh();
     }
+  }, [router]);
+
+  useEffect(() => {
+    const handleExpired = () => {
+      setSessionExpired(true);
+      router.push("/");
+      router.refresh();
+    };
+    window.addEventListener("supermercado:session-expired", handleExpired);
+    return () => window.removeEventListener("supermercado:session-expired", handleExpired);
   }, [router]);
 
   const visibleNavItems = getVisibleNavItems(currentRole);
@@ -273,6 +285,11 @@ export function AdminShell({
 
         {/* Main page content or restricted banner */}
         <main id="admin-main" className={styles.main} tabIndex={-1}>
+          {sessionExpired && (
+            <div role="alert" className={styles.restrictedBanner}>
+              Tu sesión venció. Volvé a ingresar para continuar.
+            </div>
+          )}
           {!isAuthorized ? (
             <div className={styles.restrictedBanner} role="alert">
               <h2 className={styles.restrictedTitle}>Acceso no autorizado</h2>

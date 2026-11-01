@@ -10,6 +10,7 @@ import { formatTransferPayload, mapTransferErrorMessage } from "./types";
 import { TransferForm } from "./transfer-form";
 import { TransferHistory } from "./transfer-history";
 import styles from "./transfers.module.css";
+import { apiFetch, errorMessage } from "../../src/client/api-fetch";
 
 export type TransferManagerProps = {
   initialTransfers?: TransferSummary[];
@@ -34,7 +35,7 @@ export function TransferManager({
   // Load operational context (branches and active locations) from /api/admin/context if not preloaded
   useEffect(() => {
     if (!initialContext) {
-      fetch("/api/admin/context")
+      apiFetch("/api/admin/context")
         .then(async (res) => {
           if (!res.ok) {
             const data = await res.json().catch(() => ({}));
@@ -61,7 +62,7 @@ export function TransferManager({
       try {
         const payload = formatTransferPayload(formData);
 
-        const res = await fetch("/api/admin/transfers", {
+        const res = await apiFetch("/api/admin/transfers", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
@@ -116,7 +117,7 @@ export function TransferManager({
         setTransfers((prev) => [createdTransfer, ...prev]);
         return true;
       } catch (err) {
-        setServerError(err instanceof Error ? err.message : "Error de red al procesar la transferencia");
+        setServerError(errorMessage(err));
         return false;
       } finally {
         setIsSubmitting(false);

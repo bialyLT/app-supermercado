@@ -1,6 +1,6 @@
 # Roadmap operativo
 
-**Estado:** Épicas 0, 1, 2, 3, 4, 5, 6 y 7 cerradas técnicamente en los cortes aprobados. Épica 5 queda cerrada con EAN-13 con precio, perfiles fiscales argentinos y promociones N×M; impresión y hardware permanecen fuera de alcance. Épica 7 y Frontend Audit Wave 0 están entregadas y mergeadas; Frontend Audit Wave 1 queda activa para teclado y tablet.
+**Estado:** Épicas 0, 1, 2, 3, 4, 5, 6 y 7 cerradas técnicamente en los cortes aprobados. Épica 5 queda cerrada con EAN-13 con precio, perfiles fiscales argentinos y promociones N×M; impresión y hardware permanecen fuera de alcance. Épica 7 y Frontend Audit Wave 0 y Wave 1 están entregadas según sus informes de cierre. El próximo alcance planificado es Frontend Audit Wave 2; todavía requiere brief aprobado antes de implementar.
 **Reglas vinculantes:** `AGENTS.md`, `DOMAIN_RULES.md`, `DECISIONS.md`,
 `GATES.md`.
 
@@ -160,10 +160,14 @@ los hallazgos marcados ⚠ y se resuelven las decisiones de producto/security.
 | 3 · Consistencia | Formatos es-AR, tokens, contraste, estilos inline y copy | Contraste AA; estilos/tokens centralizados; copy consistente |
 
 La especificación operativa y las decisiones requeridas están en
-`odd/tasks/frontend-audit-remediation.md`. La primera ejecución tiene brief en
-`odd/tasks/frontend-audit-wave0.md` y criterios medibles antes de modificar código.
+`odd/tasks/frontend-audit-remediation.md`. Wave 0 y Wave 1 tienen briefs,
+informes de cierre y evidencia numérica. Wave 2 queda como siguiente alcance
+planificado, sin autorización de implementación todavía.
 
-**Estado actual:** Ola 0 entregada y mergeada. El siguiente corte activo es Ola 1 · Teclado y tablet, con brief en `odd/tasks/frontend-audit-wave1.md`.
+**Estado actual:** Ola 0 y Ola 1 entregadas. El siguiente corte planificado es
+Ola 2 · Estados y errores: `apiFetch`, expiración de sesión, estados de carga/
+error/reintento y visibilidad de la cola offline. Requiere brief aprobado y OK
+explícito antes de escribir código.
 
 ## Plantilla de cierre de cualquier épica
 
