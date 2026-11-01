@@ -2,31 +2,37 @@ import { betterAuth } from "better-auth";
 import { env, authSecret } from "../config/env";
 import { authDatabaseAdapter } from "../server/repositories/identity";
 
-function createAuth() { return betterAuth({
-  database: authDatabaseAdapter(),
-  secret: authSecret(),
-  baseURL: env.BETTER_AUTH_URL,
-  trustedOrigins: [env.BETTER_AUTH_URL, "http://localhost:3109", "http://127.0.0.1:3109"],
-  emailAndPassword: {
-    enabled: true,
-    disableSignUp: true,
-  },
-  user: {
-    additionalFields: {
-      tenantId: { type: "string", required: true, input: false },
-      displayName: { type: "string", required: true, input: false },
-      active: { type: "boolean", required: true, input: false },
+function createAuth() {
+  const developmentOrigins = process.env.NODE_ENV === "production"
+    ? []
+    : ["http://localhost:3000", "http://127.0.0.1:3000"];
+
+  return betterAuth({
+    database: authDatabaseAdapter(),
+    secret: authSecret(),
+    baseURL: env.BETTER_AUTH_URL,
+    trustedOrigins: [env.BETTER_AUTH_URL, "http://localhost:3109", "http://127.0.0.1:3109", ...developmentOrigins],
+    emailAndPassword: {
+      enabled: true,
+      disableSignUp: true,
     },
-  },
-  advanced: {
-    useSecureCookies: env.NODE_ENV === "production",
-    defaultCookieAttributes: {
-      httpOnly: true,
-      sameSite: "strict",
-      secure: env.NODE_ENV === "production",
+    user: {
+      additionalFields: {
+        tenantId: { type: "string", required: true, input: false },
+        displayName: { type: "string", required: true, input: false },
+        active: { type: "boolean", required: true, input: false },
+      },
     },
-  },
-}); }
+    advanced: {
+      useSecureCookies: env.NODE_ENV === "production",
+      defaultCookieAttributes: {
+        httpOnly: true,
+        sameSite: "strict",
+        secure: env.NODE_ENV === "production",
+      },
+    },
+  });
+}
 
 let instance: ReturnType<typeof createAuth> | undefined;
 export function getAuth() { return instance ??= createAuth(); }

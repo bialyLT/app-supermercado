@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import type {
   OperationalContext,
   TransferFormState,
@@ -21,6 +21,7 @@ export function TransferManager({
   initialContext = null,
 }: TransferManagerProps) {
   const [activeTab, setActiveTab] = useState<"form" | "history">("form");
+  const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const [transfers, setTransfers] = useState<TransferSummary[]>(initialTransfers);
   const [context, setContext] = useState<OperationalContext | null>(initialContext);
   const [contextLoading, setContextLoading] = useState<boolean>(!initialContext);
@@ -124,6 +125,20 @@ export function TransferManager({
     [context]
   );
 
+  const tabKeys = ["form", "history"] as const;
+  const handleTabKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
+    if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+    event.preventDefault();
+    const nextIndex = event.key === "Home"
+      ? 0
+      : event.key === "End"
+        ? tabKeys.length - 1
+        : (index + (event.key === "ArrowRight" ? 1 : -1) + tabKeys.length) % tabKeys.length;
+    const nextTab = tabKeys[nextIndex];
+    setActiveTab(nextTab);
+    tabRefs.current[nextIndex]?.focus();
+  };
+
   return (
     <div className={styles.container}>
       <header className={styles.header}>
@@ -193,21 +208,31 @@ export function TransferManager({
         </aside>
       )}
 
-      <nav className={styles.tabs} aria-label="Pestañas de transferencias">
+      <div className={styles.tabs} role="tablist" aria-label="Pestañas de transferencias">
         <button
+          ref={(element) => { tabRefs.current[0] = element; }}
+          id="transfer-tab-form"
           type="button"
           className={`${styles.tab} ${activeTab === "form" ? styles.tabActive : ""}`}
           onClick={() => setActiveTab("form")}
+          onKeyDown={(event) => handleTabKeyDown(event, 0)}
           aria-selected={activeTab === "form"}
+          aria-controls="transfer-panel-form"
+          tabIndex={activeTab === "form" ? 0 : -1}
           role="tab"
         >
           Nueva Transferencia
         </button>
         <button
+          ref={(element) => { tabRefs.current[1] = element; }}
+          id="transfer-tab-history"
           type="button"
           className={`${styles.tab} ${activeTab === "history" ? styles.tabActive : ""}`}
           onClick={() => setActiveTab("history")}
+          onKeyDown={(event) => handleTabKeyDown(event, 1)}
           aria-selected={activeTab === "history"}
+          aria-controls="transfer-panel-history"
+          tabIndex={activeTab === "history" ? 0 : -1}
           role="tab"
         >
           Transferencias Recientes
@@ -215,20 +240,24 @@ export function TransferManager({
             <span className={styles.tabBadge}>{transfers.length}</span>
           )}
         </button>
-      </nav>
+      </div>
 
       <main>
         {activeTab === "form" ? (
-          <TransferForm
-            branches={context?.branches ?? []}
-            onSubmit={handleSubmitTransfer}
-            isSubmitting={isSubmitting}
-            serverError={serverError}
-            onClearServerError={() => setServerError(null)}
-            contextLoading={contextLoading}
-          />
+          <section id="transfer-panel-form" role="tabpanel" aria-labelledby="transfer-tab-form" tabIndex={0}>
+            <TransferForm
+              branches={context?.branches ?? []}
+              onSubmit={handleSubmitTransfer}
+              isSubmitting={isSubmitting}
+              serverError={serverError}
+              onClearServerError={() => setServerError(null)}
+              contextLoading={contextLoading}
+            />
+          </section>
         ) : (
-          <TransferHistory transfers={transfers} />
+          <section id="transfer-panel-history" role="tabpanel" aria-labelledby="transfer-tab-history" tabIndex={0}>
+            <TransferHistory transfers={transfers} />
+          </section>
         )}
       </main>
     </div>

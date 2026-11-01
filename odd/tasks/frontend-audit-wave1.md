@@ -30,9 +30,13 @@ T2 | S1,S3,S4 | researching | done | Map existing modal, combobox, field, tabs, 
 T3 | S1,S3,S4 | implementation | done | Implement the shared ProductCombobox slice for purchases, transfers, and POS with RED/GREEN tests; commit: b60da57.
 T4 | S1,S3,S4 | implementation | done | Implement shared Modal focus behavior and integrate the admin-shell shortcuts dialog; commit: 99789fb.
 T5 | S1,S3,S4 | implementation | done | Integrate shared Modal into the purchase SupplierModal with submission-safe close behavior; commit: c32e3dc.
-T6 | S1,S3,S4 | implementation | pending | Integrate corrected keyboard semantics into remaining modal/tab consumers; commit: pending.
+T6 | S1,S3,S4 | implementation | done | Integrate corrected keyboard semantics into purchase receipt detail, transfer confirmation, and supplier-management dialogs; commit: pending.
 T7 | S1,S3,S4 | implementation | pending | Resolve tablet layout, touch-target, focus-visible, and responsive purchase/POS issues; commit: pending.
 T8 | S1-S4 | checking | pending | Run keyboard/tablet/a11y gates, update the Wave 1 report, and close only with numeric evidence; commit: pending.
+T9 | S1,S3,S4 | implementation | done | Modernize the Promotions responsive view with structured fields, visible focus, 44px controls, and bounded table overflow; commit: pending.
+T10 | S1,S3,S4 | implementation | done | Harden POS responsive layout with tablet no-overflow coverage while preserving keyboard, checkout, offline, and location contracts; commit: pending.
+T11 | S1,S3,S4 | implementation | done | Harden the tablet AdminShell drawer so closed navigation is not keyboard-reachable while preserving desktop behavior and focus restoration; commit: pending.
+T12 | S1-S4 | checking | done | Close Wave 1 with Field, Tabs, drawer, responsive, Vitest, E2E, CSP, typecheck, and diff evidence; commit: pending.
 
 ## Log
 
@@ -46,3 +50,9 @@ L7. Shared `Modal` focus behavior was added and integrated only into the admin-s
 L8. Commit boundary: `99789fb` contains the focus-safe Modal shell slice, its tests, and updated Wave 1 evidence. The next slice remains separate: additional modal consumers or shared Field semantics.
 L9. SupplierModal now uses the shared Modal and prevents Escape/backdrop closure while its POST is in flight. Focused purchases/modal tests passed 12/12, typecheck and diff check passed, and purchases E2E passed 5/5. The remaining purchase-detail, transfer-confirmation, and supplier-management dialogs remain separate.
 L10. Commit boundary: `c32e3dc` contains the SupplierModal integration and updated Wave 1 evidence. The next slice remains separate: purchase-detail, transfer-confirmation, and supplier-management dialogs.
+L11. PurchaseHistory receipt detail now uses the shared Modal while preserving its state, close actions, and receipt rendering. Focused purchases/modal tests passed 12/12, typecheck passed, diff check passed, and the purchases E2E passed 5/5. The transfer-confirmation and supplier-management dialogs remain separate.
+L12. Transfer confirmation and SupplierManager now use the shared Modal with submission-safe close behavior. Transfer/modal tests passed 7/7, SupplierManager/modal tests passed 8/8, typecheck passed, diff check passed, transfer and supplier E2E paths passed 5/5 where applicable, and the manual server was restored at localhost:3000. Remaining Wave 1 work is Field/Tabs/drawer/responsive behavior.
+L13. Promotions responsive view now uses scoped CSS modules, explicit labels, visible focus, 44px controls, and bounded table overflow without changing CRUD/API behavior. Structural/admin tests passed 23/23, typecheck and diff check passed, promotions E2E passed 1/1, and the manual server was restored at localhost:3000.
+L14. POS responsive layout now adapts from three to two to one columns, protects against horizontal overflow, and keeps payment rows usable on tablet/mobile. Focused checks passed 5/5, typecheck and diff check passed, POS E2E passed 8/8 including 820×1180 overflow coverage, and the manual server was restored at localhost:3000.
+L15. Closed tablet/mobile AdminShell navigation is now visibility-hidden and pointer-inert, while opening restores interaction and desktop behavior is unchanged. Admin-shell tests passed 13/13, typecheck and diff check passed, admin-shell E2E passed 4/4, and the manual server was restored at localhost:3000. Remaining Wave 1 work is shared Field and Tabs.
+L16. Wave 1 final closure: Field/reports tests 14/14, Tabs/transfers tests 18/18, full Vitest 196 passed and 160 skipped, final frontend E2E 24/24, production CSP 1/1, typecheck passed, and diff check passed. No approved Wave 1 scope remains pending.

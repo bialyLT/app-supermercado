@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import styles from "./promotion-manager.module.css";
 
 type Promotion = {
   id: string;
@@ -148,73 +149,80 @@ export default function PromotionManager() {
   }
 
   return (
-    <main aria-labelledby="promotions-title">
-      <h1 id="promotions-title">Promociones N×M</h1>
-      <p>Configuración server-side por categoría, tenant y sucursal opcional.</p>
-      <p role="status" aria-live="polite">{status}</p>
+    <main className={styles.page} aria-labelledby="promotions-title">
+      <header>
+        <h1 id="promotions-title">Promociones N×M</h1>
+        <p className={styles.intro}>Configuración server-side por categoría, tenant y sucursal opcional.</p>
+      </header>
+      <p className={styles.status} role="status" aria-live="polite">{status}</p>
 
-      <section aria-labelledby="promotion-form-title">
+      <section className={styles.card} aria-labelledby="promotion-form-title">
         <h2 id="promotion-form-title">{editingId ? "Editar promoción" : "Nueva promoción"}</h2>
-        <form onSubmit={submit}>
-          <label>
-            Categoría UUID
-            <input required value={form.categoryId} onChange={(event) => setForm({ ...form, categoryId: event.target.value })} />
+        <form className={styles.form} onSubmit={submit}>
+          <div className={styles.field}>
+            <label className={styles.label} htmlFor="promotion-category">Categoría UUID</label>
+            <input className={styles.input} id="promotion-category" required value={form.categoryId} onChange={(event) => setForm({ ...form, categoryId: event.target.value })} />
+          </div>
+          <div className={styles.field}>
+            <label className={styles.label} htmlFor="promotion-branch">Sucursal UUID (opcional)</label>
+            <input className={styles.input} id="promotion-branch" value={form.branchId} onChange={(event) => setForm({ ...form, branchId: event.target.value })} />
+          </div>
+          <div className={`${styles.field} ${styles.fieldWide}`}>
+            <label className={styles.label} htmlFor="promotion-name">Nombre</label>
+            <input className={styles.input} id="promotion-name" required maxLength={120} value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} />
+          </div>
+          <div className={styles.field}>
+            <label className={styles.label} htmlFor="promotion-n">Llevar N</label>
+            <input className={styles.input} id="promotion-n" required inputMode="numeric" pattern="[1-9][0-9]*" value={form.n} onChange={(event) => setForm({ ...form, n: event.target.value })} />
+          </div>
+          <div className={styles.field}>
+            <label className={styles.label} htmlFor="promotion-m">Pagar M</label>
+            <input className={styles.input} id="promotion-m" required inputMode="numeric" pattern="[1-9][0-9]*" value={form.m} onChange={(event) => setForm({ ...form, m: event.target.value })} />
+          </div>
+          <div className={styles.field}>
+            <label className={styles.label} htmlFor="promotion-from">Vigente desde</label>
+            <input className={styles.input} id="promotion-from" type="datetime-local" value={form.validFrom} onChange={(event) => setForm({ ...form, validFrom: event.target.value })} />
+          </div>
+          <div className={styles.field}>
+            <label className={styles.label} htmlFor="promotion-to">Vigente hasta</label>
+            <input className={styles.input} id="promotion-to" type="datetime-local" value={form.validTo} onChange={(event) => setForm({ ...form, validTo: event.target.value })} />
+          </div>
+          <label className={styles.checkboxField} htmlFor="promotion-active">
+            <input className={styles.checkbox} id="promotion-active" type="checkbox" checked={form.active} onChange={(event) => setForm({ ...form, active: event.target.checked })} />
+            Activa
           </label>
-          <label>
-            Sucursal UUID (opcional)
-            <input value={form.branchId} onChange={(event) => setForm({ ...form, branchId: event.target.value })} />
-          </label>
-          <label>
-            Nombre
-            <input required maxLength={120} value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} />
-          </label>
-          <label>
-            Llevar N
-            <input required inputMode="numeric" pattern="[1-9][0-9]*" value={form.n} onChange={(event) => setForm({ ...form, n: event.target.value })} />
-          </label>
-          <label>
-            Pagar M
-            <input required inputMode="numeric" pattern="[1-9][0-9]*" value={form.m} onChange={(event) => setForm({ ...form, m: event.target.value })} />
-          </label>
-          <label>
-            Vigente desde
-            <input type="datetime-local" value={form.validFrom} onChange={(event) => setForm({ ...form, validFrom: event.target.value })} />
-          </label>
-          <label>
-            Vigente hasta
-            <input type="datetime-local" value={form.validTo} onChange={(event) => setForm({ ...form, validTo: event.target.value })} />
-          </label>
-          <label>
-            <input type="checkbox" checked={form.active} onChange={(event) => setForm({ ...form, active: event.target.checked })} /> Activa
-          </label>
-          <button type="submit" disabled={busy}>{editingId ? "Guardar cambios" : "Crear promoción"}</button>
-          {editingId ? <button type="button" onClick={resetForm} disabled={busy}>Cancelar</button> : null}
+          <div className={styles.actions}>
+            <button className={styles.button} type="submit" disabled={busy}>{editingId ? "Guardar cambios" : "Crear promoción"}</button>
+            {editingId ? <button className={`${styles.button} ${styles.buttonSecondary}`} type="button" onClick={resetForm} disabled={busy}>Cancelar</button> : null}
+          </div>
         </form>
       </section>
 
-      <section aria-labelledby="promotion-list-title">
+      <section className={styles.card} aria-labelledby="promotion-list-title">
         <h2 id="promotion-list-title">Promociones configuradas</h2>
         {promotions.length === 0 ? <p>No hay promociones configuradas.</p> : (
-          <table>
-            <thead>
-              <tr><th>Nombre</th><th>Regla</th><th>Categoría</th><th>Alcance</th><th>Estado</th><th>Acciones</th></tr>
-            </thead>
-            <tbody>
-              {promotions.map((promotion) => (
-                <tr key={promotion.id}>
-                  <td>{promotion.name}</td>
-                  <td>{promotion.n}×{promotion.m}</td>
-                  <td>{promotion.categoryId}</td>
-                  <td>{promotion.branchId ?? "Tenant"}</td>
-                  <td>{promotion.active ? "Activa" : "Inactiva"}</td>
-                  <td>
-                    <button type="button" onClick={() => editPromotion(promotion)} disabled={busy}>Editar</button>{" "}
-                    {promotion.active ? <button type="button" onClick={() => deactivate(promotion.id)} disabled={busy}>Desactivar</button> : null}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className={styles.tableWrapper}>
+            <table className={styles.table}>
+              <thead>
+                <tr><th>Nombre</th><th>Regla</th><th>Categoría</th><th>Alcance</th><th>Estado</th><th>Acciones</th></tr>
+              </thead>
+              <tbody>
+                {promotions.map((promotion) => (
+                  <tr key={promotion.id}>
+                    <td>{promotion.name}</td>
+                    <td>{promotion.n}×{promotion.m}</td>
+                    <td>{promotion.categoryId}</td>
+                    <td>{promotion.branchId ?? "Tenant"}</td>
+                    <td>{promotion.active ? "Activa" : "Inactiva"}</td>
+                    <td className={styles.actionsCell}>
+                      <button className={`${styles.button} ${styles.buttonSecondary}`} type="button" onClick={() => editPromotion(promotion)} disabled={busy}>Editar</button>
+                      {promotion.active ? <button className={styles.button} type="button" onClick={() => deactivate(promotion.id)} disabled={busy}>Desactivar</button> : null}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </section>
     </main>

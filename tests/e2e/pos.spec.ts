@@ -18,6 +18,17 @@ test("POS exposes keyboard-first controls and touch-sized actions", async ({ pag
   await expect(page.locator("#variant")).toBeFocused();
 });
 
+test("POS fits tablet viewport without horizontal overflow", async ({ page }) => {
+  await page.setViewportSize({ width: 820, height: 1180 });
+  await page.goto("/pos");
+  const overflow = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    clientWidth: document.documentElement.clientWidth,
+  }));
+  expect(overflow.scrollWidth).toBeLessThanOrEqual(overflow.clientWidth);
+  await expect(page.getByRole("button", { name: /Agregar \(F4\)/ })).toHaveCSS("min-height", "44px");
+});
+
 test("POS selects the highlighted catalog result with ArrowDown and Enter", async ({ page }) => {
   test.skip(!enabled, "Requires disposable PostgreSQL gate database and runtime roles");
   await authenticateAdmin(page);

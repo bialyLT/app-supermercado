@@ -15,6 +15,7 @@ import {
   validateTransferForm,
 } from "./types";
 import { ProductCombobox } from "../product-combobox";
+import { Modal } from "../modal";
 import styles from "./transfers.module.css";
 
 export type TransferFormProps = {
@@ -543,11 +544,10 @@ export function TransferForm({
 
       {/* Dispatch Confirmation Modal (Idempotent Dispatch UX) */}
       {isConfirmOpen && (
-        <div
-          className={styles.modalOverlay}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="confirm-dialog-title"
+        <Modal
+          ariaLabelledBy="confirm-dialog-title"
+          closeDisabled={isSubmitting}
+          onRequestClose={() => setIsConfirmOpen(false)}
         >
           <div className={styles.modalContent}>
             <div className={styles.modalHeader}>
@@ -614,7 +614,7 @@ export function TransferForm({
               </button>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
     </div>
   );
