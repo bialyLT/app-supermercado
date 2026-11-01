@@ -1,6 +1,6 @@
 import { afterAll, describe, expect, it } from "vitest";
 import { confirmSale, recordReceipt, reserveStock, releaseReservation, reviewUnverifiedIntake } from "../../src/server/inventory";
-import { createCatalogItem, getCurrentPrice } from "../../src/server/catalog";
+import { createCatalogItem, createCatalogItemCommand, getCurrentPrice } from "../../src/server/catalog";
 import { inventoryTransaction } from "../../src/server/repositories/inventory";
 import { admin, runtime, fixture, addActor, clock, enabled, reconcile } from "./fixtures";
 
@@ -218,5 +218,15 @@ afterAll(async () => { await admin.$disconnect(); await runtime.$disconnect(); }
     expect(await getCurrentPrice(b.actor, { variantId: item.variants[0].id })).toBeNull();
     await expect(createCatalogItem(a.actor, { ...input, sku: "duplicate-barcode" })).rejects.toThrow();
     await expect(getCurrentPrice(a.actor, { variantId: item.variants[0].id, branchId: b.branchId })).rejects.toThrow("NOT_FOUND");
+  });
+
+  it("replays catalog creation by command id and rejects a changed payload", async () => {
+    const f = await fixture("ADMIN");
+    const input = { sku: "idempotent", name: "Idempotent", unitCode: "u", unitName: "Unit" };
+    const first = await createCatalogItemCommand(f.actor, { ...input, commandId: "catalog-command" });
+    const replay = await createCatalogItemCommand(f.actor, { ...input, commandId: "catalog-command" });
+    expect(replay.id).toBe(first.id);
+    await expect(createCatalogItemCommand(f.actor, { ...input, name: "Changed", commandId: "catalog-command" }))
+      .rejects.toThrow("IDEMPOTENCY_CONFLICT");
   });
 });

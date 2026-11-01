@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { ProductCombobox } from "../../components/product-combobox";
-import { enqueue, pendingCommands, remove, type OfflineCommand } from "../../src/pos/offline-queue";
+import { enqueue, pendingCommands, replayOfflineCommand, update, type OfflineCommand } from "../../src/pos/offline-queue";
 import styles from "./pos.module.css";
+import { ApiError, apiFetch } from "../../src/client/api-fetch";
 
 type Line = { variantId: string; locationId: string; quantity: string; label: string; unitPrice?: string; weighedBarcode?: string };
 type Payment = { method: "CASH" | "TRANSFER" | "CARD" | "WALLET"; amount: string };
@@ -13,6 +15,7 @@ const methods = ["CASH", "TRANSFER", "CARD", "WALLET"] as const;
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export default function PosPage() {
+  const router = useRouter();
   const [locationId, setLocationId] = useState("");
   const [locationReady, setLocationReady] = useState(false);
   const [variantId, setVariantId] = useState("");
@@ -26,7 +29,7 @@ export default function PosPage() {
   const [change, setChange] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [offline, setOffline] = useState(false);
-  const [queued, setQueued] = useState(0);
+  const [queueCounts, setQueueCounts] = useState({ pending: 0, processing: 0, completed: 0, conflict: 0, error: 0 });
 
   const [commandId, setCommandId] = useState(() => crypto.randomUUID());
   const searchSeq = useRef(0);
@@ -57,18 +60,21 @@ export default function PosPage() {
     };
     void loadLocation();
 
-    const refreshQueue = () => void pendingCommands().then((items) => setQueued(items.length)).catch(() => undefined);
+    const refreshQueue = () => void pendingCommands().then((items) => {
+      setQueueCounts(items.reduce((counts, item) => {
+        const state = item.state ?? "pending";
+        counts[state] += 1;
+        return counts;
+      }, { pending: 0, processing: 0, completed: 0, conflict: 0, error: 0 }));
+    }).catch(() => setStatus("No se pudo leer la cola offline. Reintentá."));
     const replay = async () => {
       const items = await pendingCommands().catch(() => []);
-      for (const item of items) {
-        const response = await fetch(item.endpoint, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(item.payload) }).catch(() => null);
-        if (!response) break;
-        const body = await response.json().catch(() => ({})) as { error?: string; details?: Array<{ path: (string | number)[]; message: string }> };
-        if (response.ok) await remove(item.commandId);
-        else if (response.status === 409) { setStatus(`Conflicto offline ${item.commandId}: ${body.error ?? "revisión requerida"}`); break; }
-        else {
-          const detail = body.details?.map((issue) => `${issue.path.join(".") || "payload"}: ${issue.message}`).join(", ");
-          setStatus(`Replay rechazado: ${body.error ?? `HTTP_${response.status}`}${detail ? ` (${detail})` : ""}`);
+      for (const item of items.filter((candidate) => (candidate.state ?? "pending") === "pending" || candidate.state === "error")) {
+        await update(item.commandId, { state: "processing", lastError: undefined });
+        const result = await replayOfflineCommand(item);
+        await update(item.commandId, result);
+        if (result.state !== "completed") {
+          setStatus(`${result.lastError ?? "Replay rechazado"} (${item.commandId})`);
           break;
         }
       }
@@ -82,6 +88,8 @@ export default function PosPage() {
     });
     refreshQueue();
     window.addEventListener("online", onOnline); window.addEventListener("offline", onOffline);
+    const onSessionExpired = () => router.push("/");
+    window.addEventListener("supermercado:session-expired", onSessionExpired);
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "F2") { event.preventDefault(); document.getElementById("variant")?.focus(); }
       if (event.key === "F4") { event.preventDefault(); addLineRef.current(); }
@@ -97,8 +105,15 @@ export default function PosPage() {
       }
     };
     window.addEventListener("keydown", onKeyDown);
-    return () => { window.removeEventListener("keydown", onKeyDown); window.removeEventListener("online", onOnline); window.removeEventListener("offline", onOffline); };
-  }, []);
+    return () => { window.removeEventListener("keydown", onKeyDown); window.removeEventListener("online", onOnline); window.removeEventListener("offline", onOffline); window.removeEventListener("supermercado:session-expired", onSessionExpired); };
+  }, [router]);
+
+  const retryQueue = () => {
+    setStatus("Reintentando comandos offline…");
+    void pendingCommands().then(() => {
+      window.dispatchEvent(new Event("online"));
+    });
+  };
 
   async function searchCatalogQuery(queryText: string, seq: number) {
     const query = queryText.trim().toLowerCase();
@@ -225,14 +240,17 @@ export default function PosPage() {
       idempotencyKey: commandId,
     };
     try {
-      const response = await fetch("/api/pos/checkout", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) });
+      const response = await apiFetch("/api/pos/checkout", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) });
       const body = await response.json() as { error?: string; change?: string; id?: string };
       if (!response.ok) throw new Error(body.error ?? "REQUEST_FAILED");
       setStatus(`Venta ${body.id ?? "confirmada"}`); setChange(body.change ?? "0.00"); setLines([]); setCommandId(crypto.randomUUID());
     } catch (error) {
       if (error instanceof TypeError || !navigator.onLine) {
-        const command: OfflineCommand = { commandId, kind: "SALE", endpoint: "/api/pos/checkout", payload: { ...payload, allowUnverifiedIntake: true }, createdAt: Date.now() };
-        await enqueue(command); setQueued((count) => count + 1); setOffline(true); setStatus("Sin conexión: venta en cola local"); setLines([]); setCommandId(crypto.randomUUID());
+        const command: OfflineCommand = { commandId, kind: "SALE", endpoint: "/api/pos/checkout", payload: { ...payload, allowUnverifiedIntake: true }, createdAt: Date.now(), state: "pending" };
+        await enqueue(command); setQueueCounts((counts) => ({ ...counts, pending: counts.pending + 1 })); setOffline(true); setStatus("Sin conexión: venta en cola local"); setLines([]); setCommandId(crypto.randomUUID());
+      } else if (error instanceof ApiError && error.status === 0) {
+        const command: OfflineCommand = { commandId, kind: "SALE", endpoint: "/api/pos/checkout", payload: { ...payload, allowUnverifiedIntake: true }, createdAt: Date.now(), state: "pending" };
+        await enqueue(command); setQueueCounts((counts) => ({ ...counts, pending: counts.pending + 1 })); setOffline(true); setStatus("Sin conexión: venta en cola local"); setLines([]); setCommandId(crypto.randomUUID());
       } else setStatus(error instanceof Error ? error.message : "REQUEST_FAILED");
     } finally { setBusy(false); }
   }
@@ -243,7 +261,7 @@ export default function PosPage() {
   });
 
   return <main className={styles.shell} aria-label="Punto de venta">
-    <header><h1>POS</h1><p>Keyboard-first · F2 buscar · F4 agregar · F8 pagar · F10 confirmar · Esc conserva el carrito</p><p role="status">{offline ? "Offline · comandos se guardan localmente" : "Online"} · En cola: {queued}</p></header>
+    <header><h1>POS</h1><p>Keyboard-first · F2 buscar · F4 agregar · F8 pagar · F10 confirmar · Esc conserva el carrito</p><p role="status">{offline ? "Offline · comandos se guardan localmente" : "Online"} · Pendientes: {queueCounts.pending} · Procesando: {queueCounts.processing} · Completados: {queueCounts.completed} · Conflictos: {queueCounts.conflict} · Errores: {queueCounts.error}</p>{(queueCounts.conflict > 0 || queueCounts.error > 0) && <button type="button" onClick={retryQueue}>Reintentar cola</button>}</header>
     <section className={styles.grid}>
       <form onSubmit={(event) => { event.preventDefault(); addLine(); }} aria-label="Agregar producto">
         <p role="status">{locationReady ? "Ubicación autorizada por el servidor" : "Resolviendo ubicación autorizada…"}</p>

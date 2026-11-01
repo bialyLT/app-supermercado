@@ -1,6 +1,6 @@
 # Frontend audit remediation plan
 Branch: `feat/epic7-operations-ui`; source audit imported from the owner's Downloads folder.
-Status: planning; no remediation wave is authorized until its brief, measurable criteria, and product decisions are confirmed.
+Status: Wave 0, Wave 1, Wave 2, and Wave 3 delivered; no further frontend wave is authorized without a new brief.
 Source: `docs/audits/informe-auditoria-frontend.md`.
 
 ## Specs
@@ -14,12 +14,12 @@ S4. The audit explicitly requires ⚠ findings to be confirmed by execution befo
 
 T1 | S1-S4 | planning | done | Import the audit as `docs/audits/informe-auditoria-frontend.md`; commit: pending.
 T2 | S1-S4 | planning | done | Create this remediation plan and link it from `ROADMAP.md`; commit: pending.
-T3 | S1-S4 | deciding | pending | Resolve product/security decisions: timezone, POS location source, offline catalog policy, shortcut scheme, CSP strategy, advanced filters, cash-shifts route, and multi-role effective-role policy; commit: pending.
-T4 | S2-S4 | researching | pending | Confirm ⚠ findings with production-mode execution, including CSP, tablet header, and timezone/hydration behavior; commit: pending.
-T5 | S2-S4 | planning | pending | Approve a brief for remediation wave 0 with tests-first criteria for SEG-01/02/03, DAT-01/02/03/06/07, POS-01/03, and NAV-01; commit: pending.
-T6 | S2-S4 | planning | done | Approve the Wave 1 brief for shared Modal, Combobox, Field, Tabs, keyboard/tablet behavior, and responsive POS/purchases criteria; commit: pending; brief: odd/tasks/frontend-audit-wave1.md.
-T7 | S2-S4 | planning | pending | Approve a brief for remediation wave 2: shared apiFetch, session-expiry handling, loading/error/retry states, and offline queue visibility; commit: pending.
-T8 | S2-S4 | planning | pending | Approve a brief for remediation wave 3: formatting, tokens, contrast, inline-style reduction, and copy consistency; commit: pending.
+T3 | S1-S4 | deciding | done | Resolve product/security decisions: timezone, POS location source, offline catalog policy, shortcut scheme, CSP strategy, advanced filters, cash-shifts route, and multi-role effective-role policy; decisions D-026 through D-029 recorded.
+T4 | S2-S4 | researching | done | Confirm ⚠ findings with production-mode execution, including CSP, tablet header, and timezone/hydration behavior; evidence recorded in Wave 0 closure.
+T5 | S2-S4 | planning | done | Approve and execute remediation Wave 0 with tests-first criteria for SEG-01/02/03, DAT-01/02/03/06/07, POS-01/03, and NAV-01; closure report recorded.
+T6 | S2-S4 | planning | done | Approve and execute Wave 1 for shared Modal, Combobox, Field, Tabs, keyboard/tablet behavior, and responsive POS/purchases criteria; closure report recorded in `.github/web-dev-loop/reports/frontend-audit-wave1.md`.
+T7 | S2-S4 | planning | done | Prepare and deliver the Wave 2 brief for shared apiFetch, session-expiry handling, loading/error/retry states, offline queue visibility, and offline idempotency; brief: `odd/tasks/frontend-audit-wave2.md`; closure: `.github/web-dev-loop/reports/frontend-audit-wave2.md`.
+T8 | S2-S4 | planning | done | Prepare and deliver Wave 3 for formatting, tokens, contrast, inline-style reduction, and copy consistency; brief: `odd/tasks/frontend-audit-wave3.md`; closure: `.github/web-dev-loop/reports/frontend-audit-wave3.md`.
 
 ## Log
 
@@ -28,4 +28,6 @@ L2. Source file supplied at `C:\Users\Usuario\Downloads\informe-auditoria-fronte
 L3. The audit is evidence and planning input, not authorization to implement every finding. Product decisions and wave briefs remain required by `AGENTS.md`.
 L4. Wave 0 confirmation: SEG-01 reproduced in production mode with Chromium (HTTP 200 but three blocked inline scripts under `script-src 'self'`); SEG-02 confirmed by `app/admin/layout.tsx` fail-open ADMIN fallback; DAT-01 confirmed in purchases/transfers query handlers because editing the visible variant text does not clear the stored variant ID; DAT-02 confirmed in `components/reports/types.ts` because presets use UTC boundaries. No remediation code was changed during confirmation.
 L5. Additional Wave 0 confirmation: SEG-03 has only a server sign-out route and no UI control; DAT-03 uses `toISOString().slice(0, 16)` for local datetime inputs; DAT-06 has decimal quantity inputs without comma normalization; DAT-07 exposes and regenerates idempotency keys in purchases/transfers; POS-01 requires a manually entered location UUID; POS-03 clears the cart on Escape; NAV-01 links `/admin/cash-shifts` without an app route. Existing backend cash repositories provide open, movement, blind-close, and close contracts for the planned screen. Owner decisions are recorded as D-026 through D-029.
-L6. Wave 0 was delivered and merged with all technical gates GREEN. The next active scope is Wave 1 · Teclado y tablet; its approved planning brief is `odd/tasks/frontend-audit-wave1.md`.
+L6. Wave 0 was delivered and merged with all technical gates GREEN. Wave 1 was subsequently delivered with its closure report and numeric evidence. Wave 2 is now the next planned scope; its brief and explicit approval are still required before implementation.
+L7. Wave 2 brief was delivered at `odd/tasks/frontend-audit-wave2.md`. The owner selected security, quality, UI/E2E, and database testers; production/deployment remains explicitly out of scope.
+L8. Wave 3 was delivered from `odd/tasks/frontend-audit-wave3.md`; DAT-03, inline transfer styles, and localized currency formatting were corrected and verified.

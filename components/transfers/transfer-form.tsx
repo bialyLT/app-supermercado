@@ -407,17 +407,17 @@ export function TransferForm({
           <table className={styles.table} aria-label="Líneas de la transferencia">
             <thead>
               <tr>
-                <th className={styles.th} style={{ width: "40px" }}>#</th>
-                <th className={styles.th} style={{ minWidth: "260px" }}>
+                <th className={`${styles.th} ${styles.thIndex}`}>#</th>
+                <th className={`${styles.th} ${styles.thVariant}`}>
                   Variante / Producto <span className={styles.required}>*</span>
                 </th>
-                <th className={styles.th} style={{ minWidth: "200px" }}>
+                <th className={`${styles.th} ${styles.thLot}`}>
                   Lote (opcional)
                 </th>
-                <th className={styles.th} style={{ width: "140px" }}>
+                <th className={`${styles.th} ${styles.thQuantity}`}>
                   Cantidad <span className={styles.required}>*</span>
                 </th>
-                <th className={styles.th} style={{ width: "120px", textAlign: "center" }}>
+                <th className={`${styles.th} ${styles.thActions}`}>
                   Acciones
                 </th>
               </tr>
@@ -477,15 +477,14 @@ export function TransferForm({
                         <span className={styles.errorText}>{lineErr.quantity}</span>
                       )}
                     </td>
-                    <td className={styles.td} style={{ textAlign: "center" }}>
-                      <div style={{ display: "inline-flex", gap: "0.35rem" }}>
+                    <td className={`${styles.td} ${styles.actionsCell}`}>
+                      <div className={styles.lineActions}>
                         <button
                           type="button"
-                          className={`${styles.btn} ${styles.btnSecondary}`}
                           onClick={() => handleDuplicateLine(index)}
                           title="Duplicar variante"
                           aria-label={`Duplicar línea ${index + 1}`}
-                          style={{ padding: "0.35rem 0.6rem", fontSize: "0.75rem" }}
+                          className={`${styles.btn} ${styles.btnSecondary} ${styles.duplicateButton}`}
                         >
                           ⧉
                         </button>
@@ -530,7 +529,7 @@ export function TransferForm({
       </div>
 
       {/* Action Submit Bar */}
-      <div style={{ display: "flex", justifyContent: "flex-end", gap: "1rem", marginTop: "0.5rem" }}>
+      <div className={styles.submitBar}>
         <button
           type="button"
           className={`${styles.btn} ${styles.btnPrimary}`}
@@ -556,21 +555,20 @@ export function TransferForm({
               </h2>
               <button
                 type="button"
-                className={`${styles.btn} ${styles.btnSecondary}`}
                 onClick={() => setIsConfirmOpen(false)}
                 aria-label="Cerrar modal de confirmación"
-                style={{ padding: "0.25rem 0.5rem" }}
+                className={`${styles.btn} ${styles.btnSecondary} ${styles.modalCloseButton}`}
               >
                 ✕
               </button>
             </div>
 
             <div className={styles.modalBody}>
-              <p style={{ margin: 0 }}>
+              <p className={styles.modalIntro}>
                 Se debitará el stock de la sucursal de origen y se acreditará en destino inmediatamente:
               </p>
 
-              <div style={{ backgroundColor: "#f8fafc", padding: "1rem", borderRadius: "6px", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+              <div className={styles.confirmDetails}>
                 <div>
                   <strong>Origen:</strong> {originBranch?.name} ({originBranch?.code}) —{" "}
                   {originActiveLocations.find((l) => l.id === form.originLocationId)?.name || form.originLocationId}
@@ -589,7 +587,7 @@ export function TransferForm({
                 )}
                 <div>
                   <strong>Clave de idempotencia:</strong>{" "}
-                  <code style={{ fontSize: "0.75rem" }}>{form.idempotencyKey}</code>
+                  <code className={styles.idempotencyKey}>{form.idempotencyKey}</code>
                 </div>
               </div>
             </div>

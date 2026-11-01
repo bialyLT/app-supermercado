@@ -11,6 +11,7 @@ import type {
 import { PurchaseForm } from "./purchase-form";
 import { PurchaseHistory } from "./purchase-history";
 import styles from "./purchases.module.css";
+import { apiFetch, errorMessage } from "../../src/client/api-fetch";
 
 export type PurchaseManagerProps = {
   initialSuppliers?: Supplier[];
@@ -56,7 +57,7 @@ export function PurchaseManager({
   // Load operational context (branches and active locations) from /api/admin/context
   useEffect(() => {
     if (!initialContext) {
-      fetch("/api/admin/context")
+      apiFetch("/api/admin/context")
         .then(async (res) => {
           if (!res.ok) {
             const data = await res.json().catch(() => ({}));
@@ -88,7 +89,7 @@ export function PurchaseManager({
   // Load suppliers if empty on mount
   useEffect(() => {
     if (suppliers.length === 0) {
-      fetch("/api/admin/purchases/suppliers")
+      apiFetch("/api/admin/purchases/suppliers")
         .then((res) => (res.ok ? res.json() : null))
         .then((data) => {
           if (data?.suppliers) {
@@ -107,15 +108,15 @@ export function PurchaseManager({
       const url = branchId
         ? `/api/admin/purchases?branchId=${encodeURIComponent(branchId)}`
         : "/api/admin/purchases";
-      const res = await fetch(url, { cache: "no-store" });
+      const res = await apiFetch(url, { cache: "no-store" });
       if (res.ok) {
         const data = await res.json();
         if (data.receipts) {
           setReceipts(data.receipts);
         }
       }
-    } catch {
-      // Retain existing receipts on network error
+    } catch (error) {
+      setServerError(errorMessage(error));
     } finally {
       setIsRefreshing(false);
     }
@@ -156,7 +157,7 @@ export function PurchaseManager({
           })),
         };
 
-        const res = await fetch("/api/admin/purchases", {
+        const res = await apiFetch("/api/admin/purchases", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
@@ -192,7 +193,7 @@ export function PurchaseManager({
         setReceipts((prev) => [createdReceipt, ...prev]);
         return true;
       } catch (err) {
-        setServerError(err instanceof Error ? err.message : "Error de red al registrar comprobante");
+        setServerError(errorMessage(err));
         return false;
       } finally {
         setIsSubmitting(false);

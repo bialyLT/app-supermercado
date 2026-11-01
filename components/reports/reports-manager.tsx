@@ -19,6 +19,7 @@ import { ReportFilters } from "./report-filters";
 import { ReportSummary } from "./report-summary";
 import { ReportBranchDetail } from "./report-branch-detail";
 import styles from "./reports.module.css";
+import { apiFetch, errorMessage } from "../../src/client/api-fetch";
 
 export type ReportsManagerProps = {
   initialReport?: OperationsReportData | null;
@@ -65,7 +66,7 @@ export function ReportsManager({
   });
 
   useEffect(() => {
-    fetch("/api/admin/reports/filters")
+    apiFetch("/api/admin/reports/filters")
       .then(async (res) => {
         if (!res.ok) throw new Error("No se pudieron cargar los filtros autorizados");
         return res.json() as Promise<ReportFilterSources>;
@@ -77,7 +78,7 @@ export function ReportsManager({
   // Load operational context (branches) from /api/admin/context if not preloaded
   useEffect(() => {
     if (!initialContext) {
-      fetch("/api/admin/context")
+      apiFetch("/api/admin/context")
         .then(async (res) => {
           if (!res.ok) {
             const data = await res.json().catch(() => ({}));
@@ -141,7 +142,7 @@ export function ReportsManager({
 
       try {
         const qs = buildReportQueryString(activeFilters, "json");
-        const res = await fetch(`/api/admin/reports/operations?${qs}`);
+        const res = await apiFetch(`/api/admin/reports/operations?${qs}`);
         const data = await res.json();
 
         if (!res.ok) {
@@ -151,11 +152,7 @@ export function ReportsManager({
 
         setReport(data as OperationsReportData);
       } catch (err) {
-        setError(
-          err instanceof Error
-            ? err.message
-            : "Error de red al consultar el reporte operativo"
-        );
+        setError(errorMessage(err));
       } finally {
         setIsLoading(false);
       }

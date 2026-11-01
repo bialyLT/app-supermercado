@@ -18,7 +18,7 @@
 
 .shell header p {
   margin: 0;
-  color: var(--color-text-muted, #64748b);
+  color: var(--color-text-muted);
 }
 
 .grid {
@@ -31,9 +31,9 @@
 .grid > section {
   min-width: 0;
   padding: 1rem;
-  border: 1px solid var(--color-border, #dbe3ec);
+  border: 1px solid var(--color-border);
   border-radius: 0.75rem;
-  background: var(--color-surface, #fff);
+  background: var(--color-surface);
 }
 
 .grid h2 {

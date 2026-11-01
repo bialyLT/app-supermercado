@@ -93,7 +93,7 @@ async function stockAccess(tx: Tx, actor: Actor, input: { locationId: string; va
   const location = await locationAccess(tx, actor, input.locationId);
   const variant = await tx.productVariant.findFirst({
     where: { id: input.variantId, tenantId: actor.tenantId, active: true },
-    include: { product: { select: { categoryId: true } } },
+    include: { product: { select: { category: { select: { id: true } } } } },
   });
   if (!variant) throw new InventoryError("NOT_FOUND");
   assertQuantityPrecision(input.quantity, variant.quantityPrecision);
@@ -243,7 +243,7 @@ async function confirmSaleCore(tx: Tx, verified: Actor, now: Date, lines: SaleCo
     } else {
       const access = await stockAccess(tx, verified, line);
       variant = access.variant;
-      categoryId = access.variant.product.categoryId;
+      categoryId = access.variant.product.category?.id ?? null;
       quantityPrecision = access.variant.quantityPrecision;
       price = await serverPrice(tx, verified, options.clientPrices ? line : { variantId: line.variantId }, location.branchId, now);
     }

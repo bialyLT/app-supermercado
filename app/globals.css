@@ -12,8 +12,12 @@
   --color-primary-contrast: #ffffff;
   --color-accent: #2563eb;
   --color-success: #16a34a;
+  --color-success-bg: #f0fdf4;
+  --color-success-border: #bbf7d0;
+  --color-success-text: #166534;
   --color-warning: #d97706;
   --color-danger: #dc2626;
+  --color-danger-text: #991b1b;
   --color-danger-bg: #fef2f2;
   --color-danger-border: #fecaca;
   --focus-ring: 2px solid #2563eb;
