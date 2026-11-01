@@ -15,6 +15,7 @@ export async function GET(request: Request) {
     if (error instanceof InventoryError) return NextResponse.json({ error: error.code }, { status: httpStatus(error) });
     if (error instanceof Error && error.message === "UNAUTHENTICATED") return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
     if (error instanceof Error && error.message === "FORBIDDEN") return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+    if (error instanceof Error && error.message === "NOT_FOUND") return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
     return NextResponse.json({ error: "REQUEST_FAILED" }, { status: 400 });
   }
 }

@@ -9,7 +9,11 @@ export const operationalReadQuerySchema = z.object({
   from: z.string().datetime().optional(),
   to: z.string().datetime().optional(),
   limit: z.coerce.number().int().min(1).max(100).default(50),
-}).strict();
+}).strict().superRefine((value, context) => {
+  if (value.from && value.to && new Date(value.to).getTime() <= new Date(value.from).getTime()) {
+    context.addIssue({ code: "custom", path: ["to"], message: "DATE_RANGE_INVERTED" });
+  }
+});
 
 export type OperationalReadQuery = z.output<typeof operationalReadQuerySchema>;
 export const listInventoryLevels = (actor: Actor, query: OperationalReadQuery) => repository.listInventoryLevels(actor, query);

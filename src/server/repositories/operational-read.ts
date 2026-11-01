@@ -60,14 +60,18 @@ export async function listSales(actor: Actor, query: ReadQuery) {
 export async function getSale(actor: Actor, id: string) {
   return readTenant(actor, "sales.read", async (tx, verified) => {
     const row = await tx.sale.findFirst({ where: { tenantId: verified.tenantId, id }, include: { lines: true, payments: true } });
-    if (!row || (verified.role !== "ADMIN" && row.branchId && !verified.branchIds.includes(row.branchId))) throw new InventoryError("NOT_FOUND");
+    if (!row || !canReadSale(verified, row.branchId)) throw new InventoryError("NOT_FOUND");
     return { id: row.id, documentNumber: row.documentNumber, branchId: row.branchId, locationId: row.locationId, registerSessionId: row.registerSessionId, actorUserId: row.actorUserId, total: row.total.toString(), currency: row.currency, createdAt: iso(row.createdAt), lines: row.lines.map((line) => ({ id: line.id, variantId: line.variantId, productName: line.productName, quantity: line.quantity.toString(), unitPrice: line.unitPrice.toString(), sourceSnapshot: line.sourceSnapshot })), payments: row.payments.map((payment) => ({ id: payment.id, method: payment.method, amount: payment.amount.toString(), currency: payment.currency })) };
   });
 }
 
+export function canReadSale(actor: Pick<Actor, "role" | "branchIds">, branchId: string | null): boolean {
+  return actor.role === "ADMIN" || (branchId !== null && actor.branchIds.includes(branchId));
+}
+
 export async function listCashShifts(actor: Actor, query: ReadQuery) {
   return readTenant(actor, "cash.history.read", async (tx, verified) => {
-    const rows = await tx.cashRegisterSession.findMany({ where: { tenantId: verified.tenantId, branchId: scope(verified, query.branchId).branchId, openedAt: { gte: query.from ? new Date(query.from) : undefined, lt: query.to ? new Date(query.to) : undefined } }, include: { cashMovements: true }, orderBy: [{ openedAt: "desc" }, { id: "desc" }], take: query.limit });
+    const rows = await tx.cashRegisterSession.findMany({ where: { tenantId: verified.tenantId, branchId: scope(verified, query.branchId).branchId, openedAt: { gte: query.from ? new Date(query.from) : undefined, lt: query.to ? new Date(query.to) : undefined } }, include: { cashMovements: { orderBy: [{ createdAt: "desc" }, { id: "desc" }], take: 100 } }, orderBy: [{ openedAt: "desc" }, { id: "desc" }], take: query.limit });
     return { shifts: rows.map((row) => ({ id: row.id, branchId: row.branchId, registerId: row.registerId, userId: row.userId, currency: row.currency, openedAt: iso(row.openedAt), closedAt: row.closedAt ? iso(row.closedAt) : null, declaredCash: row.declaredCash?.toString() ?? null, expectedCash: row.expectedCash?.toString() ?? null, difference: row.difference?.toString() ?? null, movements: row.cashMovements.map((movement) => ({ id: movement.id, type: movement.type, amount: movement.amount.toString(), currency: movement.currency, actorUserId: movement.actorUserId, reason: movement.reason, createdAt: iso(movement.createdAt) })) })) };
   });
 }

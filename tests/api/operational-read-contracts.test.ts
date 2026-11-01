@@ -20,6 +20,7 @@ import { requirePermission } from "../../src/auth/authorization";
 import { getServerActor } from "../../src/auth/session";
 import { getSale as readSale, listCashShifts, listInventoryLevels, listInventoryMovements, listSales } from "../../src/server/operational-read";
 import { InventoryError } from "../../src/domain/inventory";
+import { canReadSale } from "../../src/server/repositories/operational-read";
 
 const actor = {
   tenantId: "11111111-1111-4111-8111-111111111111",
@@ -84,5 +85,27 @@ describe("operational read HTTP contracts", () => {
     vi.mocked(readSale).mockRejectedValueOnce(new InventoryError("NOT_FOUND"));
     const missing = await getSale(new Request("http://localhost"), { params: Promise.resolve({ id }) });
     expect(missing.status).toBe(404);
+  });
+
+  it("maps an unauthorized collection branch to an indistinguishable 404", async () => {
+    vi.mocked(requirePermission).mockRejectedValueOnce(new Error("NOT_FOUND"));
+    const response = await getSales(new Request(`http://localhost/api/admin/sales?branchId=${id}`));
+    expect(response.status).toBe(404);
+    expect((await response.json()).error).toBe("NOT_FOUND");
+    expect(listSales).not.toHaveBeenCalled();
+  });
+
+  it("maps an unauthorized cash-history branch to an indistinguishable 404", async () => {
+    vi.mocked(requirePermission).mockRejectedValueOnce(new Error("NOT_FOUND"));
+    const response = await getCash(new Request(`http://localhost/api/admin/cash-shifts/history?branchId=${id}`));
+    expect(response.status).toBe(404);
+    expect((await response.json()).error).toBe("NOT_FOUND");
+  });
+
+  it("denies non-admin access to null-branch sales while allowing only assigned branches", () => {
+    expect(canReadSale({ role: "SUPERVISOR", branchIds: [actor.branchIds[0]] }, null)).toBe(false);
+    expect(canReadSale({ role: "SUPERVISOR", branchIds: [actor.branchIds[0]] }, id)).toBe(false);
+    expect(canReadSale({ role: "SUPERVISOR", branchIds: [actor.branchIds[0]] }, actor.branchIds[0])).toBe(true);
+    expect(canReadSale({ role: "ADMIN", branchIds: [] }, null)).toBe(true);
   });
 });
