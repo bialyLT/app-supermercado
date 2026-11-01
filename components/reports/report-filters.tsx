@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
+import { useFocusFirstInvalid } from "../field";
 import type {
   DatePreset,
   OperationalBranch,
@@ -37,6 +38,8 @@ export function ReportFilters({
   onReset,
 }: ReportFiltersProps) {
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
+  useFocusFirstInvalid(formRef, validationErrors);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -107,7 +110,7 @@ export function ReportFilters({
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} noValidate>
+      <form ref={formRef} onSubmit={handleSubmit} noValidate>
         <div className={styles.filterGrid}>
           {/* Desde */}
           <div className={styles.filterGroup}>

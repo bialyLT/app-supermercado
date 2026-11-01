@@ -14,6 +14,8 @@ import {
   updateVariantSearchText,
   validateTransferForm,
 } from "./types";
+import { ProductCombobox } from "../product-combobox";
+import { Modal } from "../modal";
 import styles from "./transfers.module.css";
 
 export type TransferFormProps = {
@@ -429,50 +431,20 @@ export function TransferForm({
                     <td className={`${styles.td} ${styles.lineIndex}`}>{index + 1}</td>
                     <td className={styles.td}>
                       <div className={styles.searchContainer}>
-                        <input
-                          type="text"
-                          className={`${styles.input} ${lineErr?.variantId ? styles.inputError : ""}`}
+                        <ProductCombobox
+                          label={`Buscar variante línea ${index + 1}`}
                           placeholder="Buscar por SKU, nombre o código..."
                           value={line.variantName || line.variantId}
-                          onChange={(e) => handleSearchVariants(index, e.target.value)}
+                          options={activeSearchLineIndex === index ? searchResults : []}
+                          isLoading={activeSearchLineIndex === index && isSearchingCatalog}
+                          disabled={isSubmitting}
+                          inputClassName={`${styles.input} ${lineErr?.variantId ? styles.inputError : ""}`}
+                          onChange={(value) => handleSearchVariants(index, value)}
                           onFocus={() => {
                             if (searchResults.length > 0) setActiveSearchLineIndex(index);
                           }}
-                          aria-label={`Buscar variante línea ${index + 1}`}
-                          autoComplete="off"
+                          onSelect={(item) => handleSelectVariant(index, item)}
                         />
-                        {activeSearchLineIndex === index && searchResults.length > 0 && (
-                          <div className={styles.searchDropdown} role="listbox">
-                            {searchResults.map((item) => (
-                              <div
-                                key={item.id}
-                                className={styles.searchItem}
-                                onClick={() => handleSelectVariant(index, item)}
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter" || e.key === " ") {
-                                    e.preventDefault();
-                                    handleSelectVariant(index, item);
-                                  }
-                                }}
-                                role="option"
-                                aria-selected="false"
-                                tabIndex={0}
-                              >
-                                <span className={styles.searchItemName}>
-                                  {item.productName} {item.name ? `- ${item.name}` : ""}
-                                </span>
-                                <span className={styles.searchItemMeta}>
-                                  SKU: {item.sku}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        {activeSearchLineIndex === index && isSearchingCatalog && (
-                          <div className={styles.searchDropdown} style={{ padding: "0.5rem 0.75rem", fontSize: "0.8125rem", color: "#64748b" }}>
-                            Buscando en catálogo…
-                          </div>
-                        )}
                       </div>
                       {lineErr?.variantId && (
                         <span className={styles.errorText}>{lineErr.variantId}</span>
@@ -572,11 +544,10 @@ export function TransferForm({
 
       {/* Dispatch Confirmation Modal (Idempotent Dispatch UX) */}
       {isConfirmOpen && (
-        <div
-          className={styles.modalOverlay}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="confirm-dialog-title"
+        <Modal
+          ariaLabelledBy="confirm-dialog-title"
+          closeDisabled={isSubmitting}
+          onRequestClose={() => setIsConfirmOpen(false)}
         >
           <div className={styles.modalContent}>
             <div className={styles.modalHeader}>
@@ -643,7 +614,7 @@ export function TransferForm({
               </button>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
     </div>
   );

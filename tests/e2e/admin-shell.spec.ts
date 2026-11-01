@@ -67,14 +67,19 @@ test.describe("Administrative Application Shell & Navigation", () => {
     const menuButton = page.getByRole("button", { name: "Alternar menú de navegación" });
     await expect(menuButton).toBeVisible();
 
+    const sidebar = page.locator("#admin-sidebar");
+    await expect(sidebar).toBeHidden();
+
     // Open sidebar drawer
     await menuButton.click();
     await expect(page.getByRole("button", { name: "Cerrar navegación" })).toBeVisible();
+    await expect(sidebar).toBeVisible();
 
     // Close drawer with close button
     await page.getByRole("button", { name: "Cerrar navegación" }).click();
     await expect(menuButton).toHaveAttribute("aria-expanded", "false");
-    await expect(page.locator("#admin-sidebar")).not.toHaveClass(/sidebarOpen/);
+    await expect(sidebar).not.toHaveClass(/sidebarOpen/);
+    await expect(sidebar).toBeHidden();
   });
 
   test("preserves POS behavior and navigability", async ({ page }) => {

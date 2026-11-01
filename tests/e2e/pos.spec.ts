@@ -18,6 +18,40 @@ test("POS exposes keyboard-first controls and touch-sized actions", async ({ pag
   await expect(page.locator("#variant")).toBeFocused();
 });
 
+test("POS fits tablet viewport without horizontal overflow", async ({ page }) => {
+  await page.setViewportSize({ width: 820, height: 1180 });
+  await page.goto("/pos");
+  const overflow = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    clientWidth: document.documentElement.clientWidth,
+  }));
+  expect(overflow.scrollWidth).toBeLessThanOrEqual(overflow.clientWidth);
+  await expect(page.getByRole("button", { name: /Agregar \(F4\)/ })).toHaveCSS("min-height", "44px");
+});
+
+test("POS selects the highlighted catalog result with ArrowDown and Enter", async ({ page }) => {
+  test.skip(!enabled, "Requires disposable PostgreSQL gate database and runtime roles");
+  await authenticateAdmin(page);
+  await page.route("**/api/pos/catalog*", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ items: [{ id: "123e4567-e89b-42d3-a456-426614174001", sku: "7791234567890", name: "Gaseosa", productName: "Gaseosa Cola" }] }),
+    });
+  });
+
+  await page.goto("/pos");
+  const combobox = page.getByRole("combobox", { name: "Variante / código" });
+  await expect(page.getByText("Ubicación autorizada por el servidor")).toBeVisible();
+  await combobox.fill("Gaseosa");
+  await expect(combobox).toHaveAttribute("aria-expanded", "true");
+  await combobox.press("ArrowDown");
+  await expect(combobox).toHaveAttribute("aria-activedescendant", /option-0$/);
+  await combobox.press("Enter");
+  await expect(combobox).toHaveValue("123e4567-e89b-42d3-a456-426614174001");
+  await expect(combobox).toHaveAttribute("aria-expanded", "false");
+});
+
 test("POS mutations reject unauthenticated callers", async ({ request }) => {
   test.skip(!enabled, "Requires disposable PostgreSQL gate database and runtime roles");
   const checkout = await request.post("/api/pos/checkout", { data: { lines: [], payments: [], idempotencyKey: "e2e-pos" } });
@@ -62,7 +96,7 @@ test("POS resolves weighed barcode, preserves unit price and barcode, adds to ca
   await expect(page.getByRole("status").filter({ hasText: "Código pesable: precio unitario 1.25" })).toBeVisible();
 
   // Select suggestion
-  await page.getByRole("button", { name: /Manzanas/ }).click();
+  await page.getByRole("option", { name: /Manzanas/ }).click();
 
   // Add line via F4
   await page.keyboard.press("F4");
@@ -116,7 +150,7 @@ test("POS normal catalogue checkout omits provenance", async ({ page }) => {
   await page.goto("/pos");
   await expect(page.getByText("Ubicación autorizada por el servidor")).toBeVisible();
   await page.locator("#variant").fill("Gaseosa");
-  const suggestion = page.getByRole("button", { name: /Gaseosa/ });
+  const suggestion = page.getByRole("option", { name: /Gaseosa/ });
   await expect(suggestion).toBeVisible();
   await suggestion.click();
 
@@ -163,7 +197,7 @@ test("POS falls back to catalog when 13-digit barcode prefix mismatches or is no
 
   await page.goto("/pos");
   await page.locator("#variant").fill("7791234567890");
-  await expect(page.getByRole("list", { name: "Resultados de búsqueda" })).toContainText("Gaseosa · 7791234567890");
+  await expect(page.getByRole("listbox", { name: "Variante / código resultados" })).toContainText("Gaseosa Cola");
 });
 
 test("POS displays error message on invalid configured weighed barcode scan", async ({ page }) => {

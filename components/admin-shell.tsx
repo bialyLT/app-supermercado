@@ -11,6 +11,7 @@ import {
   KEYBOARD_SHORTCUTS,
   ROLE_LABELS,
 } from "./admin-navigation";
+import { Modal } from "./modal";
 import styles from "./admin-shell.module.css";
 
 export type AdminShellProps = {
@@ -292,51 +293,42 @@ export function AdminShell({
 
       {/* Keyboard shortcuts modal */}
       {isShortcutsOpen && (
-        <>
-          <div
-            className={styles.backdrop}
-            onClick={() => setIsShortcutsOpen(false)}
-            aria-hidden="true"
-          />
-          <div
-            className={styles.modalDialog}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="shortcuts-dialog-title"
-          >
-            <div className={styles.modalHeader}>
-              <h3 id="shortcuts-dialog-title" className={styles.modalTitle}>
-                Atajos de teclado
-              </h3>
-              <button
-                type="button"
-                className={styles.modalCloseButton}
-                onClick={() => setIsShortcutsOpen(false)}
-                aria-label="Cerrar ayuda de atajos"
-              >
-                ✕
-              </button>
-            </div>
-            <table className={styles.shortcutTable}>
-              <thead>
-                <tr>
-                  <th scope="col">Atajo</th>
-                  <th scope="col">Acción</th>
-                </tr>
-              </thead>
-              <tbody>
-                {KEYBOARD_SHORTCUTS.map((item) => (
-                  <tr key={item.key}>
-                    <td>
-                      <kbd className={styles.shortcutKbd}>{item.key}</kbd>
-                    </td>
-                    <td>{item.description}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <Modal
+          ariaLabelledBy="shortcuts-dialog-title"
+          onRequestClose={() => setIsShortcutsOpen(false)}
+        >
+          <div className={styles.modalHeader}>
+            <h3 id="shortcuts-dialog-title" className={styles.modalTitle}>
+              Atajos de teclado
+            </h3>
+            <button
+              type="button"
+              className={styles.modalCloseButton}
+              onClick={() => setIsShortcutsOpen(false)}
+              aria-label="Cerrar ayuda de atajos"
+            >
+              ✕
+            </button>
           </div>
-        </>
+          <table className={styles.shortcutTable}>
+            <thead>
+              <tr>
+                <th scope="col">Atajo</th>
+                <th scope="col">Acción</th>
+              </tr>
+            </thead>
+            <tbody>
+              {KEYBOARD_SHORTCUTS.map((item) => (
+                <tr key={item.key}>
+                  <td>
+                    <kbd className={styles.shortcutKbd}>{item.key}</kbd>
+                  </td>
+                  <td>{item.description}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Modal>
       )}
     </div>
   );

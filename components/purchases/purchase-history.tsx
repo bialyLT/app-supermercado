@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import type { PurchaseReceiptSummary } from "./types";
+import { Modal } from "../modal";
 import styles from "./purchases.module.css";
 
 export type PurchaseHistoryProps = {
@@ -135,12 +136,7 @@ export function PurchaseHistory({
 
       {/* Detail Modal */}
       {selectedReceipt && (
-        <div
-          className={styles.modalBackdrop}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="receipt-detail-title"
-        >
+        <Modal ariaLabelledBy="receipt-detail-title" onRequestClose={() => setSelectedReceipt(null)}>
           <div className={styles.modalContent} style={{ maxWidth: "800px" }}>
             <div className={styles.modalHeader}>
               <div>
@@ -273,7 +269,7 @@ export function PurchaseHistory({
               </button>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
     </div>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useEffect, useRef } from "react";
+import { Modal } from "../modal";
 import styles from "./suppliers.module.css";
 
 export type Supplier = {
@@ -276,11 +277,13 @@ export function SupplierManager({ initialSuppliers = [] }: SupplierManagerProps)
 
       {/* Modal de alta de proveedor */}
       {isModalOpen && (
-        <div
-          className={styles.modalBackdrop}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="supplier-modal-title"
+        <Modal
+          ariaLabelledBy="supplier-modal-title"
+          closeDisabled={isSubmitting}
+          onRequestClose={() => {
+            setIsModalOpen(false);
+            setFormError(null);
+          }}
         >
           <div className={styles.modalContent}>
             <div className={styles.modalHeader}>
@@ -449,7 +452,7 @@ export function SupplierManager({ initialSuppliers = [] }: SupplierManagerProps)
               </div>
             </form>
           </div>
-        </div>
+        </Modal>
       )}
     </div>
   );
