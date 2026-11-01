@@ -129,3 +129,33 @@ fue introducido por esta ola; no se modificó como trabajo no relacionado.
 La reproducción RED quedó agregada antes del arreglo, pero el runner no pudo
 ejecutarla contra PostgreSQL (los 27 tests de ambos archivos quedaron skipped);
 por eso no se declara GREEN de integración en este entorno.
+
+## Corrección del bloqueo de Prisma
+
+La inspección confirmó que el schema y la migración promocional existente sí
+declaran `Product.categoryId` y la relación compuesta `Product.category` hacia
+`ProductCategory`; no se agregó ninguna columna ni se editaron migraciones.
+La causa reproducida era un cliente Prisma generado desactualizado, que
+diagnosticaba que `Product.categoryId` no existía. Se regeneró el cliente y se
+ajustó `stockAccess` para consultar la relación existente
+`Product.category { id }`, derivando el `categoryId` desde `category?.id` para
+que el flujo de promociones siga siendo nullable y server-side.
+
+### Verificación de la corrección
+
+| Gate | Resultado |
+|---|---|
+| `npm.cmd run db:generate` | **exit 0**, Prisma Client 7.10.1 generado en 1.43 s |
+| `npm.cmd run db:validate` | **exit 0**, schema válido |
+| `npm.cmd run typecheck` | **exit 0**, 0 errores |
+| `npm.cmd run lint` | **exit 0**, 0 errores/warnings |
+| `npm.cmd test` | **206/206 passed**, 161 skipped; 34 archivos pasaron, 24 skipped |
+| `npm.cmd run build` | **exit 0**, compilación y generación de 20 páginas |
+| Integración `promotions-checkout` | **NO EJECUTADA**, 1 skipped por falta de PostgreSQL de gate |
+| `npm.cmd run test:concurrency` | **NO EJECUTADO**, exit 1: faltan `DATABASE_URL` y `TEST_DATABASE_URL` |
+| `npm.cmd run test:ledger` | **NO EJECUTADO**, exit 1: falta `TEST_DATABASE_URL` |
+| `git diff --check` | **exit 0**, sin salida |
+
+Archivos modificados: `src/server/repositories/inventory.ts` y este informe.
+No se tocaron `prisma/schema.prisma`, `prisma/migrations/` ni
+`REUSABLE_RETAIL_SYSTEM_CONTEXT.md`; no se hizo commit ni push.
