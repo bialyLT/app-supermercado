@@ -1,6 +1,6 @@
 # Roadmap operativo
 
-**Estado:** Épicas 0, 1, 2, 3, 4, 5, 6 y 7 cerradas técnicamente en los cortes aprobados. Épica 5 queda cerrada con EAN-13 con precio, perfiles fiscales argentinos y promociones N×M; impresión y hardware permanecen fuera de alcance. Épica 7 y Frontend Audit Wave 0 y Wave 1 están entregadas según sus informes de cierre. El próximo alcance planificado es Frontend Audit Wave 2; todavía requiere brief aprobado antes de implementar.
+**Estado:** Épicas 0, 1, 2, 3, 4, 5, 6 y 7 cerradas técnicamente en los cortes aprobados. Épica 5 queda cerrada con EAN-13 con precio, perfiles fiscales argentinos y promociones N×M; impresión y hardware permanecen fuera de alcance. Épica 7 y Frontend Audit Waves 0, 1 y 2 están entregadas según sus informes de cierre. El próximo alcance planificado es preparar el brief de Frontend Audit Wave 3.
 **Reglas vinculantes:** `AGENTS.md`, `DOMAIN_RULES.md`, `DECISIONS.md`,
 `GATES.md`.
 

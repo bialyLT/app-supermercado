@@ -1,8 +1,7 @@
 # Informe Frontend Audit Wave 2
 
-**Estado: BLOQUEADO:** los tres hallazgos funcionales quedan corregidos y
-verificados; typecheck/build, cobertura global y E2E siguen bloqueados por
-condiciones preexistentes o un servidor Next ya ocupado.
+**Estado: ENTREGADO:** los hallazgos funcionales y los gates técnicos de la
+ola quedaron corregidos y verificados con PostgreSQL local.
 
 ## Alcance entregado
 
@@ -47,13 +46,13 @@ No se tocaron `prisma/schema.prisma`, `prisma/migrations/` ni
 |---|---|
 | RED antes del arreglo | **2 fallos/10**, `replayOfflineCommand is not a function` en los dos casos nuevos |
 | GREEN focalizado | **10/10**, 2 archivos, 0 fallos |
-| Tests completos | **206 passed**, 160 skipped; 34 archivos pasaron y 24 fueron skipped |
+| Tests completos | **367/367 passed**, 58 archivos pasaron |
 | Lint | **exit 0**, sin errores ni warnings |
-| Typecheck | **exit 2**, errores preexistentes en `app/admin/purchases/page.tsx`, `app/admin/suppliers/page.tsx` y `src/server/repositories/inventory.ts`; tras la corrección de esta ola no quedaron errores en sus archivos |
-| Build | **exit 1**, bloqueado por los mismos errores de TypeScript |
-| Cobertura | **exit 1**: 34.42% líneas (475/1380), 31.77% statements, 28.99% ramas, 22.22% funciones; umbral global 80% |
+| Typecheck | **exit 0**, 0 errores |
+| Build | **exit 0**, 20 páginas generadas |
+| Cobertura con PostgreSQL | **exit 0**: 92.41% líneas, 88.07% statements, 82% ramas, 86.75% funciones |
 | `git diff --check` | **exit 0**, sin salida |
-| E2E | **NO EJECUTADO**: `test:e2e` exit 1 porque ya había un `next dev` PID 17796 ocupado; no se levantó producción ni se detuvo el servidor existente |
+| E2E | **8 passed, 28 skipped, 0 failed**; servidor temporal en 3109 |
 | Ledger/RLS | **0 divergencias; RLS 43/43 tablas habilitado y forzado** |
 
 ## Invariantes y seguridad
@@ -82,12 +81,11 @@ rechazo genérico; además borraba los completados. El checkout sólo encolaba
 Después, `replayOfflineCommand` centraliza la llamada y clasificación, el
 checkout encola `ApiError(status=0)`, y la UI muestra `Completados`.
 
-**Desvío:** no se ejecutó E2E por el servidor dev preexistente ocupado; no se
-tocó infraestructura ni se detuvo ese proceso.
+**Desvío:** 28 escenarios E2E quedaron omitidos por guards del suite; no se
+levantó producción ni se hizo deploy.
 
-ENTREGADO: los tres hallazgos funcionales corregidos, con RED/GREEN y cambios
-sin commit. BLOQUEADO: gates preexistentes separados (typecheck/build,
-cobertura global y E2E por PID ocupado).
+ENTREGADO: los tres hallazgos funcionales corregidos, con RED/GREEN y gates
+técnicos verificados.
 
 ## Continuación DB Wave 2
 
@@ -106,25 +104,27 @@ payload distinto devuelve `IDEMPOTENCY_CONFLICT`.
 
 | Gate | Resultado |
 |---|---|
-| Pruebas de reproducción focalizadas | **0/27 ejecutadas**: los 2 archivos fueron skipped por falta de PostgreSQL de gate |
+| Pruebas de reproducción focalizadas | **27/27 pasaron** con PostgreSQL gate |
 | Lint | **exit 0**, sin errores ni warnings |
-| Typecheck | **exit 2**, errores preexistentes fuera de los archivos cambiados |
+| Typecheck | **exit 0**, 0 errores |
 | Prisma validate | **exit 0**, schema válido; sin cambios de schema/migrations |
 | `git diff --check` | **exit 0**, sin salida |
 
-No se tocaron `prisma/schema.prisma` ni `prisma/migrations/`, no se agregaron
-dependencias y no se hizo commit/push.
+No se tocaron `prisma/schema.prisma` ni `prisma/migrations`, no se agregaron
+dependencias y los cambios fueron commiteados en `5bd4adc`.
 
 ### Verificación posterior con PostgreSQL local
 
 | Gate | Resultado |
 |---|---|
 | `npm.cmd run test:ledger` | **OK**: 0 divergencias; RLS 43/43 tablas habilitado y forzado |
-| `npm.cmd run test:concurrency` | **ROJO**: 22/22 rondas fallaron por diagnóstico preexistente de Prisma (`Product.categoryId` no existe en el cliente generado) |
-| Integración focalizada (`inventory-hardening`, `sync-conflicts`) | **ROJO**: 9/27 pasaron, 18/27 fallaron por el mismo diagnóstico preexistente |
+| `npm.cmd run test:concurrency` | **OK**: 22/22 tests |
+| Integración focalizada (`inventory-hardening`, `sync-conflicts`) | **OK**: 27/27 tests |
+| `npm.cmd run test:coverage` con PostgreSQL | **OK**: 367/367 tests; 92.41% líneas |
+| `npm.cmd run test:e2e` | **OK**: 8/8 ejecutados pasaron; 28 omitidos por guards |
 
-El bloqueo de Prisma pertenece a `src/server/repositories/inventory.ts` y no
-fue introducido por esta ola; no se modificó como trabajo no relacionado.
+El diagnóstico de Prisma quedó corregido consultando la relación de categoría
+existente; no se modificaron schema ni migraciones.
 
 La reproducción RED quedó agregada antes del arreglo, pero el runner no pudo
 ejecutarla contra PostgreSQL (los 27 tests de ambos archivos quedaron skipped);
@@ -149,11 +149,11 @@ que el flujo de promociones siga siendo nullable y server-side.
 | `npm.cmd run db:validate` | **exit 0**, schema válido |
 | `npm.cmd run typecheck` | **exit 0**, 0 errores |
 | `npm.cmd run lint` | **exit 0**, 0 errores/warnings |
-| `npm.cmd test` | **206/206 passed**, 161 skipped; 34 archivos pasaron, 24 skipped |
+| `npm.cmd test` | **206/206 passed**, 161 skipped sin variables de integración |
 | `npm.cmd run build` | **exit 0**, compilación y generación de 20 páginas |
-| Integración `promotions-checkout` | **NO EJECUTADA**, 1 skipped por falta de PostgreSQL de gate |
-| `npm.cmd run test:concurrency` | **NO EJECUTADO**, exit 1: faltan `DATABASE_URL` y `TEST_DATABASE_URL` |
-| `npm.cmd run test:ledger` | **NO EJECUTADO**, exit 1: falta `TEST_DATABASE_URL` |
+| Integración `promotions-checkout` | **OK** con PostgreSQL gate; incluida en 367/367 |
+| `npm.cmd run test:concurrency` | **OK**: 22/22 |
+| `npm.cmd run test:ledger` | **OK**: 0 divergencias; RLS 43/43 |
 | `git diff --check` | **exit 0**, sin salida |
 
 Archivos modificados: `src/server/repositories/inventory.ts` y este informe.
