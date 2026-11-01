@@ -5,7 +5,7 @@ import styles from "./modal.module.css";
 
 type ModalProps = {
   ariaLabelledBy: string;
-  children: ReactNode;
+  children?: ReactNode;
   closeDisabled?: boolean;
   onRequestClose: () => void;
 };

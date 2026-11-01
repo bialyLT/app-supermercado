@@ -11,13 +11,9 @@ describe("Modal", () => {
         {
           ariaLabelledBy: "dialog-title",
           onRequestClose: () => undefined,
-          children: React.createElement(
-            React.Fragment,
-            null,
-            React.createElement("h2", { id: "dialog-title" }, "Keyboard help"),
-            React.createElement("button", { type: "button" }, "Close")
-          ),
-        }
+        },
+        React.createElement("h2", { id: "dialog-title" }, "Keyboard help"),
+        React.createElement("button", { type: "button" }, "Close")
       )
     );
 
