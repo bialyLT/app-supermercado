@@ -17,6 +17,18 @@ export function listInventoryAlerts(actor: Actor, clock = repository.systemClock
   return execute(actor, clock, () => repository.alerts(actor, clock));
 }
 
+export function listInventoryReceipts(actor: Actor, clock = repository.systemClock) {
+  return execute(actor, clock, () => repository.receipts(actor, clock));
+}
+
+export function listUnverifiedIntakes(actor: Actor, clock = repository.systemClock) {
+  return execute(actor, clock, () => repository.intakes(actor, clock));
+}
+
+export function getUnverifiedIntake(actor: Actor, id: string, clock = repository.systemClock) {
+  return execute(actor, clock, () => repository.intakeById(actor, id, clock));
+}
+
 export function recordReceipt(actor: Actor, input: z.input<typeof receiptSchema>, clock = repository.systemClock) {
   return execute(actor, clock, () => repository.receipt(actor, receiptSchema.parse(input), clock));
 }

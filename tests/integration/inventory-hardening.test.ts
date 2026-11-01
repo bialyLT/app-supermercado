@@ -6,6 +6,23 @@ import { admin, runtime, fixture, addActor, clock, enabled, reconcile } from "./
 
 afterAll(async () => { await admin.$disconnect(); await runtime.$disconnect(); });
 (enabled ? describe : describe.skip)("inventory adversarial regression", () => {
+  it("enforces the pending-intake trigger and runtime privilege boundary", async () => {
+    const triggers = await admin.$queryRaw<Array<{ triggerName: string }>>`
+      SELECT tgname AS "triggerName"
+      FROM pg_trigger
+      WHERE tgrelid = '"UnverifiedIntakeReview"'::regclass
+        AND tgname = 'UnverifiedIntakeReview_immutable'
+        AND NOT tgisinternal`;
+    expect(triggers).toHaveLength(1);
+    const privileges = await admin.$queryRaw<Array<{
+      canUpdate: boolean; canDelete: boolean; canTruncate: boolean;
+    }>>`
+      SELECT has_table_privilege('supermercado_app', '"UnverifiedIntakeReview"', 'UPDATE') AS "canUpdate",
+        has_table_privilege('supermercado_app', '"UnverifiedIntakeReview"', 'DELETE') AS "canDelete",
+        has_table_privilege('supermercado_app', '"UnverifiedIntakeReview"', 'TRUNCATE') AS "canTruncate"`;
+    expect(privileges).toEqual([{ canUpdate: false, canDelete: false, canTruncate: false }]);
+  });
+
   it.each(["40001", "40P01"])("retries real SQLSTATE %s without partial writes, at most three times", async (code) => {
     const f = await fixture();
     let attempts = 0;
@@ -183,7 +200,11 @@ afterAll(async () => { await admin.$disconnect(); await runtime.$disconnect(); }
     expect(updated.status).toBe(decision);
     expect(updated.quantity.toString()).toBe("1");
     if (decision === "REJECTED") {
-      expect(await admin.inventoryMovement.count({ where: { tenantId: f.tenantId } })).toBe(before);
+      expect(await admin.inventoryMovement.count({ where: { tenantId: f.tenantId } })).toBe(before + 1);
+      const compensation = await admin.inventoryMovement.findFirstOrThrow({
+        where: { tenantId: f.tenantId, caseId: original.id, direction: "OUT", type: "ADJUSTMENT" },
+      });
+      expect(compensation.quantity.toString()).toBe("1");
       const discrepancy = await admin.inventoryDiscrepancy.findFirstOrThrow({ where: { tenantId: f.tenantId } });
       expect(discrepancy.saleLineId).toBe(original.saleLineId);
       expect(discrepancy.sessionId).toBe(f.actor.sessionId);
