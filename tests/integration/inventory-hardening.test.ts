@@ -193,6 +193,7 @@ afterAll(async () => { await admin.$disconnect(); await runtime.$disconnect(); }
     await expect(reviewUnverifiedIntake(f.actor, input, clock)).rejects.toThrow("SEPARATION_OF_DUTIES");
     const reviewer = await addActor(f.tenantId, f.branchId, "STOCK_MANAGER");
     const before = await admin.inventoryMovement.count({ where: { tenantId: f.tenantId } });
+    const stockBefore = await admin.inventoryLevel.findFirstOrThrow({ where: { tenantId: f.tenantId, ...f.stock } });
     const result = await reviewUnverifiedIntake(reviewer, input, clock);
     expect(await reviewUnverifiedIntake(reviewer, input, clock)).toEqual(result);
     await expect(reviewUnverifiedIntake(reviewer, { ...input, idempotencyKey: "again" }, clock)).rejects.toThrow("REVIEW_ALREADY_CLOSED");
@@ -200,11 +201,10 @@ afterAll(async () => { await admin.$disconnect(); await runtime.$disconnect(); }
     expect(updated.status).toBe(decision);
     expect(updated.quantity.toString()).toBe("1");
     if (decision === "REJECTED") {
-      expect(await admin.inventoryMovement.count({ where: { tenantId: f.tenantId } })).toBe(before + 1);
-      const compensation = await admin.inventoryMovement.findFirstOrThrow({
-        where: { tenantId: f.tenantId, caseId: original.id, direction: "OUT", type: "ADJUSTMENT" },
-      });
-      expect(compensation.quantity.toString()).toBe("1");
+      expect(await admin.inventoryMovement.count({ where: { tenantId: f.tenantId } })).toBe(before);
+      expect(await admin.inventoryMovement.findFirst({ where: { tenantId: f.tenantId, caseId: original.id, type: "ADJUSTMENT" } })).toBeNull();
+      const stockAfter = await admin.inventoryLevel.findFirstOrThrow({ where: { tenantId: f.tenantId, ...f.stock } });
+      expect(stockAfter.onHand.toString()).toBe(stockBefore.onHand.toString());
       const discrepancy = await admin.inventoryDiscrepancy.findFirstOrThrow({ where: { tenantId: f.tenantId } });
       expect(discrepancy.saleLineId).toBe(original.saleLineId);
       expect(discrepancy.sessionId).toBe(f.actor.sessionId);
@@ -213,15 +213,20 @@ afterAll(async () => { await admin.$disconnect(); await runtime.$disconnect(); }
     expect(await reconcile(f.tenantId)).toHaveLength(0);
   });
 
-  it("rejects invalid/negative corrections and supports explicit known cost confirmation", async () => {
+  it("rejects corrections that would overdraw stock and supports explicit known cost confirmation", async () => {
     const f = await fixture();
     const reviewer = await addActor(f.tenantId, f.branchId, "STOCK_MANAGER");
-    await confirmSale(f.actor, { ...f.stock, quantity: "1", unitPrice: "1", allowUnverifiedIntake: true, idempotencyKey: "sale" }, clock);
+    await confirmSale(f.actor, { ...f.stock, quantity: "2", unitPrice: "1", allowUnverifiedIntake: true, idempotencyKey: "sale" }, clock);
     const original = await admin.unverifiedIntakeReview.findFirstOrThrow({ where: { tenantId: f.tenantId } });
     const base = { reviewId: original.id, reason: "verify", idempotencyKey: "review" };
     await expect(reviewUnverifiedIntake(reviewer, { ...base, decision: "CORRECTED" }, clock)).rejects.toThrow("CORRECTION_REQUIRED");
     await expect(reviewUnverifiedIntake(reviewer, { ...base, decision: "CONFIRMED" }, clock)).rejects.toThrow("COST_ACKNOWLEDGEMENT_REQUIRED");
-    await expect(reviewUnverifiedIntake(reviewer, { ...base, decision: "CORRECTED", correctionQuantity: "0" }, clock)).rejects.toThrow("CORRECTION_WOULD_NEGATE_STOCK");
+    const movementsBefore = await admin.inventoryMovement.count({ where: { tenantId: f.tenantId } });
+    const discrepanciesBefore = await admin.inventoryDiscrepancy.count({ where: { tenantId: f.tenantId } });
+    await expect(reviewUnverifiedIntake(reviewer, { ...base, decision: "CORRECTED", correctionQuantity: "1" }, clock)).rejects.toThrow("CORRECTION_WOULD_NEGATE_STOCK");
+    expect((await admin.unverifiedIntakeReview.findUniqueOrThrow({ where: { id: original.id } })).status).toBe("PENDING_REVIEW");
+    expect(await admin.inventoryMovement.count({ where: { tenantId: f.tenantId } })).toBe(movementsBefore);
+    expect(await admin.inventoryDiscrepancy.count({ where: { tenantId: f.tenantId } })).toBe(discrepanciesBefore);
     await reviewUnverifiedIntake(reviewer, { ...base, decision: "CONFIRMED", unitCost: "5.00" }, clock);
     const receipt = await admin.inventoryMovement.findFirstOrThrow({ where: { tenantId: f.tenantId, type: "RECEIPT" } });
     expect(receipt.unitCost?.toString()).toBe("5");

@@ -462,13 +462,7 @@ export async function review(actor: Actor, input: ReviewInput, clock: Clock) {
       }
       if (input.decision === "REJECTED") {
         if (!original.saleId || !original.saleLineId || !original.sessionId || !original.registerSessionId) throw new InventoryError("LEGACY_INTAKE_CONTEXT_REQUIRED");
-        const stock = await level(tx, verified, original);
-        const changed = await tx.$executeRaw`UPDATE "InventoryLevel" SET "onHand" = "onHand" - ${original.quantity.toString()}::decimal
-          WHERE "id" = ${stock.id}::uuid AND "tenantId" = ${verified.tenantId}::uuid
-            AND "onHand" - "reserved" >= ${original.quantity.toString()}::decimal`;
-        if (changed !== 1) throw new InventoryError("REJECTED_WOULD_NEGATE_STOCK");
-        await tx.inventoryMovement.create({ data: { ...base, quantity: original.quantity, direction: "OUT", type: "ADJUSTMENT",
-          reason: `${input.reason} (unverified intake rejected)` } });
+        // The sale already happened: rejecting its intake closes the case and records a discrepancy without reversing the ledger.
         await tx.inventoryDiscrepancy.create({ data: { tenantId: verified.tenantId, reviewId: original.id, saleId: original.saleId,
           saleLineId: original.saleLineId, sessionId: original.sessionId, registerSessionId: original.registerSessionId, reason: input.reason } });
       }
