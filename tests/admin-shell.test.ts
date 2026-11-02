@@ -126,6 +126,12 @@ describe("administrative shell navigation model", () => {
       { label: "Inicio", href: "/admin" },
       { label: "Arqueos y Turnos", href: "/admin/cash-shifts" },
     ]);
+    expect(getBreadcrumbs("/admin/inventory/intakes/11111111-1111-4111-8111-111111111111")).toEqual([
+      { label: "Inicio", href: "/admin" },
+      { label: "Inventario", href: "/admin/inventory" },
+      { label: "Intakes", href: "/admin/inventory/intakes" },
+      { label: "Detalle de intake", href: "/admin/inventory/intakes/11111111-1111-4111-8111-111111111111" },
+    ]);
   });
 
   it("exposes keyboard shortcuts including help, menu toggle, and fast navigation (S5)", () => {
