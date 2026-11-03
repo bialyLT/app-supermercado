@@ -35,7 +35,12 @@ test.describe("promotion administration UI", () => {
     await page.getByRole("button", { name: "Crear promoción" }).click();
     await expect(page.getByRole("cell", { name: "E2E 2x1" })).toBeVisible();
 
+    const deactivated = page.waitForResponse((response) =>
+      response.request().method() === "DELETE" && response.url().includes("/api/admin/promotions/"),
+    );
     await page.getByRole("button", { name: "Desactivar" }).click();
+    const response = await deactivated;
+    expect(response.status()).toBe(200);
     await expect(page.getByRole("cell", { name: "Inactiva" })).toBeVisible();
   });
 });

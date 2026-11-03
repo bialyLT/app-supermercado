@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { apiFetch, errorMessage } from "../../src/client/api-fetch";
+import { InventoryVariantField, LocationSelect, isVariantSelectionStale, locationFilterDisplay, operationalContextSchema, toContextErrorMessage, useVariantSelection } from "../inventory/inventory-selectors";
+import type { CatalogSelectorItem, OperationalSelectorContext } from "../inventory/inventory-selectors";
 import { formatCurrency, formatDateTime, formatQuantity, parseDateTimeLocal } from "../../src/client/presentation";
 import { z } from "zod";
 import styles from "./operational-read.module.css";
@@ -57,6 +59,30 @@ export function OperationalRead({ surface }: { readonly surface: Surface }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [filterError, setFilterError] = useState("");
+  const [context, setContext] = useState<OperationalSelectorContext | null>(null);
+  const [contextLoading, setContextLoading] = useState(surface === "inventory");
+  const [contextError, setContextError] = useState("");
+  const variantSelection = useVariantSelection();
+  const variantQueryRef = useRef("");
+  useEffect(() => {
+    variantQueryRef.current = variantSelection.query;
+  });
+  const contextSeq = useRef(0);
+  const loadContext = useCallback(() => {
+    if (surface !== "inventory") return;
+    const seq = contextSeq.current + 1;
+    contextSeq.current = seq;
+    setContextLoading(true); setContextError("");
+    void apiFetch("/api/admin/context").then(async (response) => {
+      const parsed = operationalContextSchema.parse(await response.json());
+      if (contextSeq.current !== seq) return;
+      setContext(parsed); setContextLoading(false);
+    }).catch((reason) => {
+      if (contextSeq.current !== seq) return;
+      setContextError(toContextErrorMessage(reason));
+      setContextLoading(false);
+    });
+  }, [surface]);
 
   const load = useCallback(async () => {
     setFilterError("");
@@ -64,6 +90,10 @@ export function OperationalRead({ surface }: { readonly surface: Surface }) {
     try {
       if (filters.from && filters.to && new Date(parseDateTimeLocal(filters.to)).getTime() <= new Date(parseDateTimeLocal(filters.from)).getTime()) {
         setFilterError("El rango de fechas debe terminar después de comenzar.");
+        return;
+      }
+      if (surface === "inventory" && !filters.variantId && variantQueryRef.current.trim().length > 0) {
+        setFilterError("Buscá y seleccioná una variante del catálogo.");
         return;
       }
       if (surface === "inventory") {
@@ -90,18 +120,38 @@ export function OperationalRead({ surface }: { readonly surface: Surface }) {
     const timer = window.setTimeout(() => { void load(); }, 0);
     return () => window.clearTimeout(timer);
   }, [load]);
+  useEffect(() => { queueMicrotask(() => { void loadContext(); }); }, [loadContext]);
   function update(key: keyof Filters, value: string) { setFilters((current) => ({ ...current, [key]: value })); }
+  function handleVariantQuery(value: string) {
+    const hadSelection = variantSelection.selected !== null;
+    variantSelection.setQuery(value);
+    if (filters.variantId && (!hadSelection || isVariantSelectionStale(value, variantSelection.selected?.label ?? ""))) update("variantId", "");
+  }
+  function handleVariantSelect(option: CatalogSelectorItem) { variantSelection.select(option); update("variantId", option.id); }
+  function clearVariantFilter() { variantSelection.reset(); update("variantId", ""); }
 
   return <section className={styles.shell} aria-labelledby={`${surface}-title`}>
     <header className={styles.header}><div><h1 id={`${surface}-title`}>{titles[surface]}</h1><p>Consulta de solo lectura, limitada por tu sesión y sucursales autorizadas.</p></div></header>
     <form className={styles.filters} onSubmit={(event) => { event.preventDefault(); void load(); }}>
       <Filter label="Sucursal" value={filters.branchId} onChange={(v) => update("branchId", v)} placeholder="ID opcional" />
-      {surface === "inventory" && <><Filter label="Ubicación" value={filters.locationId} onChange={(v) => update("locationId", v)} placeholder="ID opcional" /><Filter label="Variante / SKU" value={filters.variantId} onChange={(v) => update("variantId", v)} placeholder="ID opcional" /></>}
+      {surface === "inventory" && <>
+        {contextError ? (
+          <div className={styles.field}><span id="inventory-location-fallback">Ubicación</span><div className={styles.chipRow} aria-labelledby="inventory-location-fallback"><span>{locationFilterDisplay(filters.locationId, context?.locations ?? []) ?? "Todas las ubicaciones"}</span>{filters.locationId && <button className={styles.button} type="button" onClick={() => update("locationId", "")}>Quitar</button>}<button className={styles.button} type="button" onClick={loadContext}>Reintentar</button></div></div>
+        ) : (
+          <LocationSelect id="inventory-location" label="Ubicación" locations={context?.locations ?? []} value={filters.locationId} onChange={(v) => update("locationId", v)} loading={contextLoading} includeAllOption fieldClassName={styles.field} selectClassName={styles.selectorControl} />
+        )}
+        {filters.variantId ? (
+          <div className={styles.field}><label id="inventory-variant-applied">Variante / SKU</label><div className={styles.chipRow} aria-labelledby="inventory-variant-applied"><span>{variantSelection.selected?.label ?? "Filtro por variante aplicado"}</span><button className={styles.button} type="button" onClick={clearVariantFilter}>Quitar</button></div></div>
+        ) : (
+          <InventoryVariantField id="inventory-variant" label="Variante / SKU" query={variantSelection.query} options={variantSelection.options} searching={variantSelection.searching} searchError={variantSelection.searchError} onQueryChange={handleVariantQuery} onSelect={handleVariantSelect} fieldClassName={styles.field} inputClassName={styles.selectorControl} />
+        )}
+      </>}
       <Filter label="Desde" type="datetime-local" value={filters.from} onChange={(v) => update("from", v)} />
       <Filter label="Hasta" type="datetime-local" value={filters.to} onChange={(v) => update("to", v)} />
       <div className={styles.actions}><button className={styles.button} type="submit">Aplicar filtros</button></div>
     </form>
     {filterError && <p className={styles.status} role="alert">{filterError}</p>}
+    {surface === "inventory" && contextError && <p className={styles.status} role="note">Ubicaciones por nombre no disponibles: {contextError} Se mantiene el filtro aplicado y la consulta sigue disponible.</p>}
     {loading && <p role="status">Cargando datos…</p>}
     {error && <div className={`${styles.status} ${error.includes("permisos") ? styles.forbidden : ""}`} role="alert">{error} <button className={styles.button} type="button" onClick={() => void load()}>Reintentar</button></div>}
     {!loading && !error && ((surface === "inventory" && !(data as InventoryData).levels.length && !(data as InventoryData).movements.length) || (surface !== "inventory" && !(data as (Sale[] | Shift[])).length)) && <p className={styles.empty}>No hay resultados para los filtros seleccionados.</p>}
