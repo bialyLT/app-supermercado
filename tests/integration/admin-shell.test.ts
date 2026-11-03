@@ -65,9 +65,9 @@ describe("admin shell integration and invariants", () => {
       const crumbs = getBreadcrumbs(item.href);
       expect(crumbs[0]).toEqual({ label: "Inicio", href: "/admin" });
       if (item.href !== "/admin") {
-        expect(crumbs.length).toBe(2);
-        expect(crumbs[1].href).toBe(item.href);
-        expect(crumbs[1].label).toBe(item.label);
+        expect(crumbs.length).toBeGreaterThanOrEqual(2);
+        expect(crumbs[crumbs.length - 1].href).toBe(item.href);
+        expect(crumbs[crumbs.length - 1].label).toBe(item.label);
       }
     }
   });

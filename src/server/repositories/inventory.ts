@@ -20,9 +20,9 @@ import type { SaleLineSourceSnapshot } from "../../domain/weighed-barcode";
 
 export const inventoryPermissions: Record<Actor["role"], readonly Permission[]> = {
   CASHIER: ["cash.session.open", "cash.session.close", "inventory.sell", "inventory.catalog.read", "inventory.unverified_intake.create"],
-  STOCK_MANAGER: ["inventory.receive", "inventory.transfer", "inventory.reserve", "inventory.catalog.read", "inventory.catalog.write", "inventory.unverified_intake.review", "fiscal.profile.read"],
-  SUPERVISOR: ["cash.session.open", "cash.session.close", "cash.session.close.other", "identity.supervisor_pin.manage", "inventory.sale.approve", "inventory.sell", "inventory.reserve", "inventory.catalog.read", "inventory.unverified_intake.create", "inventory.unverified_intake.review", "inventory.expired.override"],
-  ADMIN: ["inventory.policy.manage", "cash.session.open", "cash.session.close", "cash.session.close.other", "identity.supervisor_pin.manage", "inventory.sale.approve", "inventory.write", "inventory.receive", "inventory.transfer", "inventory.sell", "inventory.reserve", "inventory.catalog.read", "inventory.catalog.write", "inventory.unverified_intake.create", "inventory.unverified_intake.review", "inventory.expired.override", "fiscal.profile.manage", "fiscal.profile.read"],
+  STOCK_MANAGER: ["inventory.receive", "inventory.transfer", "inventory.reserve", "inventory.catalog.read", "inventory.catalog.write", "inventory.unverified_intake.review", "inventory.level.read", "inventory.ledger.read", "fiscal.profile.read"],
+  SUPERVISOR: ["cash.session.open", "cash.session.close", "cash.session.close.other", "identity.supervisor_pin.manage", "inventory.sale.approve", "inventory.sell", "inventory.reserve", "inventory.catalog.read", "inventory.unverified_intake.create", "inventory.unverified_intake.review", "cash.history.read", "sales.read", "inventory.expired.override"],
+  ADMIN: ["inventory.policy.manage", "cash.session.open", "cash.session.close", "cash.session.close.other", "identity.supervisor_pin.manage", "inventory.sale.approve", "inventory.write", "inventory.receive", "inventory.transfer", "inventory.sell", "inventory.reserve", "inventory.catalog.read", "inventory.catalog.write", "inventory.unverified_intake.create", "inventory.unverified_intake.review", "inventory.expired.override", "inventory.level.read", "inventory.ledger.read", "sales.read", "cash.history.read", "fiscal.profile.manage", "fiscal.profile.read"],
 };
 export const systemClock = { now: () => new Date() };
 export type Clock = { now(): Date };
@@ -462,6 +462,7 @@ export async function review(actor: Actor, input: ReviewInput, clock: Clock) {
       }
       if (input.decision === "REJECTED") {
         if (!original.saleId || !original.saleLineId || !original.sessionId || !original.registerSessionId) throw new InventoryError("LEGACY_INTAKE_CONTEXT_REQUIRED");
+        // The sale already happened: rejecting its intake closes the case and records a discrepancy without reversing the ledger.
         await tx.inventoryDiscrepancy.create({ data: { tenantId: verified.tenantId, reviewId: original.id, saleId: original.saleId,
           saleLineId: original.saleLineId, sessionId: original.sessionId, registerSessionId: original.registerSessionId, reason: input.reason } });
       }
@@ -487,4 +488,81 @@ export async function alerts(actor: Actor, clock: Clock) {
       intakesByCashier: volumes.map((entry) => ({ cashierId: entry.createdBy, currency: entry.currency, count: entry._count._all,
         quantity: entry._sum.quantity?.toString() ?? "0", value: entry._sum.intakeValue?.toString() ?? null })) };
   });
+}
+
+export async function receipts(actor: Actor, clock: Clock) {
+  return inventoryTransaction(actor, "inventory.ledger.read", clock, async (tx, verified) => {
+    const locations = await tx.location.findMany({
+      where: { tenantId: verified.tenantId, branchId: { in: [...verified.branchIds] } },
+      select: { id: true },
+    });
+    const rows = await tx.inventoryMovement.findMany({
+      where: { tenantId: verified.tenantId, locationId: { in: locations.map(({ id }) => id) }, type: "RECEIPT" },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: 100,
+    });
+    return {
+      receipts: rows.map((row) => ({
+        id: row.id, locationId: row.locationId, variantId: row.variantId, lotId: row.lotId,
+        quantity: row.quantity.toString(), reason: row.reason, actorUserId: row.actorUserId,
+        createdAt: row.createdAt.toISOString(), referenceId: row.referenceId,
+      })),
+    };
+  });
+}
+
+const intakeSelect = {
+  id: true, locationId: true, variantId: true, lotId: true, quantity: true, reason: true,
+  status: true, saleId: true, saleLineId: true, intakeValue: true, currency: true,
+  businessDay: true, correctionQuantity: true, reviewedBy: true, reviewedAt: true,
+  createdBy: true, createdAt: true, provider: true, costStatus: true,
+} as const;
+
+async function scopedIntake(tx: Tx, actor: Actor, id: string) {
+  const original = await tx.unverifiedIntakeReview.findFirst({
+    where: { id, tenantId: actor.tenantId },
+    select: intakeSelect,
+  });
+  if (!original) throw new InventoryError("NOT_FOUND");
+  await locationAccess(tx, actor, original.locationId);
+  return original;
+}
+
+export async function intakes(actor: Actor, clock: Clock) {
+  return inventoryTransaction(actor, "inventory.unverified_intake.review", clock, async (tx, verified) => {
+    const locations = await tx.location.findMany({
+      where: { tenantId: verified.tenantId, branchId: { in: [...verified.branchIds] } },
+      select: { id: true },
+    });
+    const rows = await tx.unverifiedIntakeReview.findMany({
+      where: { tenantId: verified.tenantId, locationId: { in: locations.map(({ id }) => id) } },
+      select: intakeSelect,
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: 100,
+    });
+    return { intakes: rows.map(serializeIntake) };
+  });
+}
+
+export async function intakeById(actor: Actor, id: string, clock: Clock) {
+  return inventoryTransaction(actor, "inventory.unverified_intake.review", clock, async (tx, verified) => {
+    return { intake: serializeIntake(await scopedIntake(tx, verified, id)) };
+  });
+}
+
+function serializeIntake(row: {
+  id: string; locationId: string; variantId: string; lotId: string | null; quantity: Decimal;
+  reason: string; status: string; saleId: string | null; saleLineId: string | null;
+  intakeValue: Decimal | null; currency: string | null; businessDay: string | null;
+  correctionQuantity: Decimal | null; reviewedBy: string | null; reviewedAt: Date | null;
+  createdBy: string | null; createdAt: Date; provider: string; costStatus: string;
+}) {
+  return {
+    ...row,
+    quantity: row.quantity.toString(),
+    intakeValue: row.intakeValue?.toString() ?? null,
+    correctionQuantity: row.correctionQuantity?.toString() ?? null,
+    reviewedAt: row.reviewedAt?.toISOString() ?? null,
+    createdAt: row.createdAt.toISOString(),
+  };
 }

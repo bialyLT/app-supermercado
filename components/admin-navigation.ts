@@ -39,6 +39,23 @@ export const ADMIN_NAV_ITEMS: readonly NavItem[] = [
     shortcut: "Alt+T",
   },
   {
+    label: "Inventario",
+    href: "/admin/inventory",
+    roles: ["ADMIN", "STOCK_MANAGER"],
+    description: "Existencias y movimientos del ledger",
+    shortcut: "Alt+I",
+  },
+  { label: "Recepciones", href: "/admin/inventory/receipts", roles: ["ADMIN", "STOCK_MANAGER"], description: "Alta e historial de recepciones" },
+  { label: "Alertas de inventario", href: "/admin/inventory/alerts", roles: ["ADMIN", "STOCK_MANAGER", "SUPERVISOR"], description: "Casos pendientes fuera de umbral" },
+  { label: "Intakes", href: "/admin/inventory/intakes", roles: ["ADMIN", "STOCK_MANAGER", "SUPERVISOR"], description: "Revisión de discrepancias" },
+  {
+    label: "Ventas",
+    href: "/admin/sales",
+    roles: ["ADMIN", "SUPERVISOR"],
+    description: "Historial de ventas y detalle",
+    shortcut: "Alt+L",
+  },
+  {
     label: "Reportes",
     href: "/admin/reports",
     roles: ["ADMIN", "STOCK_MANAGER"],
@@ -79,6 +96,13 @@ export const ADMIN_NAV_ITEMS: readonly NavItem[] = [
     roles: ["ADMIN", "SUPERVISOR"],
     description: "Supervisión de caja, arqueos y anulaciones",
     shortcut: "Alt+S",
+  },
+  {
+    label: "Historial de caja",
+    href: "/admin/cash-shifts/history",
+    roles: ["ADMIN", "SUPERVISOR"],
+    description: "Turnos y movimientos históricos de caja",
+    shortcut: "Alt+Y",
   },
   {
     label: "Punto de Venta (POS)",
@@ -136,12 +160,18 @@ const ROUTE_LABELS: Record<string, string> = {
   "/admin/purchases": "Compras",
   "/admin/suppliers": "Proveedores",
   "/admin/transfers": "Transferencias",
+  "/admin/inventory": "Inventario",
+  "/admin/inventory/receipts": "Recepciones",
+  "/admin/inventory/alerts": "Alertas de inventario",
+  "/admin/inventory/intakes": "Intakes",
+  "/admin/sales": "Ventas",
   "/admin/reports": "Reportes",
   "/admin/promotions": "Promociones N×M",
   "/admin/users": "Usuarios",
   "/admin/settings": "Configuración",
   "/admin/weighed-barcode": "Códigos pesables",
   "/admin/cash-shifts": "Arqueos y Turnos",
+  "/admin/cash-shifts/history": "Historial de caja",
   "/pos": "Punto de Venta (POS)",
 };
 
@@ -157,6 +187,9 @@ export function getBreadcrumbs(pathname: string): Breadcrumb[] {
   if (normalized === "/admin") {
     return crumbs;
   }
+  if (normalized === "/admin/cash-shifts/history") {
+    return [...crumbs, { label: "Historial de caja", href: normalized }];
+  }
 
   const segments = normalized.split("/").filter(Boolean);
   let currentPath = "";
@@ -165,7 +198,8 @@ export function getBreadcrumbs(pathname: string): Breadcrumb[] {
     currentPath += `/${segments[i]}`;
     if (currentPath === "/admin") continue;
 
-    const label = ROUTE_LABELS[currentPath] ?? segments[i].charAt(0).toUpperCase() + segments[i].slice(1);
+    const label = ROUTE_LABELS[currentPath]
+      ?? (currentPath.startsWith("/admin/inventory/intakes/") ? "Detalle de intake" : segments[i].charAt(0).toUpperCase() + segments[i].slice(1));
     crumbs.push({ label, href: currentPath });
   }
 

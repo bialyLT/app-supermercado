@@ -73,6 +73,11 @@ export function parseDateTimeLocal(value: string, timeZone = branchTimeZone): st
   const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(value);
   if (!match) return value;
   const [, year, month, day, hour, minute] = match;
+  const candidate = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute)));
+  if (candidate.getUTCFullYear() !== Number(year) || candidate.getUTCMonth() !== Number(month) - 1 ||
+    candidate.getUTCDate() !== Number(day) || candidate.getUTCHours() !== Number(hour) || candidate.getUTCMinutes() !== Number(minute)) {
+    throw new Error("Invalid local date");
+  }
   const wallClockAsUtc = Date.UTC(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute));
   const initial = new Date(wallClockAsUtc);
   const offset = timeZoneOffsetMinutes(initial, timeZone);
@@ -89,7 +94,7 @@ export function formatCurrency(
   currency = "ARS",
   locale = "es-AR",
 ): string {
-  if (value == null || value.trim() === "") value = "0";
+  if (value == null || value.trim() === "") return "No disponible";
   const amount = new Decimal(value);
   const fixed = amount.toFixed(2);
   const [integer, fraction] = fixed.split(".");
