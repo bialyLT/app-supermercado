@@ -7,7 +7,14 @@ test.afterAll(async () => {
   }
 });
 
+test("POS redirects unauthenticated visitors to login", async ({ page }) => {
+  await page.goto("/pos");
+  await expect(page).toHaveURL("/");
+});
+
 test("POS exposes keyboard-first controls and touch-sized actions", async ({ page }) => {
+  test.skip(!enabled, "Requires disposable PostgreSQL gate database and runtime roles");
+  await authenticateAdmin(page);
   await page.goto("/pos");
   await expect(page.getByRole("heading", { name: "POS" })).toBeVisible();
   await expect(page.getByText(/F2 buscar/)).toBeVisible();
@@ -19,6 +26,8 @@ test("POS exposes keyboard-first controls and touch-sized actions", async ({ pag
 });
 
 test("POS fits tablet viewport without horizontal overflow", async ({ page }) => {
+  test.skip(!enabled, "Requires disposable PostgreSQL gate database and runtime roles");
+  await authenticateAdmin(page);
   await page.setViewportSize({ width: 820, height: 1180 });
   await page.goto("/pos");
   const overflow = await page.evaluate(() => ({
@@ -173,6 +182,8 @@ test("POS normal catalogue checkout omits provenance", async ({ page }) => {
 });
 
 test("POS falls back to catalog when 13-digit barcode prefix mismatches or is not configured", async ({ page }) => {
+  test.skip(!enabled, "Requires disposable PostgreSQL gate database and runtime roles");
+  await authenticateAdmin(page);
   await page.route("**/api/pos/barcodes/price*", async (route) => {
     await route.fulfill({
       status: 400,
