@@ -128,7 +128,7 @@ afterAll(() => admin.$disconnect());
     const f = await setup(true);
     const approval = await approveInventorySale(f.actor, { approverUserId: f.supervisor.userId, pin: syntheticPin, reason: "Session-bound", sale: f.sale }, clock);
     const other = await addActor(f.tenantId, f.branchId, "CASHIER");
-    const register = await admin.cashRegister.create({ data: { tenantId: f.tenantId, branchId: f.branchId, name: "Second register" } });
+    const register = await admin.cashRegister.create({ data: { tenantId: f.tenantId, branchId: f.branchId, name: "Second register", locationId: f.locationId } });
     await openRegisterSession(other, { registerId: register.id, idempotencyKey: "other-open" }, clock);
     await expect(confirmSale(other, { ...f.sale, approvalToken: approval.token }, clock)).rejects.toThrow("INVALID_SUPERVISOR_APPROVAL");
     await closeRegisterSession(f.actor, { registerSessionId: f.registerSessionId!, idempotencyKey: "close" }, clock);

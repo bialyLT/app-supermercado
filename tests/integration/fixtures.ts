@@ -9,7 +9,7 @@ export const runtime = new PrismaClient({ adapter: new PrismaPg({ connectionStri
 export const now = new Date("2026-10-26T12:00:00Z");
 export const clock = { now: () => now };
 
-export async function fixture(role: RoleName = "ADMIN", options: { cashSession?: boolean; unitPrice?: string } = {}) {
+export async function fixture(role: RoleName = "ADMIN", options: { cashSession?: boolean; unitPrice?: string; unassignedRegister?: boolean } = {}) {
   const tenant = await admin.tenant.create({ data: { name: "Gate fixture", slug: crypto.randomUUID() } });
   const store = await admin.store.create({ data: { tenantId: tenant.id, name: "Gate store" } });
   const branch = await admin.branch.create({ data: { tenantId: tenant.id, storeId: store.id, code: "gate", name: "Gate branch" } });
@@ -21,9 +21,12 @@ export async function fixture(role: RoleName = "ADMIN", options: { cashSession?:
   const actor = await addActor(tenant.id, branch.id, role);
   const policy = await admin.unverifiedIntakePolicy.create({ data: { tenantId: tenant.id, currency: "XTS", maxSessionValue: "100000" } });
   const price = await admin.price.create({ data: { tenantId: tenant.id, variantId: variant.id, currency: "XTS", amount: options.unitPrice ?? "1", validFrom: new Date("2020-01-01T00:00:00Z") } });
-  const register = await admin.cashRegister.create({ data: { tenantId: tenant.id, branchId: branch.id, name: "Gate register" } });
+  // Normal test registers carry a deliberate same-branch assignment and snapshot;
+  // pass unassignedRegister to reproduce the legacy fail-closed state explicitly.
+  const assignment = options.unassignedRegister ? {} : { locationId: location.id };
+  const register = await admin.cashRegister.create({ data: { tenantId: tenant.id, branchId: branch.id, name: "Gate register", ...assignment } });
   const registerSession = options.cashSession === false ? null : await admin.cashRegisterSession.create({ data: { tenantId: tenant.id,
-    registerId: register.id, branchId: branch.id, userId: actor.userId, currency: "XTS", openedAt: now } });
+    registerId: register.id, branchId: branch.id, userId: actor.userId, currency: "XTS", openedAt: now, ...assignment } });
   return { actor, tenantId: tenant.id, storeId: store.id, branchId: branch.id, variantId: variant.id, locationId: location.id,
     stock: { variantId: variant.id, locationId: location.id }, unitId: unit.id, productId: product.id,
     registerId: register.id, registerSessionId: registerSession?.id, priceId: price.id, policy, fiscalProfileId: fiscalProfile.id };

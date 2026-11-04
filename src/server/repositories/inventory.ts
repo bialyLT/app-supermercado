@@ -22,7 +22,7 @@ export const inventoryPermissions: Record<Actor["role"], readonly Permission[]> 
   CASHIER: ["cash.session.open", "cash.session.close", "inventory.sell", "inventory.catalog.read", "inventory.unverified_intake.create"],
   STOCK_MANAGER: ["inventory.receive", "inventory.transfer", "inventory.reserve", "inventory.catalog.read", "inventory.catalog.write", "inventory.unverified_intake.review", "inventory.level.read", "inventory.ledger.read", "fiscal.profile.read"],
   SUPERVISOR: ["cash.session.open", "cash.session.close", "cash.session.close.other", "identity.supervisor_pin.manage", "inventory.sale.approve", "inventory.sell", "inventory.reserve", "inventory.catalog.read", "inventory.unverified_intake.create", "inventory.unverified_intake.review", "cash.history.read", "sales.read", "inventory.expired.override"],
-  ADMIN: ["inventory.policy.manage", "cash.session.open", "cash.session.close", "cash.session.close.other", "identity.supervisor_pin.manage", "inventory.sale.approve", "inventory.write", "inventory.receive", "inventory.transfer", "inventory.sell", "inventory.reserve", "inventory.catalog.read", "inventory.catalog.write", "inventory.unverified_intake.create", "inventory.unverified_intake.review", "inventory.expired.override", "inventory.level.read", "inventory.ledger.read", "sales.read", "cash.history.read", "fiscal.profile.manage", "fiscal.profile.read"],
+  ADMIN: ["inventory.policy.manage", "cash.session.open", "cash.session.close", "cash.session.close.other", "cash.register.manage", "identity.supervisor_pin.manage", "inventory.sale.approve", "inventory.write", "inventory.receive", "inventory.transfer", "inventory.sell", "inventory.reserve", "inventory.catalog.read", "inventory.catalog.write", "inventory.unverified_intake.create", "inventory.unverified_intake.review", "inventory.expired.override", "inventory.level.read", "inventory.ledger.read", "sales.read", "cash.history.read", "fiscal.profile.manage", "fiscal.profile.read"],
 };
 export const systemClock = { now: () => new Date() };
 export type Clock = { now(): Date };
@@ -217,6 +217,10 @@ async function confirmSaleCore(tx: Tx, verified: Actor, now: Date, lines: SaleCo
   const { location } = await stockAccess(tx, verified, first);
   if (!location.branchId || lines.some((line) => line.locationId !== first.locationId)) throw new InventoryError("SAME_LOCATION_REQUIRED");
   const session = await currentRegisterSession(tx, verified, location.branchId);
+  // The sale location must equal the immutable session snapshot; legacy or
+  // unassigned sessions (NULL snapshot) fail closed, as do tampered requests.
+  if (!session.locationId) throw new InventoryError("REGISTER_LOCATION_REQUIRED");
+  if (session.locationId !== first.locationId) throw new InventoryError("REGISTER_LOCATION_MISMATCH");
   const policy = await configuredPolicy(tx, verified.tenantId);
   const approval = options.approvalToken ? await consume(tx, verified, options.approvalInput, session.id, location.branchId, now) : null;
   const plans: SalePlan[] = [];
