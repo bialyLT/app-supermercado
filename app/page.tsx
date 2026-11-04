@@ -1,7 +1,20 @@
+import { redirect } from "next/navigation";
 import LoginForm from "../components/auth/login-form";
+import { getHighestRole } from "../src/auth/roles";
+import { getServerIdentity } from "../src/auth/session";
 import styles from "./page.module.css";
 
-export default function HomePage() {
+export default async function HomePage() {
+  let identity: Awaited<ReturnType<typeof getServerIdentity>> = null;
+  try {
+    identity = await getServerIdentity();
+  } catch {
+    identity = null;
+  }
+
+  const role = identity ? getHighestRole(identity.roles) : undefined;
+  if (role === "CASHIER") redirect("/pos");
+  else if (role) redirect("/admin");
   return (
     <main className={styles.page}>
       <div className={styles.shell}>

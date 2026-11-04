@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { admin, authenticateAdmin, enabled } from "./helpers/auth";
+import { admin, authenticateAdmin, enabled, seedAdminIdentity } from "./helpers/auth";
 
 test.afterAll(async () => {
   if (enabled) {
@@ -228,3 +228,50 @@ test("POS displays error message on invalid configured weighed barcode scan", as
   await page.locator("#variant").fill("2012345001259");
   await expect(page.getByRole("status").filter({ hasText: "Código pesable inválido: INVALID_EAN13_CHECKSUM" })).toBeVisible();
 });
+
+test("T7/S7: unauthenticated / exposes the login form", async ({ page }) => {
+  await page.goto("/");
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByRole("heading", { name: "Ingresá a tu operación" })).toBeVisible();
+  await expect(page.getByLabel("Correo electrónico")).toBeVisible();
+  await expect(page.getByLabel("Contraseña")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Ingresar" })).toBeVisible();
+});
+
+test("T7/S7: authenticated ADMIN visiting / is redirected to /admin", async ({ page }) => {
+  test.skip(!enabled, "Requires disposable PostgreSQL gate database and runtime roles");
+  await authenticateAdmin(page, "ADMIN");
+  await page.goto("/");
+  await expect(page).toHaveURL(/\/admin/);
+  await expect(page.getByRole("heading", { name: "Panel Operativo y Administrativo" })).toBeVisible();
+});
+
+test("T7/S7: authenticated CASHIER visiting / is redirected to /pos", async ({ page }) => {
+  test.skip(!enabled, "Requires disposable PostgreSQL gate database and runtime roles");
+  await authenticateAdmin(page, "CASHIER");
+  await page.goto("/");
+  await expect(page).toHaveURL(/\/pos/);
+  await expect(page.getByRole("heading", { name: "POS" })).toBeVisible();
+});
+
+test("T7/S7: CASHIER completing the login form lands at /pos", async ({ page }) => {
+  test.skip(!enabled, "Requires disposable PostgreSQL gate database and runtime roles");
+  const { user, password } = await seedAdminIdentity("CASHIER");
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: "Ingresá a tu operación" })).toBeVisible();
+  await page.getByLabel("Correo electrónico").fill(user.email);
+  await page.getByLabel("Contraseña").fill(password);
+  await page.getByRole("button", { name: "Ingresar" }).click();
+  await expect(page).toHaveURL(/\/pos/, { timeout: 15000 });
+  await expect(page.getByRole("heading", { name: "POS" })).toBeVisible();
+});
+
+for (const role of ["STOCK_MANAGER", "SUPERVISOR"] as const) {
+  test(`T7/S7: authenticated ${role} visiting / is redirected to /admin`, async ({ page }) => {
+    test.skip(!enabled, "Requires disposable PostgreSQL gate database and runtime roles");
+    await authenticateAdmin(page, role);
+    await page.goto("/");
+    await expect(page).toHaveURL(/\/admin/);
+    await expect(page.getByRole("heading", { name: "Panel Operativo y Administrativo" })).toBeVisible();
+  });
+}
