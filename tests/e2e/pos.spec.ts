@@ -17,12 +17,33 @@ test("POS exposes keyboard-first controls and touch-sized actions", async ({ pag
   await authenticateAdmin(page);
   await page.goto("/pos");
   await expect(page.getByRole("heading", { name: "POS" })).toBeVisible();
-  await expect(page.getByText(/F2 buscar/)).toBeVisible();
+  await expect(page.getByText("Atajos: F2 buscar · F4 agregar · F8 pagar · F10 confirmar · Esc conserva el carrito")).toBeVisible();
+  const queueStatus = page.getByRole("status").filter({ hasText: "Conectado" });
+  await expect(queueStatus).toContainText("Pendientes:");
+  await expect(queueStatus).toContainText("Procesando:");
+  await expect(queueStatus).toContainText("Completados:");
+  await expect(queueStatus).toContainText("Conflictos:");
+  await expect(queueStatus).toContainText("Errores:");
   const add = page.getByRole("button", { name: /Agregar \(F4\)/ });
+  const addPayment = page.getByRole("button", { name: "Agregar medio" });
+  const confirm = page.getByRole("button", { name: /Confirmar \(F10\)/ });
   await expect(add).toBeVisible();
   await expect(add).toHaveCSS("min-height", "44px");
+  await expect(add).toHaveCSS("background-color", "rgb(255, 255, 255)");
+  await expect(addPayment).toBeVisible();
+  await expect(addPayment).toHaveCSS("background-color", "rgb(255, 255, 255)");
+  await expect(confirm).toBeVisible();
+  await expect(confirm).toHaveCSS("background-color", "rgb(2, 132, 199)");
+  await expect(confirm).toBeDisabled();
+  await expect(confirm).toHaveCSS("opacity", "0.6");
+  await addPayment.click();
+  await expect(page.getByLabel("Monto CARD")).toBeVisible();
   await page.keyboard.press("F2");
   await expect(page.locator("#variant")).toBeFocused();
+  await expect(page.locator("#variant")).toHaveCSS("outline-width", "2px");
+  await page.keyboard.press("F8");
+  await expect(page.locator("#payment")).toBeFocused();
+  await expect(page.locator("#payment")).toHaveCSS("outline-width", "2px");
 });
 
 test("POS fits tablet viewport without horizontal overflow", async ({ page }) => {
@@ -36,6 +57,13 @@ test("POS fits tablet viewport without horizontal overflow", async ({ page }) =>
   }));
   expect(overflow.scrollWidth).toBeLessThanOrEqual(overflow.clientWidth);
   await expect(page.getByRole("button", { name: /Agregar \(F4\)/ })).toHaveCSS("min-height", "44px");
+
+  await page.setViewportSize({ width: 1180, height: 820 });
+  const landscapeOverflow = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    clientWidth: document.documentElement.clientWidth,
+  }));
+  expect(landscapeOverflow.scrollWidth).toBeLessThanOrEqual(landscapeOverflow.clientWidth);
 });
 
 test("POS selects the highlighted catalog result with ArrowDown and Enter", async ({ page }) => {
@@ -57,7 +85,7 @@ test("POS selects the highlighted catalog result with ArrowDown and Enter", asyn
   await combobox.press("ArrowDown");
   await expect(combobox).toHaveAttribute("aria-activedescendant", /option-0$/);
   await combobox.press("Enter");
-  await expect(combobox).toHaveValue("123e4567-e89b-42d3-a456-426614174001");
+  await expect(combobox).toHaveValue("Gaseosa Cola · 7791234567890");
   await expect(combobox).toHaveAttribute("aria-expanded", "false");
 });
 
@@ -106,10 +134,11 @@ test("POS resolves weighed barcode, preserves unit price and barcode, adds to ca
 
   // Select suggestion
   await page.getByRole("option", { name: /Manzanas/ }).click();
+  await expect(page.locator("#variant")).toHaveValue("Manzanas · 12345");
 
   // Add line via F4
   await page.keyboard.press("F4");
-  await expect(page.getByRole("region", { name: "Carrito" })).toContainText("123e4567-e89b-42d3-a456-426614174000 × 1");
+  await expect(page.getByRole("region", { name: "Carrito" })).toContainText("Manzanas · 12345 × 1");
   await expect(page.locator("#variant")).toHaveValue("");
 
   // Pay and confirm via F10
@@ -162,9 +191,14 @@ test("POS normal catalogue checkout omits provenance", async ({ page }) => {
   const suggestion = page.getByRole("option", { name: /Gaseosa/ });
   await expect(suggestion).toBeVisible();
   await suggestion.click();
+  await expect(page.locator("#variant")).toHaveValue("Gaseosa Cola · 7791234567890");
 
   await page.keyboard.press("F4");
-  await expect(page.getByRole("region", { name: "Carrito" })).toContainText("123e4567-e89b-42d3-a456-426614174001 × 1");
+  const cart = page.getByRole("region", { name: "Carrito" });
+  await expect(cart).toContainText("Gaseosa Cola · 7791234567890 × 1");
+  await page.keyboard.press("Escape");
+  await expect(cart).toContainText("Gaseosa Cola · 7791234567890 × 1");
+  await expect(page.getByRole("status").filter({ hasText: "El carrito se conserva; no se realizó ningún cambio." })).toBeVisible();
 
   await page.locator("#payment").fill("10.00");
   await page.keyboard.press("F10");
