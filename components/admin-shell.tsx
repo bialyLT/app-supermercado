@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import type { RoleName } from "../src/domain/contracts";
@@ -9,6 +9,7 @@ import {
   getVisibleNavItems,
   isRoleAuthorizedForAdmin,
   KEYBOARD_SHORTCUTS,
+  NAV_GROUPS,
   ROLE_LABELS,
 } from "./admin-navigation";
 import { Modal } from "./modal";
@@ -35,6 +36,55 @@ export function AdminShell({
   const [selectedBranch, setSelectedBranch] = useState<string>(branches?.[0]?.id ?? "");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
+
+  // Drawer focus management (S3): containment while open, restoration on close.
+  const sidebarRef = useRef<HTMLElement | null>(null);
+  const closeDrawerButtonRef = useRef<HTMLButtonElement | null>(null);
+  const menuButtonRef = useRef<HTMLButtonElement | null>(null);
+  const previouslyFocusedRef = useRef<HTMLElement | null>(null);
+  const wasSidebarOpenRef = useRef(false);
+
+  const isDrawerMode = useCallback(
+    () => typeof window !== "undefined" && window.matchMedia("(max-width: 1024px)").matches,
+    []
+  );
+
+  const openSidebar = useCallback(() => {
+    if (document.activeElement instanceof HTMLElement) {
+      previouslyFocusedRef.current = document.activeElement;
+    }
+    setIsSidebarOpen(true);
+  }, []);
+
+  const closeSidebar = useCallback(() => {
+    setIsSidebarOpen(false);
+  }, []);
+
+  const toggleSidebar = useCallback(() => {
+    if (isSidebarOpen) {
+      closeSidebar();
+    } else {
+      openSidebar();
+    }
+  }, [isSidebarOpen, openSidebar, closeSidebar]);
+
+  useEffect(() => {
+    if (isSidebarOpen) {
+      wasSidebarOpenRef.current = true;
+      // Move focus into the drawer only when it behaves as an overlay (<=1024px).
+      if (isDrawerMode()) {
+        closeDrawerButtonRef.current?.focus();
+      }
+    } else if (wasSidebarOpenRef.current) {
+      wasSidebarOpenRef.current = false;
+      const previous = previouslyFocusedRef.current;
+      if (previous && document.contains(previous)) {
+        previous.focus();
+      } else {
+        menuButtonRef.current?.focus();
+      }
+    }
+  }, [isSidebarOpen, isDrawerMode]);
 
   const handleSignOut = useCallback(async () => {
     try {
@@ -66,8 +116,33 @@ export function AdminShell({
           setIsShortcutsOpen(false);
           event.preventDefault();
         } else if (isSidebarOpen) {
-          setIsSidebarOpen(false);
+          closeSidebar();
           event.preventDefault();
+        }
+        return;
+      }
+
+      // Focus containment: while the tablet drawer is open, Tab stays inside it (S3).
+      if (event.key === "Tab" && isSidebarOpen && isDrawerMode()) {
+        const sidebar = sidebarRef.current;
+        if (sidebar) {
+          const focusable = Array.from(
+            sidebar.querySelectorAll<HTMLElement>(
+              'a[href], button:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+            )
+          );
+          if (focusable.length > 0) {
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            const active = document.activeElement;
+            const wrapsBackward = event.shiftKey && active === first;
+            const wrapsForward = !event.shiftKey && active === last;
+            const entersDrawer = !sidebar.contains(active);
+            if (wrapsBackward || wrapsForward || entersDrawer) {
+              event.preventDefault();
+              (event.shiftKey ? last : first).focus();
+            }
+          }
         }
         return;
       }
@@ -82,7 +157,7 @@ export function AdminShell({
         router.push("/pos");
       } else if (event.altKey && (event.key === "m" || event.key === "M")) {
         event.preventDefault();
-        setIsSidebarOpen((prev) => !prev);
+        toggleSidebar();
       } else if (
         (event.altKey && (event.key === "k" || event.key === "K")) ||
         event.key === "?"
@@ -91,7 +166,7 @@ export function AdminShell({
         setIsShortcutsOpen((prev) => !prev);
       }
     },
-    [isShortcutsOpen, isSidebarOpen, router]
+    [isShortcutsOpen, isSidebarOpen, router, closeSidebar, toggleSidebar, isDrawerMode]
   );
 
   useEffect(() => {
@@ -110,13 +185,14 @@ export function AdminShell({
       {isSidebarOpen && (
         <div
           className={styles.backdrop}
-          onClick={() => setIsSidebarOpen(false)}
+          onClick={closeSidebar}
           aria-hidden="true"
         />
       )}
 
       {/* Sidebar navigation */}
       <aside
+        ref={sidebarRef}
         id="admin-sidebar"
         className={`${styles.sidebar} ${isSidebarOpen ? styles.sidebarOpen : ""}`}
         aria-label="Navegación del panel administrativo"
@@ -127,9 +203,10 @@ export function AdminShell({
             <span className={styles.brandBadge}>Admin</span>
           </Link>
           <button
+            ref={closeDrawerButtonRef}
             type="button"
             className={styles.closeDrawerButton}
-            onClick={() => setIsSidebarOpen(false)}
+            onClick={closeSidebar}
             aria-label="Cerrar navegación"
           >
             ✕
@@ -137,23 +214,34 @@ export function AdminShell({
         </div>
 
         <nav className={styles.navList} aria-label="Menú principal">
-          {visibleNavItems.map((item) => {
-            const isActive = pathname === item.href;
+          {NAV_GROUPS.map((group) => {
+            const items = visibleNavItems.filter((item) => item.group === group.id);
+            if (items.length === 0) {
+              return null;
+            }
             return (
-              <div key={item.href} className={styles.navItem}>
-                <Link
-                  href={item.href}
-                  className={`${styles.navLink} ${isActive ? styles.navLinkActive : ""}`}
-                  aria-current={isActive ? "page" : undefined}
-                  onClick={() => setIsSidebarOpen(false)}
-                >
-                  <span className={styles.navLinkText}>
-                    <span>{item.label}</span>
-                  </span>
-                  {item.shortcut && (
-                    <kbd className={styles.shortcutKbd}>{item.shortcut}</kbd>
-                  )}
-                </Link>
+              <div key={group.id} className={styles.navGroup}>
+                <div className={styles.navGroupTitle}>{group.title}</div>
+                {items.map((item) => {
+                  const isActive = pathname === item.href;
+                  return (
+                    <div key={item.href} className={styles.navItem}>
+                      <Link
+                        href={item.href}
+                        className={`${styles.navLink} ${isActive ? styles.navLinkActive : ""}`}
+                        aria-current={isActive ? "page" : undefined}
+                        onClick={closeSidebar}
+                      >
+                        <span className={styles.navLinkText}>
+                          <span>{item.label}</span>
+                        </span>
+                        {item.shortcut && (
+                          <kbd className={styles.shortcutKbd}>{item.shortcut}</kbd>
+                        )}
+                      </Link>
+                    </div>
+                  );
+                })}
               </div>
             );
           })}
@@ -180,9 +268,10 @@ export function AdminShell({
         <header className={styles.header}>
           <div className={styles.headerLeft}>
             <button
+              ref={menuButtonRef}
               type="button"
               className={styles.menuToggleButton}
-              onClick={() => setIsSidebarOpen((prev) => !prev)}
+              onClick={toggleSidebar}
               aria-expanded={isSidebarOpen}
               aria-controls="admin-sidebar"
               aria-label="Alternar menú de navegación"

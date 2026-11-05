@@ -1,8 +1,21 @@
 import type { RoleName } from "../src/domain/contracts";
 
+export type NavGroupId = "operacion" | "administracion";
+
+export type NavGroup = {
+  readonly id: NavGroupId;
+  readonly title: string;
+};
+
+export const NAV_GROUPS: readonly NavGroup[] = [
+  { id: "operacion", title: "Operación" },
+  { id: "administracion", title: "Administración" },
+];
+
 export type NavItem = {
   readonly label: string;
   readonly href: string;
+  readonly group: NavGroupId;
   readonly roles: readonly RoleName[];
   readonly description?: string;
   readonly badge?: string;
@@ -13,6 +26,7 @@ export const ADMIN_NAV_ITEMS: readonly NavItem[] = [
   {
     label: "Inicio",
     href: "/admin",
+    group: "operacion",
     roles: ["ADMIN", "STOCK_MANAGER", "SUPERVISOR"],
     description: "Tablero operativo general",
     shortcut: "Alt+H",
@@ -20,6 +34,7 @@ export const ADMIN_NAV_ITEMS: readonly NavItem[] = [
   {
     label: "Compras",
     href: "/admin/purchases",
+    group: "operacion",
     roles: ["ADMIN", "STOCK_MANAGER"],
     description: "Recepción y comprobantes de compra",
     shortcut: "Alt+C",
@@ -27,6 +42,7 @@ export const ADMIN_NAV_ITEMS: readonly NavItem[] = [
   {
     label: "Proveedores",
     href: "/admin/suppliers",
+    group: "operacion",
     roles: ["ADMIN", "STOCK_MANAGER"],
     description: "Gestión y catálogo de proveedores comerciales",
     shortcut: "Alt+V",
@@ -34,6 +50,7 @@ export const ADMIN_NAV_ITEMS: readonly NavItem[] = [
   {
     label: "Transferencias",
     href: "/admin/transfers",
+    group: "operacion",
     roles: ["ADMIN", "STOCK_MANAGER"],
     description: "Movimientos entre sucursales y depósitos",
     shortcut: "Alt+T",
@@ -41,6 +58,7 @@ export const ADMIN_NAV_ITEMS: readonly NavItem[] = [
   {
     label: "Reportes",
     href: "/admin/reports",
+    group: "operacion",
     roles: ["ADMIN", "STOCK_MANAGER"],
     description: "Reportes operativos y exportación tabular",
     shortcut: "Alt+R",
@@ -48,6 +66,7 @@ export const ADMIN_NAV_ITEMS: readonly NavItem[] = [
   {
     label: "Promociones N×M",
     href: "/admin/promotions",
+    group: "administracion",
     roles: ["ADMIN"],
     description: "Reglas de promociones vigentes por categoría",
     shortcut: "Alt+N",
@@ -55,6 +74,7 @@ export const ADMIN_NAV_ITEMS: readonly NavItem[] = [
   {
     label: "Usuarios",
     href: "/admin/users",
+    group: "administracion",
     roles: ["ADMIN"],
     description: "Gestión de personal y roles de acceso",
     shortcut: "Alt+U",
@@ -62,6 +82,7 @@ export const ADMIN_NAV_ITEMS: readonly NavItem[] = [
   {
     label: "Configuración",
     href: "/admin/settings",
+    group: "administracion",
     roles: ["ADMIN"],
     description: "Parámetros del tenant y tope de intake",
     shortcut: "Alt+G",
@@ -69,6 +90,7 @@ export const ADMIN_NAV_ITEMS: readonly NavItem[] = [
   {
     label: "Códigos pesables",
     href: "/admin/weighed-barcode",
+    group: "administracion",
     roles: ["ADMIN"],
     description: "Configuración de prefijo y balanzas EAN-13",
     shortcut: "Alt+B",
@@ -76,6 +98,7 @@ export const ADMIN_NAV_ITEMS: readonly NavItem[] = [
   {
     label: "Arqueos y Turnos",
     href: "/admin/cash-shifts",
+    group: "administracion",
     roles: ["ADMIN", "SUPERVISOR"],
     description: "Supervisión de caja, arqueos y anulaciones",
     shortcut: "Alt+S",
@@ -83,6 +106,7 @@ export const ADMIN_NAV_ITEMS: readonly NavItem[] = [
   {
     label: "Punto de Venta (POS)",
     href: "/pos",
+    group: "operacion",
     roles: ["ADMIN", "STOCK_MANAGER", "SUPERVISOR", "CASHIER"],
     description: "Terminal operativa de cobro y ventas",
     shortcut: "Alt+P",
