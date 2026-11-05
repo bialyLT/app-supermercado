@@ -34,11 +34,25 @@ capacidades nuevas.
 
 | ID | Specs | Route | Estado | Commit |
 |---|---|---|---|---|
-| T1 | S1, S5, S7 | inline | pendiente | — |
-| T2 | S2, S3, S4 | worker | pendiente | — |
-| T3 | S1, S4, S6 | worker | pendiente | — |
-| T4 | S1, S5 | worker | pendiente | — |
-| T5 | S6, S8 | inline | pendiente | — |
+| T1 | S1, S5, S7 | worker | hecho | `a238d53` |
+| T2 | S2, S3, S4 | worker | hecho | `7a866a6` |
+| T3 | S1, S4, S6 | worker | hecho | `59275fb` |
+| T4 | S1, S5 | worker | hecho | pendiente de commit |
+| T5 | S6, S8 | inline | en curso | — |
+
+### Cortes de revisión
+
+- `759b3e1` — sistema de diseño sincronizado y tres direcciones visuales
+  (artefactos de diseño, sin código de producción).
+- `a238d53` — tokens compartidos y primitivas accesibles (~300 líneas).
+- `7a866a6` — navegación agrupada y drawer en tablet (~250 líneas).
+- `59275fb` — POS con el sistema compartido (~315 líneas).
+- T4 — compras adopta primitivas y tokens (~480 líneas, incluido un test que
+  fija el contrato de envío del modal de proveedor).
+
+T4 se acota al módulo de compras como representante denso; la adopción en el
+resto de los módulos densos queda como corte siguiente para no inflar la
+revisión.
 
 ## Log
 

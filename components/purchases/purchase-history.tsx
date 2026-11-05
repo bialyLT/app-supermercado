@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import type { PurchaseReceiptSummary } from "./types";
 import { Modal } from "../modal";
+import { Button } from "../ui/button";
 import styles from "./purchases.module.css";
 
 export type PurchaseHistoryProps = {
@@ -21,44 +22,30 @@ export function PurchaseHistory({
   if (receipts.length === 0) {
     return (
       <div className={styles.emptyCard} role="status">
-        <span style={{ fontSize: "2rem" }}>🧾</span>
-        <h3 style={{ margin: 0, color: "var(--color-text)" }}>
-          No hay comprobantes de compra registrados
-        </h3>
-        <p style={{ margin: 0 }}>
+        <span className={styles.emptyIcon}>🧾</span>
+        <h3 className={styles.emptyTitle}>No hay comprobantes de compra registrados</h3>
+        <p className={styles.emptyText}>
           Complete el formulario de recepción para ingresar la primera compra del proveedor.
         </p>
         {onRefresh && (
-          <button
-            type="button"
-            className={styles.btnSecondary}
-            onClick={onRefresh}
-            disabled={isRefreshing}
-            style={{ marginTop: "12px" }}
-          >
+          <Button type="button" variant="secondary" onClick={onRefresh} disabled={isRefreshing}>
             {isRefreshing ? "Actualizando…" : "Actualizar historial"}
-          </button>
+          </Button>
         )}
       </div>
     );
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+    <div className={styles.historyContainer}>
+      <div className={styles.historyToolbar}>
         <span className={styles.subtitle}>
           Se muestran los últimos {receipts.length} comprobantes de compra registrados en el sistema.
         </span>
         {onRefresh && (
-          <button
-            type="button"
-            className={styles.btnSecondary}
-            onClick={onRefresh}
-            disabled={isRefreshing}
-            style={{ minHeight: "36px", padding: "6px 14px", fontSize: "0.85rem" }}
-          >
+          <Button type="button" variant="secondary" onClick={onRefresh} disabled={isRefreshing}>
             {isRefreshing ? "Actualizando…" : "↻ Actualizar"}
-          </button>
+          </Button>
         )}
       </div>
 
@@ -74,7 +61,7 @@ export function PurchaseHistory({
               <th>Subtotal</th>
               <th>Impuestos</th>
               <th>Total</th>
-              <th style={{ textAlign: "center" }}>Acción</th>
+              <th className={styles.actionHeader}>Acción</th>
             </tr>
           </thead>
           <tbody>
@@ -88,7 +75,7 @@ export function PurchaseHistory({
 
               return (
                 <tr key={receipt.id}>
-                  <td style={{ whiteSpace: "nowrap" }}>{dateStr}</td>
+                  <td className={styles.nowrapCell}>{dateStr}</td>
                   <td>
                     <strong>{receipt.receiptNumber || receipt.id.slice(0, 8)}</strong>
                   </td>
@@ -96,16 +83,14 @@ export function PurchaseHistory({
                     {receipt.supplier ? (
                       <span>
                         {receipt.supplier.name}{" "}
-                        <span style={{ color: "var(--color-text-muted)", fontSize: "0.8rem" }}>
-                          ({receipt.supplier.code})
-                        </span>
+                        <span className={styles.supplierCode}>({receipt.supplier.code})</span>
                       </span>
                     ) : (
                       receipt.supplierId.slice(0, 8)
                     )}
                   </td>
                   <td>
-                    <code style={{ fontSize: "0.8rem" }}>{receipt.branchId.slice(0, 8)}…</code>
+                    <code className={styles.idCode}>{receipt.branchId.slice(0, 8)}…</code>
                   </td>
                   <td>{receipt.lines ? receipt.lines.length : "-"}</td>
                   <td className={styles.numberCell}>
@@ -114,18 +99,17 @@ export function PurchaseHistory({
                   <td className={styles.numberCell}>
                     {receipt.taxTotal.toString()} {receipt.currency}
                   </td>
-                  <td className={styles.numberCell} style={{ fontWeight: 700, color: "var(--color-text)" }}>
+                  <td className={`${styles.numberCell} ${styles.numberCellStrong}`}>
                     {receipt.total.toString()} {receipt.currency}
                   </td>
-                  <td style={{ textAlign: "center" }}>
-                    <button
+                  <td className={styles.actionHeader}>
+                    <Button
                       type="button"
-                      className={styles.btnSecondary}
+                      variant="secondary"
                       onClick={() => setSelectedReceipt(receipt)}
-                      style={{ minHeight: "32px", padding: "4px 10px", fontSize: "0.8rem" }}
                     >
                       Ver detalle
-                    </button>
+                    </Button>
                   </td>
                 </tr>
               );
@@ -137,28 +121,27 @@ export function PurchaseHistory({
       {/* Detail Modal */}
       {selectedReceipt && (
         <Modal ariaLabelledBy="receipt-detail-title" onRequestClose={() => setSelectedReceipt(null)}>
-          <div className={styles.modalContent} style={{ maxWidth: "800px" }}>
+          <div className={`${styles.modalContent} ${styles.modalContentWide}`}>
             <div className={styles.modalHeader}>
               <div>
-                <h2 id="receipt-detail-title" className={styles.title} style={{ fontSize: "1.25rem" }}>
+                <h2 id="receipt-detail-title" className={`${styles.title} ${styles.modalTitle}`}>
                   Comprobante: {selectedReceipt.receiptNumber || selectedReceipt.id}
                 </h2>
                 <span className={styles.subtitle}>
-                  ID: <code style={{ fontSize: "0.8rem" }}>{selectedReceipt.id}</code>
+                  ID: <code className={styles.idCode}>{selectedReceipt.id}</code>
                 </span>
               </div>
-              <button
+              <Button
                 type="button"
-                className={styles.btnSecondary}
+                variant="secondary"
                 onClick={() => setSelectedReceipt(null)}
                 aria-label="Cerrar detalle"
-                style={{ minHeight: "32px", padding: "4px 8px" }}
               >
                 ✕
-              </button>
+              </Button>
             </div>
 
-            <div className={styles.grid2} style={{ fontSize: "0.9rem" }}>
+            <div className={`${styles.grid2} ${styles.detailGrid}`}>
               <div>
                 <strong>Proveedor:</strong>{" "}
                 {selectedReceipt.supplier
@@ -180,16 +163,16 @@ export function PurchaseHistory({
               </div>
               <div>
                 <strong>Clave Idempotencia:</strong>{" "}
-                <code style={{ fontSize: "0.75rem" }}>{selectedReceipt.idempotencyKey}</code>
+                <code className={styles.idCodeSmall}>{selectedReceipt.idempotencyKey}</code>
               </div>
               {selectedReceipt.notes && (
-                <div style={{ gridColumn: "1 / -1" }}>
+                <div className={styles.gridFullWidth}>
                   <strong>Notas:</strong> {selectedReceipt.notes}
                 </div>
               )}
             </div>
 
-            <h3 style={{ fontSize: "1rem", margin: "12px 0 6px 0", color: "var(--color-text)" }}>
+            <h3 className={styles.modalSubtitle}>
               Líneas del comprobante ({selectedReceipt.lines?.length ?? 0})
             </h3>
 
@@ -211,7 +194,7 @@ export function PurchaseHistory({
                     <tr key={line.id || idx}>
                       <td>{idx + 1}</td>
                       <td>
-                        <code style={{ fontSize: "0.8rem" }}>{line.variantId}</code>
+                        <code className={styles.idCode}>{line.variantId}</code>
                       </td>
                       <td className={styles.numberCell}>{line.quantity.toString()}</td>
                       <td className={styles.numberCell}>
@@ -223,7 +206,7 @@ export function PurchaseHistory({
                       <td className={styles.numberCell}>
                         {line.taxAmount.toString()} {selectedReceipt.currency}
                       </td>
-                      <td className={styles.numberCell} style={{ fontWeight: 600 }}>
+                      <td className={`${styles.numberCell} ${styles.numberCellSemibold}`}>
                         {line.total.toString()} {selectedReceipt.currency}
                       </td>
                     </tr>
@@ -232,7 +215,7 @@ export function PurchaseHistory({
               </table>
             </div>
 
-            <div className={styles.totalsCard} style={{ alignSelf: "flex-end", minWidth: "260px" }}>
+            <div className={`${styles.totalsCard} ${styles.totalsCardModal}`}>
               <div className={styles.totalsRow}>
                 <span>Subtotal:</span>
                 <span className={styles.numberCell}>
@@ -259,14 +242,10 @@ export function PurchaseHistory({
               </div>
             </div>
 
-            <div style={{ display: "flex", justifyContent: "flex-end" }}>
-              <button
-                type="button"
-                className={styles.btnSecondary}
-                onClick={() => setSelectedReceipt(null)}
-              >
+            <div className={styles.modalFooter}>
+              <Button type="button" variant="secondary" onClick={() => setSelectedReceipt(null)}>
                 Cerrar
-              </button>
+              </Button>
             </div>
           </div>
         </Modal>
