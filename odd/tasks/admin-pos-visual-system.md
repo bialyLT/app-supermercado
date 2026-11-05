@@ -37,8 +37,8 @@ capacidades nuevas.
 | T1 | S1, S5, S7 | worker | hecho | `a238d53` |
 | T2 | S2, S3, S4 | worker | hecho | `7a866a6` |
 | T3 | S1, S4, S6 | worker | hecho | `59275fb` |
-| T4 | S1, S5 | worker | hecho | pendiente de commit |
-| T5 | S6, S8 | inline | en curso | — |
+| T4 | S1, S5 | worker | hecho | `8c65e18` |
+| T5 | S6, S8 | inline | hecho | pendiente de commit |
 
 ### Cortes de revisión
 
@@ -49,6 +49,32 @@ capacidades nuevas.
 - `59275fb` — POS con el sistema compartido (~315 líneas).
 - T4 — compras adopta primitivas y tokens (~480 líneas, incluido un test que
   fija el contrato de envío del modal de proveedor).
+- T5 — verificación final; sin cambios de código, sólo este documento.
+
+### Verificación final (T5)
+
+| Gate | Resultado |
+|---|---|
+| `npm run typecheck` | 0 errores, exit 0 |
+| `npm test` | 32 archivos pasaron / 24 omitidos; **197 tests pasaron**, 160 omitidos (requieren base de datos), **0 fallaron** |
+| `npm run build` | exit 0 |
+| `npm run test:e2e` | **7 pasaron**, 28 omitidos, **1 falló** |
+| `npm run lint` | rojo global preexistente: 31 258 problemas originados en `.cache/` sin seguimiento; alcance dirigido sobre los archivos cambiados: exit 0 |
+
+**Rojo preexistente del E2E, reportado aparte (no se corrige sin brief):**
+`tests/e2e/smoke.spec.ts` «sensitive routes reject unauthenticated callers»
+espera 401 y recibe 400. Se reprodujo aislado y es determinista bajo el
+servidor de desarrollo que usa Playwright. El mismo POST con el mismo cuerpo
+contra el build de producción (`next start`) responde **401 UNAUTHENTICATED**
+correcto. La ruta `app/api/admin/settings/route.ts` es idéntica al commit
+anterior al rediseño (`git diff` vacío en `app/api`, `src/` y `prisma/`), por lo
+que el fallo no proviene de este trabajo: es un defecto del gate en modo dev.
+
+### Pendiente fuera de este corte
+
+Adopción de las primitivas compartidas en `reports`, `transfers`,
+`admin-operations`, `suppliers`, `cash-shifts` y `promotions` (S1/S5). Queda
+como corte siguiente: toca seis módulos y no cabe en una revisión razonable.
 
 T4 se acota al módulo de compras como representante denso; la adopción en el
 resto de los módulos densos queda como corte siguiente para no inflar la
