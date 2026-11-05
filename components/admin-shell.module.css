@@ -199,6 +199,219 @@
   background: var(--color-surface-subtle, #f1f5f9);
 }
 
+/* Marca del rail: solo el ícono del carrito, sin texto, en estado colapsado. */
+.brandMark {
+  flex-shrink: 0;
+}
+
+/* Iconos de destino del rail (S4): decorativos, el nombre lo aporta la etiqueta. */
+.navIcon,
+.logoutIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Botón explícito de expansión del rail: visible solo en modo rail. */
+.railToggle {
+  display: none;
+}
+
+/* ==== Rail del Punto de Venta (S4): 72 px colapsado, iconos con nombre
+   accesible, expansión por foco/hover o botón explícito. Solo en escritorio
+   (>1024 px): en tablet el rail conserva el comportamiento de cajón de la
+   shell administrativa, con sus objetivos táctiles de 44 px. ==== */
+@media (min-width: 1025px) {
+  .sidebarRail {
+    width: 72px;
+    transition: width 0.15s ease;
+  }
+
+  .sidebarRailExpanded,
+  .sidebarRail:hover,
+  .sidebarRail:focus-within {
+    width: 270px;
+  }
+
+  .sidebarRail .sidebarHeader {
+    flex-direction: column;
+    align-items: center;
+    padding: 12px 8px;
+    gap: 8px;
+  }
+
+  .sidebarRailExpanded .sidebarHeader,
+  .sidebarRail:hover .sidebarHeader,
+  .sidebarRail:focus-within .sidebarHeader {
+    flex-direction: row;
+    padding: 20px 16px;
+  }
+
+  .sidebarRail .brand {
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .sidebarRailExpanded .brand,
+  .sidebarRail:hover .brand,
+  .sidebarRail:focus-within .brand {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* Texto colapsado: oculto visualmente pero presente en el DOM para el
+     nombre accesible de cada control (S4/S7: sin estilos inline). */
+  .sidebarRail .brandText,
+  .sidebarRail .navLabel,
+  .sidebarRail .logoutText {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+
+  .sidebarRailExpanded .brandText,
+  .sidebarRail:hover .brandText,
+  .sidebarRail:focus-within .brandText,
+  .sidebarRailExpanded .navLabel,
+  .sidebarRail:hover .navLabel,
+  .sidebarRail:focus-within .navLabel,
+  .sidebarRailExpanded .logoutText,
+  .sidebarRail:hover .logoutText,
+  .sidebarRail:focus-within .logoutText {
+    position: static;
+    width: auto;
+    height: auto;
+    padding: 0;
+    margin: 0;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+    border-width: 0;
+  }
+
+  .sidebarRail .navGroupTitle {
+    display: none;
+  }
+
+  .sidebarRailExpanded .navGroupTitle,
+  .sidebarRail:hover .navGroupTitle,
+  .sidebarRail:focus-within .navGroupTitle {
+    display: block;
+  }
+
+  .sidebarRail .navList {
+    padding: 12px 6px;
+  }
+
+  .sidebarRailExpanded .navList,
+  .sidebarRail:hover .navList,
+  .sidebarRail:focus-within .navList {
+    padding: 12px 10px;
+  }
+
+  .sidebarRail .navLink {
+    justify-content: center;
+    padding: 10px 0;
+  }
+
+  .sidebarRailExpanded .navLink,
+  .sidebarRail:hover .navLink,
+  .sidebarRail:focus-within .navLink {
+    justify-content: space-between;
+    padding: 10px 12px;
+  }
+
+  .sidebarRail .shortcutKbd {
+    display: none;
+  }
+
+  .sidebarRailExpanded .shortcutKbd,
+  .sidebarRail:hover .shortcutKbd,
+  .sidebarRail:focus-within .shortcutKbd {
+    display: inline;
+  }
+
+  .sidebarRail .sidebarFooter {
+    padding: 8px;
+    text-align: center;
+  }
+
+  .sidebarRailExpanded .sidebarFooter,
+  .sidebarRail:hover .sidebarFooter,
+  .sidebarRail:focus-within .sidebarFooter {
+    padding: 16px;
+    text-align: left;
+  }
+
+  .sidebarRail .roleInfo {
+    display: none;
+  }
+
+  .sidebarRailExpanded .roleInfo,
+  .sidebarRail:hover .roleInfo,
+  .sidebarRail:focus-within .roleInfo {
+    display: block;
+  }
+
+  .sidebarRail .logoutButton {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 44px;
+    margin: 8px auto 0;
+    padding: 8px 0;
+  }
+
+  .sidebarRailExpanded .logoutButton,
+  .sidebarRail:hover .logoutButton,
+  .sidebarRail:focus-within .logoutButton {
+    display: block;
+    width: 100%;
+    margin: 12px 0 0;
+    padding: 8px 12px;
+  }
+
+  .sidebarRail .railToggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--radius-md, 6px);
+    color: var(--color-text, #0f172a);
+    font-size: 1.1rem;
+    cursor: pointer;
+    padding: 8px;
+  }
+
+  .sidebarRail .railToggle:hover {
+    background-color: var(--color-surface-subtle, #f1f5f9);
+    border-color: var(--color-border-subtle, #e2e8f0);
+  }
+
+  .sidebarRail .navIcon {
+    margin: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebarRail {
+    transition: none;
+  }
+}
+
 /* Main content area */
 .mainWrapper {
   flex: 1;

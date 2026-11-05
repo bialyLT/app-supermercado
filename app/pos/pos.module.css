@@ -1,6 +1,8 @@
 /* Sistema visual compartido (S1): solo tokens de app/globals.css, sin literales
    duplicados para roles ya tokenizados. Dirección elegida: 01-sidebar-classic.html
-   (sección Punto de Venta), sin sidebar administrativo (S4). */
+   (sección Punto de Venta). S4 (revisada): la página se renderiza dentro de la
+   shell administrativa con el sidebar en modo rail de 72 px; este módulo conserva
+   solo la distribución de caja y no emite landmarks propios. */
 
 .shell {
   box-sizing: border-box;

@@ -244,7 +244,10 @@ export default function PosPage() {
     checkoutRef.current = checkout;
   });
 
-  return <main className={styles.shell} aria-label="Punto de venta">
+  // La shell aporta el único <main> del documento (S4): la página POS
+  // renderiza su contenido en un div para no duplicar el landmark y delega
+  // el nombre accesible al main de la shell en modo rail.
+  return <div className={styles.shell}>
     <header className={styles.banner}>
       <div className={styles.bannerContext}>
         <h1>POS</h1>
@@ -299,5 +302,5 @@ export default function PosPage() {
       </section>
     </div>
     <p role="status" aria-live="polite" className={styles.status}>{status}</p>
-  </main>;
+  </div>;
 }

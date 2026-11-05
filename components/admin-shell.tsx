@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import type { RoleName } from "../src/domain/contracts";
 import {
+  ADMIN_NAV_ITEMS,
   getBreadcrumbs,
   getVisibleNavItems,
   isRoleAuthorizedForAdmin,
@@ -13,18 +14,21 @@ import {
   ROLE_LABELS,
 } from "./admin-navigation";
 import { Modal } from "./modal";
+import { NavIcon } from "./ui/nav-icons";
 import styles from "./admin-shell.module.css";
 
 export type AdminShellProps = {
   readonly children?: React.ReactNode;
   readonly initialRole?: RoleName;
+  readonly rail?: boolean;
   readonly tenantName?: string;
   readonly branches?: readonly { id: string; name: string }[];
 };
 
 export function AdminShell({
   children,
-  initialRole = "ADMIN",
+  initialRole,
+  rail = false,
   tenantName,
   branches,
 }: AdminShellProps) {
@@ -36,6 +40,8 @@ export function AdminShell({
   const [selectedBranch, setSelectedBranch] = useState<string>(branches?.[0]?.id ?? "");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
+  // Expansión explícita del rail (S4): el foco y el hover la resuelven por CSS.
+  const [isRailExpanded, setIsRailExpanded] = useState(false);
 
   // Drawer focus management (S3): containment while open, restoration on close.
   const sidebarRef = useRef<HTMLElement | null>(null);
@@ -95,8 +101,12 @@ export function AdminShell({
     }
   }, [router]);
 
-  const visibleNavItems = getVisibleNavItems(currentRole);
-  const isAuthorized = isRoleAuthorizedForAdmin(currentRole);
+  // Sin identidad (POS público renderizado) se muestra solo el destino POS,
+  // sin insignias de rol: no se inventa un rol para visitantes sin sesión.
+  const visibleNavItems = currentRole
+    ? getVisibleNavItems(currentRole)
+    : ADMIN_NAV_ITEMS.filter((item) => item.href === "/pos");
+  const isAuthorized = currentRole !== undefined && isRoleAuthorizedForAdmin(currentRole);
   const breadcrumbs = getBreadcrumbs(pathname);
 
   // Keyboard shortcut listener
@@ -194,13 +204,14 @@ export function AdminShell({
       <aside
         ref={sidebarRef}
         id="admin-sidebar"
-        className={`${styles.sidebar} ${isSidebarOpen ? styles.sidebarOpen : ""}`}
-        aria-label="Navegación del panel administrativo"
+        className={`${styles.sidebar} ${rail ? styles.sidebarRail : ""} ${rail && isRailExpanded ? styles.sidebarRailExpanded : ""} ${isSidebarOpen ? styles.sidebarOpen : ""}`}
+        aria-label={rail ? "Navegación del Punto de Venta" : "Navegación del panel administrativo"}
       >
         <div className={styles.sidebarHeader}>
           <Link href="/admin" className={styles.brand} aria-label="Supermercado Admin - Inicio">
-            <span>🛒 Supermercado</span>
-            <span className={styles.brandBadge}>Admin</span>
+            <span className={styles.brandMark} aria-hidden="true">🛒</span>
+            <span className={styles.brandText}>Supermercado</span>
+            <span className={styles.brandBadge}>{rail ? "POS" : "Admin"}</span>
           </Link>
           <button
             ref={closeDrawerButtonRef}
@@ -211,6 +222,18 @@ export function AdminShell({
           >
             ✕
           </button>
+          {rail && (
+            <button
+              type="button"
+              className={styles.railToggle}
+              onClick={() => setIsRailExpanded((previous) => !previous)}
+              aria-expanded={isRailExpanded}
+              aria-controls="admin-sidebar"
+              aria-label={isRailExpanded ? "Contraer navegación" : "Expandir navegación"}
+            >
+              <span aria-hidden="true">{isRailExpanded ? "«" : "»"}</span>
+            </button>
+          )}
         </div>
 
         <nav className={styles.navList} aria-label="Menú principal">
@@ -233,7 +256,16 @@ export function AdminShell({
                         onClick={closeSidebar}
                       >
                         <span className={styles.navLinkText}>
-                          <span>{item.label}</span>
+                          {rail && (
+                            <span className={styles.navIcon} aria-hidden="true">
+                              <NavIcon name={item.icon} />
+                            </span>
+                          )}
+                          {rail ? (
+                            <span className={styles.navLabel}>{item.label}</span>
+                          ) : (
+                            <span>{item.label}</span>
+                          )}
                         </span>
                         {item.shortcut && (
                           <kbd className={styles.shortcutKbd}>{item.shortcut}</kbd>
@@ -247,19 +279,30 @@ export function AdminShell({
           })}
         </nav>
 
-        <div className={styles.sidebarFooter}>
-          <div className={styles.roleInfo}>
-            <div className={styles.roleLabel}>
-              {ROLE_LABELS[currentRole]?.title}
+        {currentRole && (
+          <div className={styles.sidebarFooter}>
+            <div className={styles.roleInfo}>
+              <div className={styles.roleLabel}>
+                {ROLE_LABELS[currentRole]?.title}
+              </div>
+              <div className={styles.roleDesc}>
+                {ROLE_LABELS[currentRole]?.description}
+              </div>
             </div>
-            <div className={styles.roleDesc}>
-              {ROLE_LABELS[currentRole]?.description}
-            </div>
+            <button type="button" className={styles.logoutButton} onClick={handleSignOut}>
+              {rail ? (
+                <>
+                  <span className={styles.logoutIcon} aria-hidden="true">
+                    <NavIcon name="logout" />
+                  </span>
+                  <span className={styles.logoutText}>Cerrar sesión</span>
+                </>
+              ) : (
+                "Cerrar sesión"
+              )}
+            </button>
           </div>
-          <button type="button" className={styles.logoutButton} onClick={handleSignOut}>
-            Cerrar sesión
-          </button>
-        </div>
+        )}
       </aside>
 
       {/* Main content wrapper */}
@@ -286,41 +329,47 @@ export function AdminShell({
           </div>
 
           <div className={styles.headerRight}>
-            {/* Branch selector or neutral empty state */}
-            <div className={styles.branchSelectorGroup}>
-              <span className={styles.branchLabel}>Sucursal:</span>
-              {branches && branches.length > 0 ? (
-                <select
-                  id="branch-select"
-                  aria-label="Sucursal activa"
-                  className={styles.branchSelect}
-                  value={selectedBranch}
-                  onChange={(e) => setSelectedBranch(e.target.value)}
-                >
-                  {branches.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.name}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <span className={styles.emptyBranchText} role="status">
-                  Sin sucursales asignadas
-                </span>
-              )}
-            </div>
+            {/* El selector de sucursal es de la shell administrativa; en el
+                rail del POS no se muestra: la ubicación autorizada la resuelve
+                el propio POS contra /api/pos/context (S6, sin llamadas nuevas). */}
+            {!rail && (
+              <div className={styles.branchSelectorGroup}>
+                <span className={styles.branchLabel}>Sucursal:</span>
+                {branches && branches.length > 0 ? (
+                  <select
+                    id="branch-select"
+                    aria-label="Sucursal activa"
+                    className={styles.branchSelect}
+                    value={selectedBranch}
+                    onChange={(e) => setSelectedBranch(e.target.value)}
+                  >
+                    {branches.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.name}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <span className={styles.emptyBranchText} role="status">
+                    Sin sucursales asignadas
+                  </span>
+                )}
+              </div>
+            )}
 
             {/* Non-editable active role indicator */}
-            <div className={styles.roleBadgeGroup}>
-              <span className={styles.branchLabel}>Rol:</span>
-              <span
-                className={styles.roleBadge}
-                aria-label={`Rol activo: ${ROLE_LABELS[currentRole]?.title ?? currentRole}`}
-                title={ROLE_LABELS[currentRole]?.description}
-              >
-                {currentRole}
-              </span>
-            </div>
+            {currentRole && (
+              <div className={styles.roleBadgeGroup}>
+                <span className={styles.branchLabel}>Rol:</span>
+                <span
+                  className={styles.roleBadge}
+                  aria-label={`Rol activo: ${ROLE_LABELS[currentRole]?.title ?? currentRole}`}
+                  title={ROLE_LABELS[currentRole]?.description}
+                >
+                  {currentRole}
+                </span>
+              </div>
+            )}
 
             {/* Keyboard hints button */}
             <button
@@ -361,8 +410,13 @@ export function AdminShell({
         </div>
 
         {/* Main page content or restricted banner */}
-        <main id="admin-main" className={styles.main} tabIndex={-1}>
-          {!isAuthorized ? (
+        <main
+          id="admin-main"
+          className={styles.main}
+          tabIndex={-1}
+          aria-label={rail ? "Punto de venta" : undefined}
+        >
+          {!isAuthorized && !rail ? (
             <div className={styles.restrictedBanner} role="alert">
               <h2 className={styles.restrictedTitle}>Acceso no autorizado</h2>
               <p className={styles.restrictedText}>

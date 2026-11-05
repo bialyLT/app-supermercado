@@ -15,10 +15,13 @@ capacidades nuevas.
 - **S3 — Tablet.** A 1024 px o menos el sidebar se convierte en drawer con
   apertura explícita, cierre con Escape, foco contenido y restaurado; sin scroll
   horizontal en las acciones principales.
-- **S4 — POS propio y accesible.** `/pos` conserva una distribución de atención a
-  caja y NO usa el sidebar administrativo. Comparte con administración tokens,
-  tipografía, radios y controles. El acceso a POS desde el shell se rige por los
-  permisos existentes; no se agrega autorización nueva.
+- **S4 — POS con barra lateral colapsada.** `/pos` se renderiza dentro de la shell
+  para conservar navegación y contexto (badge Admin/POS), con la barra lateral en
+  modo rail de 72 px que muestra solo iconos y se expande al recibir foco, hover o
+  mediante un botón explícito. En tablet el rail conserva el comportamiento de
+  cajón. La operación de caja mantiene su distribución y no pierde ancho útil a
+  820 px. Esta spec revisa la decisión anterior de dejar el POS fuera de la shell
+  (ver L6).
 - **S5 — Contraste AA.** Texto blanco sobre `#0369a1` (5.93:1) para el botón
   primario; `#0284c7` solo en texto grande, iconos y bordes. Ningún texto normal
   por debajo de 4.5:1.
@@ -39,6 +42,13 @@ capacidades nuevas.
 | T3 | S1, S4, S6 | worker | hecho | `59275fb` |
 | T4 | S1, S5 | worker | hecho | `8c65e18` |
 | T5 | S6, S8 | inline | hecho | pendiente de commit |
+| T6 | S4, S6, S7 | worker | hecho | pendiente de commit |
+
+### Cortes de revisión (continuación)
+
+- T6 — POS dentro de la shell con rail de 72 px (~370 líneas): `app/pos/layout.tsx`
+  nuevo, `AdminShell` con modo rail, iconos `components/ui/nav-icons.tsx` y
+  `tests/pos-shell.test.ts` (8 tests).
 
 ### Cortes de revisión
 
@@ -110,3 +120,8 @@ revisión.
 - **L5** (diseño): `design/system.md` sincronizado y tres artboards en
   `design/admin-experience/`; elegido `01-sidebar-classic.html`; los otros dos
   quedan como alternativas.
+- **L6** (literal): «Implement the design artboard design/admin-experience/01-sidebar-classic.html».
+  El artboard muestra el POS dentro de la shell con badge Admin/POS, mientras la
+  implementación previa lo dejaba fuera. Ante la diferencia, el dueño eligió
+  «POS con barra lateral colapsada»: la shell se conserva, la barra pasa a rail de
+  iconos que se expande al foco o hover.
