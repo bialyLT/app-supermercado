@@ -1,0 +1,28 @@
+/* Banner de alerta: éxito #f0fdf4/#bbf7d0/#166534 (6.81:1 AA) y
+   error #fef2f2/#fecaca/#991b1b (7.60:1 AA) — design/system.md. */
+.alert {
+  border-radius: var(--radius-md, 6px);
+  padding: 12px 16px;
+  font-size: 0.9rem;
+  border: 1px solid transparent;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.success {
+  background-color: var(--color-success-bg, #f0fdf4);
+  border-color: var(--color-success-border, #bbf7d0);
+  color: var(--color-success-text, #166534);
+}
+
+.error {
+  background-color: var(--color-danger-bg, #fef2f2);
+  border-color: var(--color-danger-border, #fecaca);
+  color: var(--color-danger-text, #991b1b);
+}
+
+.title {
+  margin: 0;
+  font-weight: 600;
+}
