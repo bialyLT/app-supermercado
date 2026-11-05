@@ -70,6 +70,20 @@ correcto. La ruta `app/api/admin/settings/route.ts` es idéntica al commit
 anterior al rediseño (`git diff` vacío en `app/api`, `src/` y `prisma/`), por lo
 que el fallo no proviene de este trabajo: es un defecto del gate en modo dev.
 
+### Revisión independiente
+
+El verificador independiente dictaminó **RED** por una regresión real que la
+evidencia del agente no detectó: `app/admin/purchases/loading.tsx` usaba
+`styles.header` y `styles.titleGroup`, selectores eliminados del módulo de
+compras, por lo que ambos quedaban `undefined` en tiempo de ejecución.
+
+Corrección aplicada: se restauran ambos selectores, el esqueleto de carga pasa a
+clases propias y pierde sus tres estilos inline, y se agrega
+`tests/css-module-classes.test.ts`, que verifica que todo `styles.X` referenciado
+exista en el módulo importado (con una lista explícita de 4 huecos preexistentes
+ajenos a este cambio). Gates tras la corrección: typecheck 0, **198 tests
+pasaron**, 0 fallaron, eslint 0 errores.
+
 ### Pendiente fuera de este corte
 
 Adopción de las primitivas compartidas en `reports`, `transfers`,
