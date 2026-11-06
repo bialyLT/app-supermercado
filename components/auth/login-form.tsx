@@ -49,7 +49,7 @@ export default function LoginForm() {
   }
 
   return (
-    <form className={styles.form} onSubmit={handleSubmit} aria-label="Inicio de sesión">
+    <form className={styles.form} onSubmit={handleSubmit} method="post" action="#" aria-label="Inicio de sesión">
       <div className={styles.field}>
         <label htmlFor="login-email">Correo electrónico</label>
         <input
