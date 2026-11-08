@@ -37,6 +37,17 @@ Se entregaron el shell administrativo responsive y role-aware, contexto server-d
 - No se introdujeron gráficos.
 - La revisión nativa del candidato `sha256:f74f3d205cbb5d289fde6813357e99a9fb95609c5ba603d86e2546090eab37de` fue explícitamente declinada; no se creó lineage ni se ejecutó revisión.
 
+## Confirmación de entrega posterior
+
+La verificación inicial de Épica 7 quedó registrada en T7 (`ceba84a`), incluido en `main`. Después, el PR #13 reparó la cobertura operativa y fue mergeado el 2026-11-03: commit `b801fb6`, merge commit `8d55d55`.
+
+| Workflow | Resultado |
+|---|---|
+| GitHub Actions push `41569627210` | Éxito: typecheck, lint, tests, cobertura, ledger, build y E2E |
+| GitHub Actions PR `41569632852` | Éxito para `b801fb6` |
+
+No hubo despliegue productivo.
+
 ## No ejecutado
 
 - Migración desde cero (`db:migrate` sobre una base vacía) no se repitió en este cierre; queda cubierta por los gates de migración previos registrados en la épica anterior.
@@ -51,4 +62,4 @@ Se entregaron el shell administrativo responsive y role-aware, contexto server-d
 
 SUPUESTO: la interfaz inicial de moneda continúa limitada a las opciones visibles existentes (`ARS` y `USD`); ampliar monedas requiere una decisión de producto y contrato.
 
-Decisiones requeridas: ninguna para cerrar esta épica. Push, PR, merge y despliegue quedan fuera de este cierre y requieren decisión del dueño del producto.
+Decisiones requeridas para el alcance de la épica: ninguna. El push, PR y merge quedaron fuera del cierre técnico original; posteriormente PR #13 fue mergeado en `main` como `8d55d55`. No hubo despliegue productivo.

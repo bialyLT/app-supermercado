@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "chosen": "01-sidebar-classic.html",
+  "handoffs": {
+    "01-sidebar-classic.html": {
+      "status": "implemented",
+      "queued": false,
+      "sentAt": "2026-11-05T19:39:44.318Z",
+      "startedAt": "2026-11-05T19:39:55.768Z",
+      "implementedAt": "2026-11-06T18:38:48.954Z",
+      "note": "Implementación completada: tokens, componentes compartidos, shell admin agrupada con drawer responsive, compras migradas a primitivas y /pos integrado dentro de la shell con barra colapsada tipo rail (72px) que expande por hover/focus. Verificación: 206 tests unitarios pasando, typecheck 0, build exitoso.",
+      "previewUrl": "http://127.0.0.1:3000/"
+    }
+  }
+}

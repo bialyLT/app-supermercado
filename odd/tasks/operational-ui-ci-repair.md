@@ -1,6 +1,6 @@
 # Task — Reparación de CI de completitud operativa
 Branch: `feat/operational-ui-completeness`; repair-only scope for the existing PR.
-Status: local coverage repair, serial E2E, build, typecheck and lint verified. Parallel E2E and native review limitations remain documented; no remote CI or delivery claim. No commit, push or merge.
+Status: delivered and merged. Commit `b801fb6` was pushed and PR #13 merged into main at `8d55d55`; push and PR CI passed. No production deploy.
 
 ## Specs
 
@@ -17,10 +17,10 @@ Status: local coverage repair, serial E2E, build, typecheck and lint verified. P
 
 - T1 (S1) — Correct intake-review persistence/transition behavior and focused regression failures; route: inline; commit: `f2275d9`.
 - T2 (S1) — Correct rejected-intake and correction validation behavior without weakening domain rules; route: inline; commit: `f2275d9`.
-- T3 (S1-S3) — Run applicable gates, record evidence, and push the repaired branch without merging; route: inline; commit: `ea864e6` (coverage gate still failing).
-- T4 (S4,S6) — DONE: public read coverage, 400/400 tests and all configured thresholds pass; route: inline; commit: none.
-- T5 (S5-S7) — DONE: isolated PostgreSQL 18 setup, migrations, least-privilege roles and teardown verified; route: inline; commit: none.
-- T6 (S4,S6) — DONE: owner-authorized sequential typecheck/lint both exit 0, 46s combined with 300s bounds; route: orchestrator; commit: none.
+- T3 (S1-S3) — DONE: repair pushed as `b801fb6`, PR #13 merged at `8d55d55`; CI runs 41569627210 and 41569632852 passed; route: inline; commits: `ea864e6`, `b801fb6`.
+- T4 (S4,S6) — DONE: public read coverage, 400/400 tests and all configured thresholds pass; route: inline; commit: `b801fb6`.
+- T5 (S5-S7) — DONE: isolated PostgreSQL 18 setup, migrations, least-privilege roles and teardown verified; route: inline; commit evidence: `b801fb6`.
+- T6 (S4,S6) — DONE: owner-authorized sequential typecheck/lint both exit 0, 46s combined with 300s bounds; route: orchestrator; commit: `b801fb6`.
 
 ## Log
 
@@ -43,3 +43,9 @@ Status: local coverage repair, serial E2E, build, typecheck and lint verified. P
 
 - L16: haz todo lo que te parezca mejor
 - L17: Authorized sequential typecheck/lint each exit 0; job-13 exit 0 in 46s, each command bounded by 300s. No additional service started; PostgreSQL remains removed. Local repair verified; parallel E2E failure and unavailable native review remain disclosed, no remote CI claim or publication.
+
+- L18: «decime que sigue para avanzar con el proyecto, ya estatodo mergeado»
+- L19: «hacec el punto 1 y 2»
+- L20: Fetched origin/main and fast-forwarded local main to 8d55d55 (merge PR #13); verified b801fb6 and Epic 7 T7 commit ceba84a are ancestors of main. Used separate clean main worktree; left the existing dirty Epic7 worktree untouched.
+- L21: PR #13 confirmed MERGED at 2026-11-03T03:10:30Z. Push workflow 41569627210 and PR workflow 41569632852 both succeeded. Updated operational repair and Epic 7 closure documentation; no additional commit or push was requested or made.
+- L22: ROADMAP.md was left untouched because it contains conflicting same-file statements about frontend Audit Waves 2/3 delivery and the next planned wave. Per AGENTS.md, do not choose silently; owner clarification is needed before updating that roadmap status.
