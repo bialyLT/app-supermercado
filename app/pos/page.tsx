@@ -290,7 +290,7 @@ export default function PosPage() {
           <h2>Carrito</h2>
           {lines.length === 0
             ? <p className={styles.empty}>Vacío</p>
-            : <ul className={styles.lines}>{lines.map((line, index) => <li className={styles.line} key={`${line.variantId}-${index}`}><span className={styles.lineLabel}>{line.label}</span><span className={styles.lineQuantity}>× {line.quantity}</span></li>)}</ul>}
+            : <ul className={styles.lines}>{lines.map((line, index) => <li className={styles.line} key={`${line.variantId}-${index}`}><span className={styles.lineLabel}>{line.label}</span>{" "}<span className={styles.lineQuantity}>× {line.quantity}</span></li>)}</ul>}
         </section>
       </div>
       <section className={styles.card} aria-label="Pago">
