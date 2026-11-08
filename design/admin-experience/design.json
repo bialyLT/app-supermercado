@@ -1,0 +1,27 @@
+{
+  "title": "Mejora visual de Administración y Punto de Venta",
+  "brief": "Tres direcciones visuales para las vistas del proyecto, ahora completas: cada alternativa incluye Administración (navegación, inicio y compras) y su pantalla de Punto de Venta (escaneo, carrito y pago) con navegación local de ida y vuelta (Alt+P / Alt+H) que funciona en el prototipo. Se conservan funcionalidad, roles, navegación por teclado y reglas sin gráficos; las acciones del POS son demo local, no registran ventas ni persisten datos; los totales son strings fijos de ejemplo y el copy es español es-AR.",
+  "artboards": [
+    {
+      "file": "01-sidebar-classic.html",
+      "title": "Navegación lateral refinada",
+      "tradeoff": "Estructura familiar (sidebar 270px agrupado por Operación/Administración + grilla de módulos) y Punto de Venta (POS) como vista de la misma shell con la sidebar siempre a la vista y badge Admin/POS. Migración inmediata y escaneo rápido; en tablet el sidebar ocupa ancho y requiere drawer.",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "file": "02-topbar-wide.html",
+      "title": "Navegación superior compacta",
+      "tradeoff": "Nav horizontal bajo el header y contenido a ancho completo (1400px): resumen operativo en dos columnas y POS a dos columnas (escaneo+carrito | pago). Máximo espacio vertical; la nav larga se desplaza en horizontal en tablet.",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "file": "03-command-hub.html",
+      "title": "Hub con barra de comandos",
+      "tradeoff": "Sin menú permanente: barra de comandos (Ctrl+K, filtrado en vivo, navegación con flechas) que también abre el POS, donde el escáner replica la misma mecánica de búsqueda con ↓/↑/Enter. Velocísimo para expertos en teclado; menos descubrible para primer uso.",
+      "width": 1440,
+      "height": 900
+    }
+  ]
+}

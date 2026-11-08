@@ -1,0 +1,53 @@
+/* Botón primario accesible: texto blanco sobre #0369a1 (AA 5.93:1, S5).
+   #0284c7 queda reservado para texto grande, iconos y bordes (design/system.md). */
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: var(--min-touch-target, 44px);
+  padding: 10px 20px;
+  border-radius: var(--radius-md, 6px);
+  border: 1px solid transparent;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.primary {
+  background-color: var(--color-primary-hover, #0369a1);
+  color: var(--color-primary-contrast, #ffffff);
+}
+
+/* Hover oscurece con un velo del color de texto existente: sin valor de paleta nuevo (S1). */
+.primary:hover:not(:disabled) {
+  background-image: linear-gradient(rgba(15, 23, 42, 0.12), rgba(15, 23, 42, 0.12));
+}
+
+.secondary {
+  background-color: var(--color-surface, #ffffff);
+  color: var(--color-text, #0f172a);
+  border-color: var(--color-border, #cbd5e1);
+  font-weight: 500;
+}
+
+.secondary:hover:not(:disabled) {
+  background-color: var(--color-surface-subtle, #f1f5f9);
+}
+
+/* Texto #dc2626 sobre blanco: 4.83:1, pasa AA (design/system.md). */
+.danger {
+  background-color: var(--color-surface, #ffffff);
+  color: var(--color-danger, #dc2626);
+  border-color: var(--color-danger-border, #fecaca);
+}
+
+.danger:hover:not(:disabled) {
+  background-color: var(--color-danger-hover-bg, #fee2e2);
+}

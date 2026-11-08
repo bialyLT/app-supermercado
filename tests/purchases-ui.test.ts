@@ -13,6 +13,7 @@ import {
 import { PurchaseManager } from "../components/purchases/purchase-manager";
 import { PurchaseForm } from "../components/purchases/purchase-form";
 import { PurchaseHistory } from "../components/purchases/purchase-history";
+import { SupplierModal } from "../components/purchases/supplier-modal";
 
 describe("Purchases UI — Decimal-safe totals and validation (S3, S5)", () => {
   it("clears stale variant identity when search text changes", () => {
@@ -417,5 +418,33 @@ describe("Purchases UI — Server-derived selectors & Component rendering (S1, S
     );
 
     expect(markup).toContain("No hay comprobantes de compra registrados");
+  });
+
+  it("keeps submit-capable button contracts after shared Button primitive adoption", () => {
+    // The shared Button primitive defaults to type="button", so these explicit
+    // types are part of the submit contract (S6): "Guardar Proveedor" must
+    // submit the modal form, "Cancelar" must not, and the main form's
+    // "Registrar compra" must submit the receipt form.
+    const modalMarkup = renderToStaticMarkup(
+      React.createElement(SupplierModal, {
+        isOpen: true,
+        onClose: vi.fn(),
+        onCreated: vi.fn(),
+      })
+    );
+    expect(modalMarkup).toMatch(/<button type="submit"[^>]*>Guardar Proveedor<\/button>/);
+    expect(modalMarkup).toMatch(/<button type="button"[^>]*>Cancelar<\/button>/);
+
+    const formMarkup = renderToStaticMarkup(
+      React.createElement(PurchaseForm, {
+        suppliers: dummySuppliers,
+        branches: dummyBranches,
+        branchId: "branch-central",
+        locationId: "loc-central-storage",
+        onSubmit: vi.fn(),
+        isSubmitting: false,
+      })
+    );
+    expect(formMarkup).toMatch(/<button type="submit"[^>]*>Registrar compra/);
   });
 });

@@ -2,6 +2,8 @@
 
 import React, { useState } from "react";
 import { Modal } from "../modal";
+import { Alert } from "../ui/alert";
+import { Button } from "../ui/button";
 import type { Supplier } from "./types";
 import styles from "./purchases.module.css";
 
@@ -68,28 +70,17 @@ export function SupplierModal({ isOpen, onClose, onCreated }: SupplierModalProps
     <Modal ariaLabelledBy="modal-title" closeDisabled={isBusy} onRequestClose={onClose}>
       <div className={styles.modalContent}>
         <div className={styles.modalHeader}>
-          <h2 id="modal-title" className={styles.title} style={{ fontSize: "1.2rem" }}>
+          <h2 id="modal-title" className={`${styles.title} ${styles.modalTitleCompact}`}>
             Nuevo Proveedor
           </h2>
-          <button
-            type="button"
-            className={styles.btnSecondary}
-            onClick={onClose}
-            aria-label="Cerrar modal"
-            style={{ minHeight: "32px", padding: "4px 8px" }}
-          >
+          <Button type="button" variant="secondary" onClick={onClose} aria-label="Cerrar modal">
             ✕
-          </button>
+          </Button>
         </div>
 
-        {error && (
-          <div className={styles.alertBanner} role="alert">
-            <span className={styles.alertTitle}>Error</span>
-            <span>{error}</span>
-          </div>
-        )}
+        {error && <Alert variant="error" title="Error">{error}</Alert>}
 
-        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+        <form onSubmit={handleSubmit} className={styles.modalForm}>
           <div className={styles.grid2}>
             <div className={styles.fieldGroup}>
               <label htmlFor="sup-code" className={`${styles.label} ${styles.labelRequired}`}>
@@ -185,22 +176,13 @@ export function SupplierModal({ isOpen, onClose, onCreated }: SupplierModalProps
             </div>
           </div>
 
-          <div className={styles.buttonGroup} style={{ justifyContent: "flex-end", marginTop: "12px" }}>
-            <button
-              type="button"
-              className={styles.btnSecondary}
-              onClick={onClose}
-              disabled={isBusy}
-            >
+          <div className={`${styles.buttonGroup} ${styles.buttonGroupEnd}`}>
+            <Button type="button" variant="secondary" onClick={onClose} disabled={isBusy}>
               Cancelar
-            </button>
-            <button
-              type="submit"
-              className={styles.btnPrimary}
-              disabled={isBusy}
-            >
+            </Button>
+            <Button type="submit" variant="primary" disabled={isBusy}>
               {isBusy ? "Guardando…" : "Guardar Proveedor"}
-            </button>
+            </Button>
           </div>
         </form>
       </div>

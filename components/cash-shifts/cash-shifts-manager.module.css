@@ -36,3 +36,18 @@
 .form select { border: 1px solid var(--color-border, #cbd5e1); border-radius: 0.4rem; }
 .form button { border: 0; border-radius: 0.4rem; background: var(--color-primary, #0284c7); color: #fff; cursor: pointer; }
 .form button:disabled { opacity: 0.6; cursor: wait; }
+
+.registerField { display: grid; gap: 0.35rem; }
+.registerField label { font-weight: 600; }
+.fieldMessage,
+.errorMessage p { margin: 0; font-size: 0.9rem; }
+.errorMessage { display: grid; gap: 0.5rem; color: var(--color-danger, #b91c1c); }
+.form button.retryButton {
+  justify-self: start;
+  border: 1px solid var(--color-border, #cbd5e1);
+  background: var(--color-surface, #fff);
+  color: var(--color-text, #0f172a);
+}
+.form input:focus-visible,
+.form select:focus-visible,
+.form button:focus-visible { outline: 3px solid var(--color-focus, #0369a1); outline-offset: 2px; }

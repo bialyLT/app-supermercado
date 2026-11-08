@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ProductCombobox } from "../../components/product-combobox";
+import { Alert } from "../../components/ui/alert";
+import { Button } from "../../components/ui/button";
 import { enqueue, pendingCommands, replayOfflineCommand, update, type OfflineCommand } from "../../src/pos/offline-queue";
 import styles from "./pos.module.css";
 import { ApiError, apiFetch } from "../../src/client/api-fetch";
@@ -10,6 +12,11 @@ import { ApiError, apiFetch } from "../../src/client/api-fetch";
 type Line = { variantId: string; locationId: string; quantity: string; label: string; unitPrice?: string; weighedBarcode?: string };
 type Payment = { method: "CASH" | "TRANSFER" | "CARD" | "WALLET"; amount: string };
 type Suggestion = { id: string; sku: string; name: string; productName: string };
+
+function suggestionLabel(item: Suggestion): string {
+  const name = item.productName.trim() || item.name.trim() || "Producto";
+  return item.sku.trim() ? `${name} · ${item.sku}` : name;
+}
 
 const methods = ["CASH", "TRANSFER", "CARD", "WALLET"] as const;
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -22,6 +29,7 @@ export default function PosPage() {
   const [scannedUnitPrice, setScannedUnitPrice] = useState<string | undefined>();
   const [scannedBarcode, setScannedBarcode] = useState<string | undefined>();
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [selectedSuggestion, setSelectedSuggestion] = useState<Suggestion | null>(null);
   const [quantity, setQuantity] = useState("1");
   const [lines, setLines] = useState<Line[]>([]);
   const [payments, setPayments] = useState<Payment[]>([{ method: "CASH", amount: "" }]);
@@ -97,7 +105,7 @@ export default function PosPage() {
       if (event.key === "F10") { event.preventDefault(); void checkoutRef.current(); }
       if (event.key === "Escape") {
         if (linesRef.current.length > 0) {
-          setStatus("El carrito sigue intacto. Confirmá o quitá las líneas manualmente.");
+          setStatus("El carrito se conserva; no se realizó ningún cambio.");
           return;
         }
         setStatus("");
@@ -152,6 +160,7 @@ export default function PosPage() {
   async function search(value: string) {
     const seq = ++searchSeq.current;
     setVariantId(value);
+    setSelectedSuggestion(null);
     setScannedUnitPrice(undefined);
     setScannedBarcode(undefined);
     if (/^\d{13}$/.test(value.trim())) {
@@ -166,10 +175,12 @@ export default function PosPage() {
         if (response.ok) {
           const item = await response.json() as Suggestion & { variantId: string; unitPrice: string };
           if (seq !== searchSeq.current) return;
+          const selectedItem: Suggestion = { id: item.variantId, sku: item.sku, name: item.name, productName: item.productName };
           setVariantId(item.variantId);
+          setSelectedSuggestion(selectedItem);
           setScannedUnitPrice(item.unitPrice);
           setScannedBarcode(value.trim());
-          setSuggestions([{ id: item.variantId, sku: item.sku, name: item.name, productName: item.productName }]);
+          setSuggestions([selectedItem]);
           setStatus(`Código pesable: precio unitario ${item.unitPrice}`);
           return;
         }
@@ -197,6 +208,7 @@ export default function PosPage() {
   function selectSuggestion(item: Suggestion) {
     ++searchSeq.current;
     setVariantId(item.id);
+    setSelectedSuggestion(item);
     if (item.id !== variantId || !scannedBarcode) {
       setScannedUnitPrice(undefined);
       setScannedBarcode(undefined);
@@ -208,8 +220,10 @@ export default function PosPage() {
     if (!locationReady || !locationId.trim() || !uuidPattern.test(locationId.trim())) { setStatus("POS bloqueado: ubicación autorizada no disponible"); return; }
     if (!uuidPattern.test(variantId.trim())) { setStatus("Seleccioná un producto del catálogo"); return; }
     ++searchSeq.current;
-    setLines((current) => [...current, { variantId: variantId.trim(), locationId: locationId.trim(), quantity, label: variantId.trim(), unitPrice: scannedUnitPrice, weighedBarcode: scannedBarcode }]);
+    const selectedItem = selectedSuggestion?.id === variantId.trim() ? selectedSuggestion : null;
+    setLines((current) => [...current, { variantId: variantId.trim(), locationId: locationId.trim(), quantity, label: selectedItem ? suggestionLabel(selectedItem) : "Producto seleccionado", unitPrice: scannedUnitPrice, weighedBarcode: scannedBarcode }]);
     setVariantId("");
+    setSelectedSuggestion(null);
     setScannedUnitPrice(undefined);
     setScannedBarcode(undefined);
     setQuantity("1");
@@ -260,33 +274,65 @@ export default function PosPage() {
     checkoutRef.current = checkout;
   });
 
-  return <main className={styles.shell} aria-label="Punto de venta">
-    <header><h1>POS</h1><p>Keyboard-first · F2 buscar · F4 agregar · F8 pagar · F10 confirmar · Esc conserva el carrito</p><p role="status">{offline ? "Offline · comandos se guardan localmente" : "Online"} · Pendientes: {queueCounts.pending} · Procesando: {queueCounts.processing} · Completados: {queueCounts.completed} · Conflictos: {queueCounts.conflict} · Errores: {queueCounts.error}</p>{(queueCounts.conflict > 0 || queueCounts.error > 0) && <button type="button" onClick={retryQueue}>Reintentar cola</button>}</header>
-    <section className={styles.grid}>
-      <form onSubmit={(event) => { event.preventDefault(); addLine(); }} aria-label="Agregar producto">
-        <p role="status">{locationReady ? "Ubicación autorizada por el servidor" : "Resolviendo ubicación autorizada…"}</p>
-        <ProductCombobox
-          id="variant"
-          label="Variante / código"
-          placeholder="Buscar por SKU, nombre o código..."
-          value={variantId}
-          options={suggestions}
-          autoFocus
-          onChange={(value) => void search(value)}
-          onSelect={selectSuggestion}
-        />
-        <label htmlFor="quantity">Cantidad</label>
-        <input id="quantity" type="number" min="0.001" step="0.001" value={quantity} onChange={(event) => setQuantity(event.target.value)} required />
-        <button type="submit">Agregar (F4)</button>
-      </form>
-      <section aria-label="Carrito"><h2>Carrito</h2>{lines.length === 0 ? <p>Vacío</p> : <ul>{lines.map((line, index) => <li key={`${line.variantId}-${index}`}>{line.label} × {line.quantity}</li>)}</ul>}</section>
-      <section aria-label="Pago"><h2>Pago</h2>
-        {payments.map((payment, index) => <div className={styles.paymentRow} key={`${payment.method}-${index}`}><select value={payment.method} onChange={(event) => updatePayment(index, { method: event.target.value as Payment["method"] })}>{methods.map((method) => <option key={method}>{method}</option>)}</select><input id={index === 0 ? "payment" : undefined} inputMode="decimal" aria-label={`Monto ${payment.method}`} value={payment.amount} onChange={(event) => updatePayment(index, { amount: event.target.value })} /></div>)}
-        <button type="button" onClick={() => setPayments((current) => [...current, { method: "CARD", amount: "" }])}>Agregar medio</button>
-        <button type="button" onClick={() => void checkout()} disabled={busy || !lines.length}>{busy ? "Procesando…" : "Confirmar (F10)"}</button>
-        {change !== null && <p role="status">Vuelto: <strong>{change}</strong></p>}
+  // La shell aporta el único <main> del documento (S4): la página POS
+  // renderiza su contenido en un div para no duplicar el landmark y delega
+  // el nombre accesible al main de la shell en modo rail.
+  return <div className={styles.shell}>
+    <header className={styles.banner}>
+      <div className={styles.bannerContext}>
+        <h1>POS</h1>
+        <p className={styles.shortcuts}>Atajos: <kbd>F2</kbd> buscar · <kbd>F4</kbd> agregar · <kbd>F8</kbd> pagar · <kbd>F10</kbd> confirmar · <kbd>Esc</kbd> conserva el carrito</p>
+      </div>
+      <div className={styles.bannerStatus}>
+        {offline
+          ? <Alert variant="error" className={styles.connection}>Offline · comandos se guardan localmente</Alert>
+          : <Alert variant="success" className={styles.connection}>Online</Alert>}
+        <p role="status" className={styles.queue}>{offline ? "Sin conexión" : "Conectado"} · Pendientes: {queueCounts.pending} · Procesando: {queueCounts.processing} · Completados: {queueCounts.completed} · Conflictos: {queueCounts.conflict} · Errores: {queueCounts.error}</p>
+        {(queueCounts.conflict > 0 || queueCounts.error > 0) && <Button variant="secondary" type="button" onClick={retryQueue}>Reintentar cola</Button>}
+      </div>
+    </header>
+    <div className={styles.grid}>
+      <div className={styles.column}>
+        <form className={styles.card} onSubmit={(event) => { event.preventDefault(); addLine(); }} aria-label="Agregar producto">
+          <h2>Buscar o escanear</h2>
+          <p role="status" className={styles.location}>{locationReady ? "Ubicación autorizada por el servidor" : "Resolviendo ubicación autorizada…"}</p>
+          <div className={styles.scanRow}>
+            <div className={styles.scanWrap}>
+              <ProductCombobox
+                id="variant"
+                label="Variante / código"
+                placeholder="Buscar por SKU, nombre o código..."
+                value={selectedSuggestion ? suggestionLabel(selectedSuggestion) : variantId}
+                options={suggestions}
+                autoFocus
+                inputClassName={styles.scanInput}
+                onChange={(value) => void search(value)}
+                onSelect={selectSuggestion}
+              />
+            </div>
+            <div className={styles.quantityField}>
+              <label htmlFor="quantity">Cantidad</label>
+              <input id="quantity" className={styles.quantity} type="number" min="0.001" step="0.001" value={quantity} onChange={(event) => setQuantity(event.target.value)} required />
+            </div>
+            <Button type="submit" variant="secondary">Agregar (F4)</Button>
+          </div>
+        </form>
+        <section className={styles.card} aria-label="Carrito">
+          <h2>Carrito</h2>
+          {lines.length === 0
+            ? <p className={styles.empty}>Vacío</p>
+            : <ul className={styles.lines}>{lines.map((line, index) => <li className={styles.line} key={`${line.variantId}-${index}`}><span className={styles.lineLabel}>{line.label}</span>{" "}<span className={styles.lineQuantity}>× {line.quantity}</span></li>)}</ul>}
+        </section>
+      </div>
+      <section className={styles.card} aria-label="Pago">
+        <h2>Pago</h2>
+        {payments.map((payment, index) => <div className={styles.paymentRow} key={`${payment.method}-${index}`}><select aria-label={`Medio de pago ${index + 1}`} value={payment.method} onChange={(event) => updatePayment(index, { method: event.target.value as Payment["method"] })}>{methods.map((method) => <option key={method}>{method}</option>)}</select><input id={index === 0 ? "payment" : undefined} className={styles.paymentAmount} inputMode="decimal" aria-label={`Monto ${payment.method}`} value={payment.amount} onChange={(event) => updatePayment(index, { amount: event.target.value })} /></div>)}
+        <Button type="button" variant="secondary" className={styles.wide} onClick={() => setPayments((current) => [...current, { method: "CARD", amount: "" }])}>Agregar medio</Button>
+        <Button type="button" variant="primary" className={styles.wide} onClick={() => void checkout()} disabled={busy || !lines.length}>{busy ? "Procesando…" : "Confirmar (F10)"}</Button>
+        {change !== null && <p role="status" className={styles.change}>Vuelto: <strong>{change}</strong></p>}
+
       </section>
-    </section>
-    <p role="status" aria-live="polite">{status}</p>
-  </main>;
+    </div>
+    <p role="status" aria-live="polite" className={styles.status}>{status}</p>
+  </div>;
 }

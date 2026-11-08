@@ -39,7 +39,7 @@ export default function LoginForm() {
       }
 
       void data;
-      router.push("/admin");
+      router.push("/");
       router.refresh();
     } catch {
       setError("No pudimos conectar con el sistema. Revisá tu conexión e intentá nuevamente.");

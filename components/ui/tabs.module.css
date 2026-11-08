@@ -1,0 +1,29 @@
+/* Pestañas: pestaña activa en #0369a1 sobre blanco (5.93:1 AA);
+   el subrayado #0284c7 es borde, permitido por S5 (design/system.md). */
+.tablist {
+  display: flex;
+  gap: 6px;
+  border-bottom: 2px solid var(--color-border-subtle, #e2e8f0);
+  margin-bottom: 20px;
+}
+
+.tab {
+  min-height: var(--min-touch-target, 44px);
+  padding: 8px 18px;
+  background: transparent;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-text-muted, #475569);
+  cursor: pointer;
+}
+
+.tab:hover {
+  color: var(--color-primary-hover, #0369a1);
+}
+
+.tab[aria-selected="true"] {
+  color: var(--color-primary-hover, #0369a1);
+  border-bottom-color: var(--color-primary, #0284c7);
+}

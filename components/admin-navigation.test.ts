@@ -1,10 +1,76 @@
 import { describe, expect, it } from "vitest";
+import type { RoleName } from "../src/domain/contracts";
 import {
   ADMIN_NAV_ITEMS,
   getBreadcrumbs,
   getVisibleNavItems,
+  NAV_GROUPS,
   type NavItem,
 } from "./admin-navigation";
+
+describe("Admin Navigation - grouped sidebar (T2)", () => {
+  it("groups every existing navigation item exactly once and keeps every role rule intact", () => {
+    // Grouping must cover ADMIN_NAV_ITEMS exactly: no item lost, none duplicated.
+    expect(NAV_GROUPS.length).toBeGreaterThanOrEqual(2);
+    const groupedHrefs = NAV_GROUPS.flatMap((group) =>
+      ADMIN_NAV_ITEMS.filter((item) => item.group === group.id).map((item) => item.href)
+    );
+    expect(groupedHrefs).toHaveLength(ADMIN_NAV_ITEMS.length);
+    expect(new Set(groupedHrefs).size).toBe(ADMIN_NAV_ITEMS.length);
+    expect([...groupedHrefs].sort()).toEqual(
+      [...ADMIN_NAV_ITEMS.map((item) => item.href)].sort()
+    );
+
+    // Role visibility rules stay exactly as they were before grouping was introduced.
+    const expectedByRole: Record<RoleName, readonly string[]> = {
+      ADMIN: [
+        "/admin",
+        "/admin/purchases",
+        "/admin/suppliers",
+        "/admin/transfers",
+        "/admin/inventory",
+        "/admin/inventory/receipts",
+        "/admin/inventory/alerts",
+        "/admin/inventory/intakes",
+        "/admin/sales",
+        "/admin/reports",
+        "/admin/promotions",
+        "/admin/users",
+        "/admin/settings",
+        "/admin/weighed-barcode",
+        "/admin/cash-shifts",
+        "/admin/cash-registers",
+        "/admin/cash-shifts/history",
+        "/pos",
+      ],
+      STOCK_MANAGER: [
+        "/admin",
+        "/admin/purchases",
+        "/admin/suppliers",
+        "/admin/transfers",
+        "/admin/inventory",
+        "/admin/inventory/receipts",
+        "/admin/inventory/alerts",
+        "/admin/inventory/intakes",
+        "/admin/reports",
+        "/pos",
+      ],
+      SUPERVISOR: [
+        "/admin",
+        "/admin/inventory/alerts",
+        "/admin/inventory/intakes",
+        "/admin/sales",
+        "/admin/cash-shifts",
+        "/admin/cash-shifts/history",
+        "/pos",
+      ],
+      CASHIER: ["/pos"],
+    };
+    for (const role of Object.keys(expectedByRole) as RoleName[]) {
+      expect(getVisibleNavItems(role).map((item) => item.href)).toEqual(expectedByRole[role]);
+    }
+  });
+});
 
 describe("Admin Navigation - Suppliers and Operations Routes (T6)", () => {
   it("includes /admin/suppliers in ADMIN_NAV_ITEMS with appropriate roles and description", () => {

@@ -20,6 +20,16 @@
   --color-danger-text: #991b1b;
   --color-danger-bg: #fef2f2;
   --color-danger-border: #fecaca;
+  /* Consolidated values already in use across modules (design/system.md "Colores de uso"):
+     nav activa (admin-shell.module.css), éxito/atajos (admin-dashboard.module.css,
+     purchases.module.css), error/borrado (purchases.module.css), anillo de inputs. */
+  --color-nav-active-bg: #e0f2fe;
+  --color-success-bg: #f0fdf4;
+  --color-success-border: #bbf7d0;
+  --color-success-text: #166534;
+  --color-danger-text: #991b1b;
+  --color-danger-hover-bg: #fee2e2;
+  --color-primary-ring: rgba(2, 132, 199, 0.2);
   --focus-ring: 2px solid #2563eb;
   --focus-ring-offset: 2px;
   --radius-sm: 4px;

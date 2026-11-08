@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Design system — Supermercado</title>
+<style>
+  :root {
+    --color-bg: #f8fafc;
+    --color-surface: #ffffff;
+    --color-surface-subtle: #f1f5f9;
+    --color-border: #cbd5e1;
+    --color-border-subtle: #e2e8f0;
+    --color-text: #0f172a;
+    --color-text-muted: #475569;
+    --color-primary: #0284c7;
+    --color-primary-hover: #0369a1;
+    --color-primary-contrast: #ffffff;
+    --color-accent: #2563eb;
+    --color-success: #16a34a;
+    --color-warning: #d97706;
+    --color-danger: #dc2626;
+    --color-danger-bg: #fef2f2;
+    --color-danger-border: #fecaca;
+    --focus-ring: 2px solid #2563eb;
+    --focus-ring-offset: 2px;
+    --radius-sm: 4px;
+    --radius-md: 6px;
+    --radius-lg: 8px;
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --min-touch-target: 44px;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--color-bg); color: var(--color-text); font-family: var(--font-sans); line-height: 1.5; }
+  :focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-ring-offset); }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition: none !important; animation: none !important; }
+  }
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border-width: 0; }
+  body { padding: 32px; }
+  header.board-head { max-width: 1440px; margin: 0 auto 24px; display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  h1 { margin: 0; font-size: 1.5rem; }
+  .src { color: var(--color-text-muted); font-size: 0.9rem; }
+  main { max-width: 1440px; margin: 0 auto; display: flex; flex-direction: column; gap: 32px; }
+  section { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 24px; }
+  h2 { margin: 0 0 16px; font-size: 1.1rem; border-bottom: 1px solid var(--color-border-subtle); padding-bottom: 8px; }
+  .swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+  .swatch { border: 1px solid var(--color-border); border-radius: var(--radius-md); overflow: hidden; }
+  .swatch .chip { height: 56px; }
+  .swatch .meta { padding: 8px 10px; font-size: 0.78rem; display: flex; flex-direction: column; gap: 2px; }
+  .swatch .name { font-weight: 600; font-size: 0.82rem; }
+  .swatch .val { font-family: monospace; color: var(--color-text-muted); }
+  .usage-group { margin-bottom: 20px; }
+  .usage-group h3 { margin: 0 0 8px; font-size: 0.95rem; font-weight: 600; color: var(--color-text-muted); }
+  .scale-row { display: flex; align-items: baseline; gap: 24px; padding: 8px 0; border-bottom: 1px solid var(--color-border-subtle); }
+  .scale-row .label { width: 90px; font-size: 0.75rem; font-family: monospace; color: var(--color-text-muted); flex-shrink: 0; }
+  .spacing-demo { display: flex; gap: 16px; flex-wrap: wrap; }
+  .spacing-item { display: flex; flex-direction: column; gap: 6px; align-items: center; font-size: 0.78rem; color: var(--color-text-muted); }
+  .spacing-item .box { background: #e0f2fe; border-radius: var(--radius-sm); }
+  .radius-row { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-end; }
+  .radius-item { display: flex; flex-direction: column; gap: 6px; font-size: 0.78rem; color: var(--color-text-muted); align-items: center; }
+  .radius-item .box { width: 96px; height: 64px; border: 2px solid #0369a1; background: #e0f2fe; }
+  .shadow-row { display: flex; gap: 16px; flex-wrap: wrap; }
+  .shadow-item { width: 160px; height: 88px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); display: flex; align-items: flex-end; padding: 8px; font-size: 0.75rem; color: var(--color-text-muted); }
+  .comp-row { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-start; margin-bottom: 16px; }
+  .comp-group { display: flex; flex-direction: column; gap: 8px; min-width: 220px; }
+  .comp-group .cap { font-size: 0.8rem; font-weight: 600; color: var(--color-text-muted); }
+  button, input, select { font-family: inherit; font-size: 1rem; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: var(--min-touch-target); padding: 10px 20px; border-radius: var(--radius-md); font-weight: 600; cursor: pointer; border: 1px solid transparent; }
+  .btn-primary { background: var(--color-primary-hover); color: #ffffff; }
+  .btn-primary-note { background: var(--color-primary); color: #ffffff; }
+  .btn-secondary { background: var(--color-surface); color: var(--color-text); border-color: var(--color-border); font-weight: 500; }
+  .btn-danger { background: none; border: 1px solid var(--color-danger-border); color: var(--color-danger); }
+  .input { min-height: var(--min-touch-target); padding: 8px 12px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); color: var(--color-text); }
+  .input:focus { outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 3px rgba(2,132,199,0.2); }
+  .input-error { border-color: var(--color-danger); }
+  table.demo-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+  table.demo-table th { background: var(--color-surface-subtle); padding: 12px; font-weight: 600; color: var(--color-text-muted); border-bottom: 1px solid var(--color-border-subtle); text-align: left; }
+  table.demo-table td { padding: 12px; border-bottom: 1px solid var(--color-border-subtle); }
+  table.demo-table .num { text-align: right; font-variant-numeric: tabular-nums; font-weight: 500; }
+  .alert-error { background: var(--color-danger-bg); border: 1px solid var(--color-danger-border); color: #991b1b; border-radius: var(--radius-md); padding: 12px 16px; font-size: 0.9rem; }
+  .alert-success { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; border-radius: var(--radius-md); padding: 12px 16px; font-size: 0.9rem; }
+  .nav-demo { display: flex; flex-direction: column; gap: 4px; width: 280px; }
+  .nav-link { display: flex; align-items: center; justify-content: space-between; min-height: 44px; padding: 10px 12px; border-radius: var(--radius-md); font-size: 0.95rem; font-weight: 500; color: var(--color-text); }
+  .nav-link.active { background: #e0f2fe; color: #0369a1; font-weight: 600; }
+  kbd { font-family: monospace; font-size: 0.75rem; background: var(--color-surface-subtle); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 2px 5px; color: var(--color-text-muted); }
+  .badge { background: var(--color-surface-subtle); color: var(--color-text); font-size: 0.75rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
+  .modal-demo { max-width: 560px; border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 24px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); background: var(--color-surface); }
+  .modal-demo h3 { margin: 0 0 8px; font-size: 1.1rem; }
+  .modal-demo p { margin: 0 0 16px; color: var(--color-text-muted); font-size: 0.9rem; }
+  .card-demo { border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 20px; min-height: 140px; display: flex; flex-direction: column; justify-content: space-between; background: var(--color-surface); }
+  .card-demo .t { font-size: 1.15rem; font-weight: 600; color: #0369a1; }
+  .card-demo .d { font-size: 0.9rem; color: var(--color-text-muted); }
+  .note { font-size: 0.85rem; color: var(--color-text-muted); margin-top: 8px; }
+</style>
+</head>
+<body>
+<header class="board-head">
+  <h1>Supermercado — Sistema de diseño</h1>
+  <p class="src">Tokens sincronizados de <code>app/globals.css</code> y módulos CSS reales (ver <code>design/system.md</code>).</p>
+</header>
+<main>
+  <section aria-labelledby="h-colors">
+    <h2 id="h-colors">Colores · tokens <code>:root</code></h2>
+    <div class="swatches">
+      <div class="swatch"><div class="chip" style="background:#f8fafc"></div><div class="meta"><span class="name">--color-bg</span><span class="val">#f8fafc</span></div></div>
+      <div class="swatch"><div class="chip" style="background:#ffffff;border-bottom:1px solid #e2e8f0"></div><div class="meta"><span class="name">--color-surface</span><span class="val">#ffffff</span></div></div>
+      <div class="swatch"><div class="chip" style="background:#f1f5f9"></div><div class="meta"><span class="name">--color-surface-subtle</span><span class="val">#f1f5f9</span></div></div>
+      <div class="swatch"><div class="chip" style="background:#cbd5e1"></div><div class="meta"><span class="name">--color-border</span><span class="val">#cbd5e1</span></div></div>
+      <div class="swatch"><div class="chip" style="background:#e2e8f0"></div><div class="meta"><span class="name">--color-border-subtle</span><span class="val">#e2e8f0</span></div></div>
+      <div class="swatch"><div class="chip" style="background:#0f172a"></div><div class="meta"><span class="name">--color-text</span><span class="val">#0f172a</span></div></div>
+      <div class="swatch"><div class="chip" style="background:#475569"></div><div class="meta"><span class="name">--color-text-muted</span><span class="val">#475569</span></div></div>
+      <div class="swatch"><div class="chip" style="background:#0284c7"></div><div class="meta"><span class="name">--color-primary</span><span class="val">#0284c7</span></div></div>
+      <div class="swatch"><div class="chip" style="background:#0369a1"></div><div class="meta"><span class="name">--color-primary-hover</span><span class="val">#0369a1</span></div></div>
+      <div class="swatch"><div class="chip" style="background:#ffffff;border-bottom:1px solid #e2e8f0"></div><div class="meta"><span class="name">--color-primary-contrast</span><span class="val">#ffffff</span></div></div>
+      <div class="swatch"><div class="chip" style="background:#2563eb"></div><div class="meta"><span class="name">--color-accent</span><span class="val">#2563eb</span></div></div>
+      <div class="swatch"><div class="chip" style="background:#16a34a"></div><div class="meta"><span class="name">--color-success</span><span class="val">#16a34a</span></div></div>
+      <div class="swatch"><div class="chip" style="background:#d97706"></div><div class="meta"><span class="name">--color-warning</span><span class="val">#d97706</span></div></div>
+      <div class="swatch"><div class="chip" style="background:#dc2626"></div><div class="meta"><span class="name">--color-danger</span><span class="val">#dc2626</span></div></div>
+      <div class="swatch"><div class="chip" style="background:#fef2f2"></div><div class="meta"><span class="name">--color-danger-bg</span><span class="val">#fef2f2</span></div></div>
+      <div class="swatch"><div class="chip" style="background:#fecaca"></div><div class="meta"><span class="name">--color-danger-border</span><span class="val">#fecaca</span></div></div>
+    </div>
+    <div class="usage-group" style="margin-top:20px">
+      <h3>Colores de uso (fuera de <code>:root</code>, con fuente citada en system.md)</h3>
+      <div class="swatches">
+        <div class="swatch"><div class="chip" style="background:#e0f2fe"></div><div class="meta"><span class="name">Nav activa · fondo</span><span class="val">#e0f2fe</span></div></div>
+        <div class="swatch"><div class="chip" style="background:#f0fdf4"></div><div class="meta"><span class="name">Éxito/atajos · fondo</span><span class="val">#f0fdf4</span></div></div>
+        <div class="swatch"><div class="chip" style="background:#166534"></div><div class="meta"><span class="name">Éxito/atajos · texto</span><span class="val">#166534</span></div></div>
+        <div class="swatch"><div class="chip" style="background:#bbf7d0"></div><div class="meta"><span class="name">Éxito · borde</span><span class="val">#bbf7d0</span></div></div>
+        <div class="swatch"><div class="chip" style="background:#991b1b"></div><div class="meta"><span class="name">Alerta error · texto</span><span class="val">#991b1b</span></div></div>
+        <div class="swatch"><div class="chip" style="background:#fee2e2"></div><div class="meta"><span class="name">Peligro · hover</span><span class="val">#fee2e2</span></div></div>
+        <div class="swatch"><div class="chip" style="background:#64748b"></div><div class="meta"><span class="name">Muted · fallback</span><span class="val">#64748b</span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-type">
+    <h2 id="h-type">Tipografía · <code>--font-sans</code> (stack de sistema)</h2>
+    <div class="scale-row"><span class="label">1.5rem/700</span><span style="font-size:1.5rem;font-weight:700">Panel Operativo y Administrativo</span></div>
+    <div class="scale-row"><span class="label">1.25rem/600</span><span style="font-size:1.25rem;font-weight:600">Total del comprobante</span></div>
+    <div class="scale-row"><span class="label">1.1rem/600</span><span style="font-size:1.1rem;font-weight:600">Datos del comprobante</span></div>
+    <div class="scale-row"><span class="label">1rem/400</span><span style="font-size:1rem">Texto de cuerpo y controles</span></div>
+    <div class="scale-row"><span class="label">0.95rem/600</span><span style="font-size:0.95rem;font-weight:600">Botones y pestañas</span></div>
+    <div class="scale-row"><span class="label">0.9rem/400</span><span style="font-size:0.9rem">Celdas de tabla y descripciones</span></div>
+    <div class="scale-row"><span class="label">0.85rem/600</span><span style="font-size:0.85rem;font-weight:600">Etiquetas de campo</span></div>
+    <div class="scale-row"><span class="label">0.78rem/400</span><span style="font-size:0.78rem">Texto auxiliar y de rol</span></div>
+    <div class="scale-row"><span class="label">0.75rem/mono</span><span><kbd>Alt+K</kbd> <span class="badge">Ctrl+P</span></span></div>
+  </section>
+
+  <section aria-labelledby="h-space">
+    <h2 id="h-space">Espaciado y targets</h2>
+    <div class="spacing-demo">
+      <div class="spacing-item"><span class="box" style="width:4px;height:4px"></span><span>4px</span></div>
+      <div class="spacing-item"><span class="box" style="width:6px;height:6px"></span><span>6px</span></div>
+      <div class="spacing-item"><span class="box" style="width:8px;height:8px"></span><span>8px</span></div>
+      <div class="spacing-item"><span class="box" style="width:12px;height:12px"></span><span>12px</span></div>
+      <div class="spacing-item"><span class="box" style="width:16px;height:16px"></span><span>16px</span></div>
+      <div class="spacing-item"><span class="box" style="width:20px;height:20px"></span><span>20px</span></div>
+      <div class="spacing-item"><span class="box" style="width:24px;height:24px"></span><span>24px</span></div>
+      <div class="spacing-item"><span class="box" style="width:44px;height:44px"></span><span>44px · target táctil</span></div>
+    </div>
+    <div class="note">Sidebar 270 px · header 64 px · contenido máx. 1400 px (shell) / 1280 px (compras) · grilla de módulos <code>minmax(280px, 1fr)</code>.</div>
+  </section>
+
+  <section aria-labelledby="h-radius">
+    <h2 id="h-radius">Radio y sombras</h2>
+    <div class="radius-row">
+      <div class="radius-item"><span class="box" style="border-radius:4px"></span><span>--radius-sm · 4px</span></div>
+      <div class="radius-item"><span class="box" style="border-radius:6px"></span><span>--radius-md · 6px</span></div>
+      <div class="radius-item"><span class="box" style="border-radius:8px"></span><span>--radius-lg · 8px</span></div>
+    </div>
+    <div class="shadow-row" style="margin-top:16px">
+      <div class="shadow-item" style="box-shadow:0 1px 3px rgba(0,0,0,0.05)">formulario</div>
+      <div class="shadow-item" style="box-shadow:0 4px 6px -1px rgba(0,0,0,0.1)">skip/dropdown</div>
+      <div class="shadow-item" style="box-shadow:0 6px 12px -2px rgba(0,0,0,0.08)">card hover</div>
+      <div class="shadow-item" style="box-shadow:0 20px 25px -5px rgba(0,0,0,0.1)">modal</div>
+      <div class="shadow-item" style="box-shadow:0 20px 50px rgb(15 23 42 / 25%)">modal genérico</div>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-comps">
+    <h2 id="h-comps">Componentes núcleo</h2>
+    <div class="comp-row">
+      <div class="comp-group">
+        <span class="cap">Botones (min 44px)</span>
+        <button type="button" class="btn btn-primary">Registrar comprobante</button>
+        <button type="button" class="btn btn-primary-note" aria-describedby="note-btn">Regla producción (4.10:1)</button>
+        <button type="button" class="btn btn-secondary">Cancelar</button>
+        <button type="button" class="btn btn-danger">Quitar línea</button>
+        <span id="note-btn" class="note">El primario accesible usa <code>--color-primary-hover #0369a1</code> con blanco (5.93:1); el de producción <code>#0284c7</code> solo pasa AA en texto grande.</span>
+      </div>
+      <div class="comp-group">
+        <span class="cap">Campos</span>
+        <label for="in-ok">Variante</label>
+        <input id="in-ok" class="input" type="text" value="Gaseosa Cola 1,5 L">
+        <label for="in-err">Cantidad (inválida)</label>
+        <input id="in-err" class="input input-error" type="text" value="abc" aria-invalid="true">
+        <label for="in-sel">Sucursal</label>
+        <select id="in-sel" class="input"><option>Centro — Av. Rivadavia 1000</option><option>Norte</option></select>
+      </div>
+      <div class="comp-group">
+        <span class="cap">Navegación</span>
+        <div class="nav-demo">
+          <div class="nav-link active">Inicio <kbd>Alt+H</kbd></div>
+          <div class="nav-link">Compras <kbd>Alt+C</kbd></div>
+          <div class="nav-link">Transferencias <kbd>Alt+T</kbd></div>
+          <div class="nav-link">Reportes <kbd>Alt+R</kbd></div>
+        </div>
+      </div>
+    </div>
+    <div class="comp-row">
+      <div class="comp-group">
+        <span class="cap">Alertas</span>
+        <div class="alert-error"><strong>Error de idempotencia:</strong> el comprobante ya fue registrado con la misma clave.</div>
+        <div class="alert-success"><strong>Comprobante registrado:</strong> REC-2024-0007 · 4 líneas · $ 18.540,90.</div>
+      </div>
+      <div class="comp-group">
+        <span class="cap">Tarjeta de módulo (Inicio)</span>
+        <div class="card-demo">
+          <div>
+            <div class="t">Compras</div>
+            <div class="d">Recepción y comprobantes de compra</div>
+          </div>
+          <div><kbd>Alt+C</kbd></div>
+        </div>
+      </div>
+      <div class="comp-group">
+        <span class="cap">Modal</span>
+        <div class="modal-demo">
+          <h3>Atajos de teclado</h3>
+          <p>Presione <kbd>Alt+K</kbd> o <kbd>?</kbd> en cualquier momento.</p>
+          <button type="button" class="btn btn-secondary">Cerrar</button>
+        </div>
+      </div>
+    </div>
+    <span class="cap">Tabla con totales (Compras)</span>
+    <table class="demo-table" style="margin-top:8px">
+      <thead>
+        <tr><th scope="col">Variante</th><th scope="col">Cant.</th><th scope="col">Costo unit.</th><th scope="col" class="num">Importe</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Gaseosa Cola 1,5 L</td><td>24</td><td>$ 1.450,00</td><td class="num">$ 34.800,00</td></tr>
+        <tr><td>Galletitas de agua 500 g</td><td>60</td><td>$ 890,50</td><td class="num">$ 53.430,00</td></tr>
+        <tr><td>Leche entera 1 L</td><td>48</td><td>$ 1.120,00</td><td class="num">$ 53.760,00</td></tr>
+      </tbody>
+    </table>
+  </section>
+</main>
+</body>
+</html>
