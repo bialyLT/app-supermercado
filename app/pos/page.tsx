@@ -281,7 +281,7 @@ export default function PosPage() {
     <header className={styles.banner}>
       <div className={styles.bannerContext}>
         <h1>POS</h1>
-        <p className={styles.shortcuts}>Keyboard-first · <kbd>F2</kbd> buscar · <kbd>F4</kbd> agregar · <kbd>F8</kbd> pagar · <kbd>F10</kbd> confirmar · <kbd>Esc</kbd> conserva el carrito</p>
+        <p className={styles.shortcuts}>Atajos: <kbd>F2</kbd> buscar · <kbd>F4</kbd> agregar · <kbd>F8</kbd> pagar · <kbd>F10</kbd> confirmar · <kbd>Esc</kbd> conserva el carrito</p>
       </div>
       <div className={styles.bannerStatus}>
         {offline
