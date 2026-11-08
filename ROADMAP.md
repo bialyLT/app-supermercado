@@ -165,10 +165,13 @@ La especificación operativa y las decisiones requeridas están en
 informes de cierre y evidencia numérica. Wave 2 queda como siguiente alcance
 planificado, sin autorización de implementación todavía.
 
-**Estado actual:** Ola 0 y Ola 1 entregadas. El siguiente corte planificado es
-Ola 2 · Estados y errores: `apiFetch`, expiración de sesión, estados de carga/
-error/reintento y visibilidad de la cola offline. Requiere brief aprobado y OK
-explícito antes de escribir código.
+**Estado actual (2026-11-08):** Ola 0 y Ola 1 entregadas. En la misma fecha se
+integraron a `main` el POS autenticado con ubicación de caja (PR #18) y el
+sistema visual compartido de admin/POS rescatado del workspace WSL (PR #19),
+con su documentación (PR #20). El remoto quedó sin ramas pendientes. El
+siguiente corte planificado es Ola 2 · Estados y errores: `apiFetch`,
+expiración de sesión, estados de carga/error/reintento y visibilidad de la cola
+offline. Requiere brief aprobado y OK explícito antes de escribir código.
 
 ## Plantilla de cierre de cualquier épica
 
