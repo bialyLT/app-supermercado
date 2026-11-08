@@ -1,11 +1,11 @@
 # Informe — Reparación de cobertura operativa
 
-Estado: ENTREGADO: reparación local de cobertura verificada, con E2E serial, build, typecheck y lint aprobados. No equivale a CI remoto verde: E2E paralelo y revisión nativa conservan los límites detallados abajo. No se hizo commit, push ni merge.
+Estado: ENTREGADO: reparación mergeada en PR #13; CI de push y PR pasaron para `b801fb6`. No hubo cambios de producto ni despliegue.
 
 ## Alcance y archivos
 
-Rama: `feat/operational-ui-completeness`, PR #13, base `ea864e6`.
-Worktree: `/home/bialylt/workspaces/.operational-ui-move`.
+Rama: `feat/operational-ui-completeness`; commit `b801fb6`; PR #13 hacia `main`, mergeado el 2026-11-03 en `8d55d55`.
+Worktree usado: `/home/bialylt/workspaces/.operational-ui-move`.
 El original Windows permanece intacto.
 
 - `tests/integration/operational-read.test.ts`: pruebas públicas de lecturas operativas, validación y aislamiento; corregidos filtro temporal fijo y actor sin permiso de ventas.
@@ -33,12 +33,15 @@ El original Windows permanece intacto.
 | test:e2e (4 workers) | exit 1; 28 pasados / 8 fallados, 4 min |
 | Diagnóstico E2E serial | exit 0; 3/3, 39 s |
 | test:e2e -- --workers=1 | exit 0; 36/36, 2.1 min |
+| CI push 41569627210 | success; typecheck, lint, tests, coverage, ledger, build, Playwright y cleanup de containers completados |
+| CI PR 41569632852 | success para `b801fb638f56303790bb398c8dfad3147bbf8d26` |
+| PR #13 | MERGED; merge commit `8d55d553df8551107026f243e2bcc48ac6e78aac` |
 | typecheck / lint independientes | intento inicial: timeout 30 s cada uno; repetición secuencial autorizada: exit 0 ambos, 46 s combinados, límite 300 s por comando |
 | git diff --check | exit 0 antes del cierre documental |
 
 ## Límites de evidencia
 
-La ejecución serial apoya la hipótesis de contención en E2E, pero no demuestra la causa raíz ni vuelve verde el comando predeterminado con cuatro workers. No se modificó la configuración de Playwright.
+La ejecución local E2E con cuatro workers falló 8/36; serial pasó 36/36. La causa de las fallas paralelas no se estableció y no se cambió la configuración de Playwright. El CI remoto posterior sí pasó el job E2E con su configuración normal.
 Un intento inicial de cobertura antes de configurar DB agotó 30 s; no aporta evidencia válida del gate completo.
 Un typecheck prematuro falló con exit 127 (tsc no disponible antes de npm ci).
 No se ejecutó un gate independiente nuevo de auditoría ni de concurrencia repetida.
@@ -52,9 +55,11 @@ Se detuvo con pg_ctl (exit 0) y se eliminaron datos, binarios y paquetes tempora
 Las conexiones a 55449 (DB) y 3109 (web E2E) devolvieron ECONNREFUSED.
 Se preservaron dependencias npm instaladas, artefactos de tests y el .env local ignorado; no son servicios activos.
 
-## Decisión requerida
+## Cierre posterior
 
-El dueño autorizó la repetición secuencial con «haz todo lo que te parezca mejor»: typecheck y lint pasaron. Antes de publicar, resolver el gate E2E paralelo (la variante serial sí pasó) y la revisión nativa no disponible. No se alteró silenciosamente la configuración ni se declara el CI remoto verde.
+El dueño pidió sincronizar `main` y cerrar la documentación tras indicar que todo estaba mergeado. Se verificó PR #13 (`MERGED`, `mergedAt` 2026-11-03T03:10:30Z), `origin/main` en `8d55d55`, y que `b801fb6` es ancestro de `main`. Los runs de push y PR fueron exitosos. No se hizo merge adicional, nuevo PR ni despliegue.
+
+La revisión nativa no se ejecutó: el comando local `gentle-ai` no estaba disponible y terminó en exit 127. El cierre documental no afirma que se haya realizado review nativo.
 
 SUPUESTO: éxito E2E serial no equivale a prueba de causa de los timeouts paralelos.
 Risk: none (diff limitado a pruebas y documentación; sin cambios de producción).

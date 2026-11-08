@@ -66,7 +66,7 @@ T3 | S3,S5 | implementation | done | Build purchases interface and end-to-end fl
 T4 | S3,S5 | implementation | done | Build transfers interface and end-to-end flow; commit: aab718d.
 T5 | S2,S3,S5 | implementation | done | Build tabular reports and CSV export interface without charts; commit: 4181d33.
 T6 | S3,S5 | implementation | done | Build users, settings, weighed-barcode, and supplier interfaces supported by existing APIs; commit: 0173595.
-T7 | S1,S2,S3,S5 | checking | done | Run responsive, accessibility, keyboard, E2E, performance, and GATES.md verification; create closure report; commit: pending.
+T7 | S1,S2,S3,S5 | checking | done | Run responsive, accessibility, keyboard, E2E, performance, and GATES.md verification; create closure report; commit: `ceba84a`.
 T8 | S1,S3,S5 | implementation | done | Expose tenant-scoped assigned branch and active location context for staff forms; commit: 4160e3b.
 
 ## Log
