@@ -3,6 +3,7 @@
 import React from "react";
 import type { TransferSummary } from "./types";
 import styles from "./transfers.module.css";
+import { formatDateTime, formatQuantity } from "../../src/client/presentation";
 
 export type TransferHistoryProps = {
   transfers: TransferSummary[];
@@ -12,11 +13,11 @@ export function TransferHistory({ transfers }: TransferHistoryProps) {
   if (transfers.length === 0) {
     return (
       <div className={styles.linesSection} role="region" aria-label="Historial de transferencias">
-        <div style={{ textAlign: "center", padding: "2.5rem 1rem", color: "var(--color-text-muted, #64748b)" }}>
-          <p style={{ fontSize: "1.125rem", fontWeight: 600, margin: "0 0 0.5rem 0" }}>
+        <div className={styles.emptyHistory}>
+          <p className={styles.emptyHistoryTitle}>
             No hay transferencias registradas
           </p>
-          <p style={{ fontSize: "0.875rem", margin: 0 }}>
+          <p className={styles.emptyHistoryText}>
             Las transferencias despachadas aparecerán aquí con el detalle de sus movimientos entre depósitos.
           </p>
         </div>
@@ -32,13 +33,13 @@ export function TransferHistory({ transfers }: TransferHistoryProps) {
         </h2>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+      <div className={styles.historyList}>
         {transfers.map((t) => {
           const originName = t.originBranchName || t.originBranchId;
           const destName = t.destinationBranchName || t.destinationBranchId;
           const originLoc = t.originLocationName || t.originLocationId;
           const destLoc = t.destinationLocationName || t.destinationLocationId;
-          const dateStr = t.createdAt ? new Date(t.createdAt).toLocaleString("es-AR") : "Reciente";
+          const dateStr = t.createdAt ? formatDateTime(t.createdAt) : "Reciente";
 
           return (
             <article
@@ -48,18 +49,18 @@ export function TransferHistory({ transfers }: TransferHistoryProps) {
               tabIndex={0}
             >
               <div className={styles.historyCardHeader}>
-                <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+                <div className={styles.historyMeta}>
                   <div className={styles.historyRoute}>
                     {originName} → {destName}
                   </div>
                   <div className={styles.helperText}>
                     <span>Depósitos: {originLoc} → {destLoc}</span>
-                    <span style={{ margin: "0 0.5rem" }}>•</span>
+                    <span className={styles.separator}>•</span>
                     <time dateTime={t.createdAt}>{dateStr}</time>
                   </div>
                 </div>
 
-                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                <div className={styles.historyStatus}>
                   <span className={styles.badge}>
                     {t.status === "COMPLETED" ? "COMPLETADA" : t.status}
                   </span>
@@ -67,7 +68,7 @@ export function TransferHistory({ transfers }: TransferHistoryProps) {
               </div>
 
               {t.reason && (
-                <div style={{ fontSize: "0.8125rem", color: "var(--color-text, #334155)" }}>
+                <div className={styles.reason}>
                   <strong>Motivo:</strong> {t.reason}
                 </div>
               )}
@@ -78,31 +79,31 @@ export function TransferHistory({ transfers }: TransferHistoryProps) {
                     <tr>
                       <th className={styles.th}>Variante / Producto</th>
                       <th className={styles.th}>Lote</th>
-                      <th className={styles.th} style={{ textAlign: "right" }}>Cantidad Despachada</th>
+                      <th className={`${styles.th} ${styles.alignRight}`}>Cantidad Despachada</th>
                     </tr>
                   </thead>
                   <tbody>
                     {t.lines.map((l, idx) => (
                       <tr key={l.id || `hist-line-${idx}`}>
                         <td className={styles.td}>
-                          <div style={{ fontWeight: 600 }}>
+                          <div className={styles.variantName}>
                             {l.variantName || l.sku || l.variantId}
                           </div>
                           {l.sku && l.variantName && (
-                            <div style={{ fontSize: "0.75rem", color: "var(--color-text-muted, #64748b)" }}>
+                            <div className={styles.sku}>
                               SKU: {l.sku}
                             </div>
                           )}
                         </td>
                         <td className={styles.td}>
                           {l.lotId ? (
-                            <span style={{ fontFamily: "monospace", fontSize: "0.75rem" }}>{l.lotId}</span>
+                            <span className={styles.lot}>{l.lotId}</span>
                           ) : (
-                            <span style={{ color: "var(--color-text-muted, #94a3b8)" }}>Sin lote</span>
+                            <span className={styles.muted}>Sin lote</span>
                           )}
                         </td>
-                        <td className={styles.td} style={{ textAlign: "right", fontWeight: 700 }}>
-                          {l.quantity}
+                        <td className={`${styles.td} ${styles.alignRight} ${styles.quantity}`}>
+                          {formatQuantity(l.quantity)}
                         </td>
                       </tr>
                     ))}
@@ -110,7 +111,7 @@ export function TransferHistory({ transfers }: TransferHistoryProps) {
                 </table>
               </div>
 
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.75rem", color: "var(--color-text-muted, #94a3b8)" }}>
+              <div className={styles.historyFooter}>
                 <span>ID: {t.id}</span>
                 <span>Clave de Idempotencia: {t.idempotencyKey}</span>
               </div>

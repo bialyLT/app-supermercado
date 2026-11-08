@@ -11,6 +11,22 @@ export function configureInventoryPolicy(actor: Actor, input: z.input<typeof pol
 export function openRegisterSession(actor: Actor, input: z.input<typeof openSessionSchema>, clock = systemClock) {
   return execute(actor, clock, () => repository.open(actor, openSessionSchema.parse(input), clock));
 }
+
+export function listCashRegisterOptions(actor: Actor, clock = systemClock) {
+  return execute(actor, clock, () => repository.listRegisterOptions(actor, clock));
+}
+
+export function assignCashRegisterLocation(actor: Actor, input: { registerId: string; locationId: string }, clock = systemClock) {
+  return execute(actor, clock, () => repository.assignRegisterLocation(actor, { registerId: String(input.registerId), locationId: String(input.locationId) }, clock));
+}
+
+export function listCashRegisterAssignments(actor: Actor, clock = systemClock) {
+  return execute(actor, clock, () => repository.listRegisterAssignments(actor, clock));
+}
+
+export function getPosSessionLocation(actor: Actor, clock = systemClock) {
+  return execute(actor, clock, () => repository.posSessionLocation(actor, clock));
+}
 export function recordCashMovement(actor: Actor, input: z.input<typeof cashMovementSchema>, clock = systemClock) {
   return execute(actor, clock, () => repository.recordMovement(actor, cashMovementSchema.parse(input), clock));
 }

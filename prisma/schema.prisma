@@ -198,7 +198,9 @@ model CashRegister {
   tenantId  String   @db.Uuid
   branchId  String   @db.Uuid
   name      String
+  locationId String? @db.Uuid
   branch    Branch   @relation(fields: [tenantId, branchId], references: [tenantId, id])
+  location  Location? @relation("RegisterLocation", fields: [tenantId, locationId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction)
   registerSessions CashRegisterSession[]
   createdAt DateTime @default(now())
   @@unique([branchId, name])
@@ -448,6 +450,8 @@ model Location {
   purchaseReceipts PurchaseReceipt[]
   outgoingTransfers InventoryTransfer[] @relation("TransferOriginLocation")
   incomingTransfers InventoryTransfer[] @relation("TransferDestinationLocation")
+  assignedRegisters CashRegister[] @relation("RegisterLocation")
+  registerSessions CashRegisterSession[] @relation("SessionLocation")
   @@unique([tenantId, code])
   @@unique([tenantId, id])
   @@index([tenantId, branchId])
@@ -705,6 +709,7 @@ model CashRegisterSession {
   tenantId String @db.Uuid
   registerId String @db.Uuid
   branchId String @db.Uuid
+  locationId String? @db.Uuid
   userId String @db.Uuid
   currency String
   openedAt DateTime @db.Timestamptz(3)
@@ -716,6 +721,7 @@ model CashRegisterSession {
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   register CashRegister @relation(fields: [tenantId, registerId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction)
   branch Branch @relation(fields: [tenantId, branchId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction)
+  location Location? @relation("SessionLocation", fields: [tenantId, locationId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction)
   cashier User @relation("SessionCashier", fields: [tenantId, userId], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction)
   closer User? @relation("SessionCloser", fields: [tenantId, closedBy], references: [tenantId, id], onDelete: NoAction, onUpdate: NoAction)
   sales Sale[]

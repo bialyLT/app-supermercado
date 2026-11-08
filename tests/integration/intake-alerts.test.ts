@@ -1,5 +1,12 @@
 import { afterAll, describe, expect, it } from "vitest";
-import { confirmSale, listInventoryAlerts, reviewUnverifiedIntake } from "../../src/server/inventory";
+import {
+  getUnverifiedIntake,
+  listInventoryAlerts,
+  listInventoryReceipts,
+  listUnverifiedIntakes,
+  recordReceipt,
+  reviewUnverifiedIntake,
+} from "../../src/server/inventory";
 import { configureInventoryPolicy } from "../../src/server/cash";
 import { admin, fixture, addActor, clock, now, enabled } from "./fixtures";
 
@@ -7,19 +14,18 @@ afterAll(() => admin.$disconnect());
 (enabled ? describe : describe.skip)("pending intake alerts", () => {
   it("alerts automatically only after the threshold, excludes resolved cases, and exposes cashier volumes", async () => {
     const f = await fixture();
-    const reviews: { id: string }[] = [];
-    for (let i = 0; i < 3; i += 1) {
-      await confirmSale(f.actor, { ...f.stock, quantity: "1", unitPrice: "1", allowUnverifiedIntake: true, idempotencyKey: `sale-${i}` }, clock);
-      // Find the case through its sale, not UUID ordering or worker execution time.
-      const sale = await admin.idempotencyCommand.findUniqueOrThrow({ where: { tenantId_commandId: { tenantId: f.tenantId, commandId: `sale-${i}` } } });
-      const exact = await admin.unverifiedIntakeReview.findFirstOrThrow({ where: { tenantId: f.tenantId, saleId: sale.resultId } });
-      reviews.push({ id: exact.id });
-    }
+    await recordReceipt(f.actor, { ...f.stock, quantity: "2", reason: "Receipt read fixture", idempotencyKey: "receipt-read" }, clock);
     const boundary = new Date(now.getTime() - 7 * 86400000);
-    await admin.unverifiedIntakeReview.update({ where: { id: reviews[0].id }, data: { createdAt: boundary } });
-    await admin.unverifiedIntakeReview.update({ where: { id: reviews[1].id }, data: { createdAt: new Date(boundary.getTime() - 1) } });
-    await admin.unverifiedIntakeReview.update({ where: { id: reviews[2].id }, data: { createdAt: new Date(boundary.getTime() - 2) } });
+    const reviews: { id: string }[] = [];
+    for (const createdAt of [boundary, new Date(boundary.getTime() - 1), new Date(boundary.getTime() - 2)]) {
+      const review = await admin.unverifiedIntakeReview.create({ data: { tenantId: f.tenantId, locationId: f.locationId,
+        variantId: f.variantId, quantity: "1", reason: "Historical intake fixture", createdBy: f.actor.userId,
+        intakeValue: "1", currency: "XTS", createdAt } });
+      reviews.push({ id: review.id });
+    }
     const reviewer = await addActor(f.tenantId, f.branchId, "STOCK_MANAGER");
+    const receipts = await listInventoryReceipts(reviewer, clock);
+    expect(receipts.receipts).toMatchObject([{ locationId: f.locationId, variantId: f.variantId, quantity: "2", reason: "Receipt read fixture" }]);
     await reviewUnverifiedIntake(reviewer, { reviewId: reviews[2].id, decision: "CONFIRMED", acknowledgeUnknownCost: true, reason: "Resolved", idempotencyKey: "review" }, clock);
     const result = await listInventoryAlerts(reviewer, clock);
     expect(result.alerts.map((alert) => alert.reviewId)).toEqual([reviews[1].id]);
@@ -31,6 +37,10 @@ afterAll(() => admin.$disconnect());
     const reviewer = await addActor(f.tenantId, f.branchId, "STOCK_MANAGER");
     const pending = await admin.unverifiedIntakeReview.create({ data: { tenantId: f.tenantId, ...f.stock, quantity: "1", reason: "Legacy fixture",
       createdBy: f.actor.userId, createdAt: new Date(now.getTime() - 4 * 86400000) } });
+    const intakes = await listUnverifiedIntakes(reviewer, clock);
+    expect(intakes.intakes).toContainEqual(expect.objectContaining({ id: pending.id, status: "PENDING_REVIEW", intakeValue: null, correctionQuantity: null, reviewedAt: null }));
+    expect((await getUnverifiedIntake(reviewer, pending.id, clock)).intake).toMatchObject({ id: pending.id, status: "PENDING_REVIEW", intakeValue: null });
+    await expect(getUnverifiedIntake(reviewer, crypto.randomUUID(), clock)).rejects.toThrow("NOT_FOUND");
     expect((await listInventoryAlerts(reviewer, clock)).alerts).toHaveLength(0);
     await configureInventoryPolicy(f.actor, { mode: "ALLOW_WITH_CAPS", currency: "XTS", maxSessionValue: "100", reviewAfterDays: 3 }, clock);
     const foreign = await fixture();

@@ -12,13 +12,18 @@ export type Permission =
   | "cash.session.open"
   | "cash.session.close"
   | "cash.session.close.other"
+  | "cash.register.manage"
   | "identity.supervisor_pin.manage"
   | "inventory.sale.approve"
   | "inventory.unverified_intake.create"
   | "inventory.unverified_intake.review"
   | "inventory.expired.override"
   | "fiscal.profile.manage"
-  | "fiscal.profile.read";
+  | "fiscal.profile.read"
+  | "inventory.level.read"
+  | "inventory.ledger.read"
+  | "sales.read"
+  | "cash.history.read";
 
 export type Actor = Readonly<{
   tenantId: string;

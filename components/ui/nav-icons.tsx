@@ -20,6 +20,24 @@ const ICONS: Record<NavIconName, React.ReactNode> = {
       <path d="M9 7a3 3 0 0 1 6 0" />
     </>
   ),
+  inventory: (
+    <>
+      <path d="M3 7.5 12 3l9 4.5v9L12 21l-9-4.5Z" />
+      <path d="M3 7.5 12 12l9-4.5M12 12v9" />
+    </>
+  ),
+  alerts: (
+    <>
+      <path d="M12 3 2.5 20h19Z" />
+      <path d="M12 9v5M12 17h.01" />
+    </>
+  ),
+  sales: (
+    <>
+      <path d="M6 3h12v18l-3-2-3 2-3-2-3 2Z" />
+      <path d="M9 8h6M9 12h6" />
+    </>
+  ),
   suppliers: (
     <>
       <path d="M4 5h16v14H4z" />

@@ -1,6 +1,7 @@
 import React from "react";
 import type { OperationsReportData } from "./types";
 import { formatCurrencyAmount } from "./types";
+import { formatDate } from "../../src/client/presentation";
 import styles from "./reports.module.css";
 
 export type ReportSummaryProps = {
@@ -17,8 +18,7 @@ export function ReportSummary({ report }: ReportSummaryProps) {
           Resumen Consolidado de Operaciones
         </h2>
         <span className={styles.periodBadge}>
-          Período: {new Date(report.period.from).toLocaleDateString()} —{" "}
-          {new Date(report.period.to).toLocaleDateString()}
+          Período: {formatDate(report.period.from)} — {formatDate(report.period.to)}
         </span>
       </div>
 

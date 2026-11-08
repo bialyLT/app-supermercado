@@ -10,6 +10,7 @@ import { formatTransferPayload, mapTransferErrorMessage } from "./types";
 import { TransferForm } from "./transfer-form";
 import { TransferHistory } from "./transfer-history";
 import styles from "./transfers.module.css";
+import { apiFetch, errorMessage } from "../../src/client/api-fetch";
 
 export type TransferManagerProps = {
   initialTransfers?: TransferSummary[];
@@ -34,7 +35,7 @@ export function TransferManager({
   // Load operational context (branches and active locations) from /api/admin/context if not preloaded
   useEffect(() => {
     if (!initialContext) {
-      fetch("/api/admin/context")
+      apiFetch("/api/admin/context")
         .then(async (res) => {
           if (!res.ok) {
             const data = await res.json().catch(() => ({}));
@@ -61,7 +62,7 @@ export function TransferManager({
       try {
         const payload = formatTransferPayload(formData);
 
-        const res = await fetch("/api/admin/transfers", {
+        const res = await apiFetch("/api/admin/transfers", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
@@ -116,7 +117,7 @@ export function TransferManager({
         setTransfers((prev) => [createdTransfer, ...prev]);
         return true;
       } catch (err) {
-        setServerError(err instanceof Error ? err.message : "Error de red al procesar la transferencia");
+        setServerError(errorMessage(err));
         return false;
       } finally {
         setIsSubmitting(false);
@@ -173,27 +174,25 @@ export function TransferManager({
           role="status"
           aria-live="polite"
         >
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem" }}>
+          <div className={styles.alertHeader}>
             <span className={styles.alertTitle}>
               ✓ ¡Transferencia despachada con éxito!
             </span>
-            <div style={{ display: "flex", gap: "0.5rem" }}>
+            <div className={styles.alertActions}>
               <button
                 type="button"
-                className={`${styles.btn} ${styles.btnSecondary}`}
                 onClick={() => {
                   setActiveTab("history");
                   setLastSubmittedTransfer(null);
                 }}
-                style={{ padding: "0.25rem 0.6rem", fontSize: "0.75rem" }}
+                className={`${styles.btn} ${styles.btnSecondary} ${styles.btnCompact}`}
               >
                 Ver en historial
               </button>
               <button
                 type="button"
-                className={`${styles.btn} ${styles.btnSecondary}`}
                 onClick={() => setLastSubmittedTransfer(null)}
-                style={{ padding: "0.25rem 0.5rem", fontSize: "0.75rem" }}
+                className={`${styles.btn} ${styles.btnSecondary} ${styles.btnIcon}`}
                 aria-label="Cerrar notificación"
               >
                 ✕

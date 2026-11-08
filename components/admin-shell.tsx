@@ -16,6 +16,7 @@ import {
 import { Modal } from "./modal";
 import { NavIcon } from "./ui/nav-icons";
 import styles from "./admin-shell.module.css";
+import { apiFetch } from "../src/client/api-fetch";
 
 export type AdminShellProps = {
   readonly children?: React.ReactNode;
@@ -91,10 +92,11 @@ export function AdminShell({
       }
     }
   }, [isSidebarOpen, isDrawerMode]);
+  const [sessionExpired, setSessionExpired] = useState(false);
 
   const handleSignOut = useCallback(async () => {
     try {
-      await fetch("/api/auth/sign-out", { method: "POST" });
+      await apiFetch("/api/auth/sign-out", { method: "POST" });
     } finally {
       router.push("/");
       router.refresh();
@@ -107,6 +109,16 @@ export function AdminShell({
     ? getVisibleNavItems(currentRole)
     : ADMIN_NAV_ITEMS.filter((item) => item.href === "/pos");
   const isAuthorized = currentRole !== undefined && isRoleAuthorizedForAdmin(currentRole);
+  useEffect(() => {
+    const handleExpired = () => {
+      setSessionExpired(true);
+      router.push("/");
+      router.refresh();
+    };
+    window.addEventListener("supermercado:session-expired", handleExpired);
+    return () => window.removeEventListener("supermercado:session-expired", handleExpired);
+  }, [router]);
+
   const breadcrumbs = getBreadcrumbs(pathname);
 
   // Keyboard shortcut listener
@@ -416,6 +428,11 @@ export function AdminShell({
           tabIndex={-1}
           aria-label={rail ? "Punto de venta" : undefined}
         >
+          {sessionExpired && (
+            <div role="alert" className={styles.restrictedBanner}>
+              Tu sesión venció. Volvé a ingresar para continuar.
+            </div>
+          )}
           {!isAuthorized && !rail ? (
             <div className={styles.restrictedBanner} role="alert">
               <h2 className={styles.restrictedTitle}>Acceso no autorizado</h2>

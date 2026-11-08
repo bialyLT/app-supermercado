@@ -221,6 +221,10 @@
   border-top: 1px dashed var(--color-border, #e2e8f0);
 }
 
+.advancedToggleWrap { margin-top: 0.75rem; }
+.advancedGridSpaced { margin-top: 0.75rem; }
+.actionRowSpaced { margin-top: 1rem; }
+
 .actionRow {
   display: flex;
   justify-content: flex-end;

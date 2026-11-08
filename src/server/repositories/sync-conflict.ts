@@ -1,5 +1,7 @@
+import { createHash } from "node:crypto";
 import type { Prisma } from "@prisma/client";
 import type { Actor } from "../../domain/actor";
+import { InventoryError } from "../../domain/inventory";
 import { inventoryTransaction, systemClock } from "./inventory";
 
 export async function listSyncConflicts(actor: Actor) {
@@ -18,8 +20,19 @@ export async function recordSyncConflict(actor: Actor, input: {
   payload: Prisma.InputJsonValue;
   existingEntityId?: string;
 }) {
-  return inventoryTransaction(actor, "inventory.catalog.write", systemClock, async (tx, verified) => tx.syncConflict.create({
-    data: { tenantId: verified.tenantId, commandId: input.commandId, kind: input.kind, payload: input.payload,
-      existingEntityId: input.existingEntityId },
-  }));
+  return inventoryTransaction(actor, "inventory.catalog.write", systemClock, async (tx, verified) => {
+    const existing = await tx.syncConflict.findUnique({
+      where: { tenantId_commandId: { tenantId: verified.tenantId, commandId: input.commandId } },
+    });
+    const payloadHash = createHash("sha256").update(JSON.stringify({ kind: input.kind, payload: input.payload, existingEntityId: input.existingEntityId ?? null })).digest("hex");
+    if (existing) {
+      const existingHash = createHash("sha256").update(JSON.stringify({ kind: existing.kind, payload: existing.payload, existingEntityId: existing.existingEntityId ?? null })).digest("hex");
+      if (existingHash !== payloadHash) throw new InventoryError("IDEMPOTENCY_CONFLICT");
+      return existing;
+    }
+    return tx.syncConflict.create({
+      data: { tenantId: verified.tenantId, commandId: input.commandId, kind: input.kind, payload: input.payload,
+        existingEntityId: input.existingEntityId },
+    });
+  });
 }

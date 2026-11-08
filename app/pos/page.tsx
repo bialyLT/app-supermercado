@@ -1,26 +1,35 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { ProductCombobox } from "../../components/product-combobox";
 import { Alert } from "../../components/ui/alert";
 import { Button } from "../../components/ui/button";
-import { enqueue, pendingCommands, remove, type OfflineCommand } from "../../src/pos/offline-queue";
+import { enqueue, pendingCommands, replayOfflineCommand, update, type OfflineCommand } from "../../src/pos/offline-queue";
 import styles from "./pos.module.css";
+import { ApiError, apiFetch } from "../../src/client/api-fetch";
 
 type Line = { variantId: string; locationId: string; quantity: string; label: string; unitPrice?: string; weighedBarcode?: string };
 type Payment = { method: "CASH" | "TRANSFER" | "CARD" | "WALLET"; amount: string };
 type Suggestion = { id: string; sku: string; name: string; productName: string };
 
+function suggestionLabel(item: Suggestion): string {
+  const name = item.productName.trim() || item.name.trim() || "Producto";
+  return item.sku.trim() ? `${name} · ${item.sku}` : name;
+}
+
 const methods = ["CASH", "TRANSFER", "CARD", "WALLET"] as const;
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export default function PosPage() {
+  const router = useRouter();
   const [locationId, setLocationId] = useState("");
   const [locationReady, setLocationReady] = useState(false);
   const [variantId, setVariantId] = useState("");
   const [scannedUnitPrice, setScannedUnitPrice] = useState<string | undefined>();
   const [scannedBarcode, setScannedBarcode] = useState<string | undefined>();
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [selectedSuggestion, setSelectedSuggestion] = useState<Suggestion | null>(null);
   const [quantity, setQuantity] = useState("1");
   const [lines, setLines] = useState<Line[]>([]);
   const [payments, setPayments] = useState<Payment[]>([{ method: "CASH", amount: "" }]);
@@ -28,7 +37,7 @@ export default function PosPage() {
   const [change, setChange] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [offline, setOffline] = useState(false);
-  const [queued, setQueued] = useState(0);
+  const [queueCounts, setQueueCounts] = useState({ pending: 0, processing: 0, completed: 0, conflict: 0, error: 0 });
 
   const [commandId, setCommandId] = useState(() => crypto.randomUUID());
   const searchSeq = useRef(0);
@@ -59,18 +68,21 @@ export default function PosPage() {
     };
     void loadLocation();
 
-    const refreshQueue = () => void pendingCommands().then((items) => setQueued(items.length)).catch(() => undefined);
+    const refreshQueue = () => void pendingCommands().then((items) => {
+      setQueueCounts(items.reduce((counts, item) => {
+        const state = item.state ?? "pending";
+        counts[state] += 1;
+        return counts;
+      }, { pending: 0, processing: 0, completed: 0, conflict: 0, error: 0 }));
+    }).catch(() => setStatus("No se pudo leer la cola offline. Reintentá."));
     const replay = async () => {
       const items = await pendingCommands().catch(() => []);
-      for (const item of items) {
-        const response = await fetch(item.endpoint, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(item.payload) }).catch(() => null);
-        if (!response) break;
-        const body = await response.json().catch(() => ({})) as { error?: string; details?: Array<{ path: (string | number)[]; message: string }> };
-        if (response.ok) await remove(item.commandId);
-        else if (response.status === 409) { setStatus(`Conflicto offline ${item.commandId}: ${body.error ?? "revisión requerida"}`); break; }
-        else {
-          const detail = body.details?.map((issue) => `${issue.path.join(".") || "payload"}: ${issue.message}`).join(", ");
-          setStatus(`Replay rechazado: ${body.error ?? `HTTP_${response.status}`}${detail ? ` (${detail})` : ""}`);
+      for (const item of items.filter((candidate) => (candidate.state ?? "pending") === "pending" || candidate.state === "error")) {
+        await update(item.commandId, { state: "processing", lastError: undefined });
+        const result = await replayOfflineCommand(item);
+        await update(item.commandId, result);
+        if (result.state !== "completed") {
+          setStatus(`${result.lastError ?? "Replay rechazado"} (${item.commandId})`);
           break;
         }
       }
@@ -84,6 +96,8 @@ export default function PosPage() {
     });
     refreshQueue();
     window.addEventListener("online", onOnline); window.addEventListener("offline", onOffline);
+    const onSessionExpired = () => router.push("/");
+    window.addEventListener("supermercado:session-expired", onSessionExpired);
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "F2") { event.preventDefault(); document.getElementById("variant")?.focus(); }
       if (event.key === "F4") { event.preventDefault(); addLineRef.current(); }
@@ -91,7 +105,7 @@ export default function PosPage() {
       if (event.key === "F10") { event.preventDefault(); void checkoutRef.current(); }
       if (event.key === "Escape") {
         if (linesRef.current.length > 0) {
-          setStatus("El carrito sigue intacto. Confirmá o quitá las líneas manualmente.");
+          setStatus("El carrito se conserva; no se realizó ningún cambio.");
           return;
         }
         setStatus("");
@@ -99,8 +113,15 @@ export default function PosPage() {
       }
     };
     window.addEventListener("keydown", onKeyDown);
-    return () => { window.removeEventListener("keydown", onKeyDown); window.removeEventListener("online", onOnline); window.removeEventListener("offline", onOffline); };
-  }, []);
+    return () => { window.removeEventListener("keydown", onKeyDown); window.removeEventListener("online", onOnline); window.removeEventListener("offline", onOffline); window.removeEventListener("supermercado:session-expired", onSessionExpired); };
+  }, [router]);
+
+  const retryQueue = () => {
+    setStatus("Reintentando comandos offline…");
+    void pendingCommands().then(() => {
+      window.dispatchEvent(new Event("online"));
+    });
+  };
 
   async function searchCatalogQuery(queryText: string, seq: number) {
     const query = queryText.trim().toLowerCase();
@@ -139,6 +160,7 @@ export default function PosPage() {
   async function search(value: string) {
     const seq = ++searchSeq.current;
     setVariantId(value);
+    setSelectedSuggestion(null);
     setScannedUnitPrice(undefined);
     setScannedBarcode(undefined);
     if (/^\d{13}$/.test(value.trim())) {
@@ -153,10 +175,12 @@ export default function PosPage() {
         if (response.ok) {
           const item = await response.json() as Suggestion & { variantId: string; unitPrice: string };
           if (seq !== searchSeq.current) return;
+          const selectedItem: Suggestion = { id: item.variantId, sku: item.sku, name: item.name, productName: item.productName };
           setVariantId(item.variantId);
+          setSelectedSuggestion(selectedItem);
           setScannedUnitPrice(item.unitPrice);
           setScannedBarcode(value.trim());
-          setSuggestions([{ id: item.variantId, sku: item.sku, name: item.name, productName: item.productName }]);
+          setSuggestions([selectedItem]);
           setStatus(`Código pesable: precio unitario ${item.unitPrice}`);
           return;
         }
@@ -184,6 +208,7 @@ export default function PosPage() {
   function selectSuggestion(item: Suggestion) {
     ++searchSeq.current;
     setVariantId(item.id);
+    setSelectedSuggestion(item);
     if (item.id !== variantId || !scannedBarcode) {
       setScannedUnitPrice(undefined);
       setScannedBarcode(undefined);
@@ -195,8 +220,10 @@ export default function PosPage() {
     if (!locationReady || !locationId.trim() || !uuidPattern.test(locationId.trim())) { setStatus("POS bloqueado: ubicación autorizada no disponible"); return; }
     if (!uuidPattern.test(variantId.trim())) { setStatus("Seleccioná un producto del catálogo"); return; }
     ++searchSeq.current;
-    setLines((current) => [...current, { variantId: variantId.trim(), locationId: locationId.trim(), quantity, label: variantId.trim(), unitPrice: scannedUnitPrice, weighedBarcode: scannedBarcode }]);
+    const selectedItem = selectedSuggestion?.id === variantId.trim() ? selectedSuggestion : null;
+    setLines((current) => [...current, { variantId: variantId.trim(), locationId: locationId.trim(), quantity, label: selectedItem ? suggestionLabel(selectedItem) : "Producto seleccionado", unitPrice: scannedUnitPrice, weighedBarcode: scannedBarcode }]);
     setVariantId("");
+    setSelectedSuggestion(null);
     setScannedUnitPrice(undefined);
     setScannedBarcode(undefined);
     setQuantity("1");
@@ -227,14 +254,17 @@ export default function PosPage() {
       idempotencyKey: commandId,
     };
     try {
-      const response = await fetch("/api/pos/checkout", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) });
+      const response = await apiFetch("/api/pos/checkout", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) });
       const body = await response.json() as { error?: string; change?: string; id?: string };
       if (!response.ok) throw new Error(body.error ?? "REQUEST_FAILED");
       setStatus(`Venta ${body.id ?? "confirmada"}`); setChange(body.change ?? "0.00"); setLines([]); setCommandId(crypto.randomUUID());
     } catch (error) {
       if (error instanceof TypeError || !navigator.onLine) {
-        const command: OfflineCommand = { commandId, kind: "SALE", endpoint: "/api/pos/checkout", payload: { ...payload, allowUnverifiedIntake: true }, createdAt: Date.now() };
-        await enqueue(command); setQueued((count) => count + 1); setOffline(true); setStatus("Sin conexión: venta en cola local"); setLines([]); setCommandId(crypto.randomUUID());
+        const command: OfflineCommand = { commandId, kind: "SALE", endpoint: "/api/pos/checkout", payload: { ...payload, allowUnverifiedIntake: true }, createdAt: Date.now(), state: "pending" };
+        await enqueue(command); setQueueCounts((counts) => ({ ...counts, pending: counts.pending + 1 })); setOffline(true); setStatus("Sin conexión: venta en cola local"); setLines([]); setCommandId(crypto.randomUUID());
+      } else if (error instanceof ApiError && error.status === 0) {
+        const command: OfflineCommand = { commandId, kind: "SALE", endpoint: "/api/pos/checkout", payload: { ...payload, allowUnverifiedIntake: true }, createdAt: Date.now(), state: "pending" };
+        await enqueue(command); setQueueCounts((counts) => ({ ...counts, pending: counts.pending + 1 })); setOffline(true); setStatus("Sin conexión: venta en cola local"); setLines([]); setCommandId(crypto.randomUUID());
       } else setStatus(error instanceof Error ? error.message : "REQUEST_FAILED");
     } finally { setBusy(false); }
   }
@@ -255,9 +285,10 @@ export default function PosPage() {
       </div>
       <div className={styles.bannerStatus}>
         {offline
-          ? <Alert variant="error" className={styles.connection}>Offline · comandos se guardan localmente</Alert>
-          : <Alert variant="success" className={styles.connection}>Online</Alert>}
-        <p role="status" className={styles.queue}>En cola: {queued}</p>
+          ? <Alert variant="error" className={styles.connection}>Sin conexión · comandos se guardan localmente</Alert>
+          : <Alert variant="success" className={styles.connection}>Conectado</Alert>}
+        <p role="status" className={styles.queue}>Pendientes: {queueCounts.pending} · Procesando: {queueCounts.processing} · Completados: {queueCounts.completed} · Conflictos: {queueCounts.conflict} · Errores: {queueCounts.error}</p>
+        {(queueCounts.conflict > 0 || queueCounts.error > 0) && <Button variant="secondary" type="button" onClick={retryQueue}>Reintentar cola</Button>}
       </div>
     </header>
     <div className={styles.grid}>
@@ -271,7 +302,7 @@ export default function PosPage() {
                 id="variant"
                 label="Variante / código"
                 placeholder="Buscar por SKU, nombre o código..."
-                value={variantId}
+                value={selectedSuggestion ? suggestionLabel(selectedSuggestion) : variantId}
                 options={suggestions}
                 autoFocus
                 inputClassName={styles.scanInput}
@@ -299,6 +330,7 @@ export default function PosPage() {
         <Button type="button" variant="secondary" className={styles.wide} onClick={() => setPayments((current) => [...current, { method: "CARD", amount: "" }])}>Agregar medio</Button>
         <Button type="button" variant="primary" className={styles.wide} onClick={() => void checkout()} disabled={busy || !lines.length}>{busy ? "Procesando…" : "Confirmar (F10)"}</Button>
         {change !== null && <p role="status" className={styles.change}>Vuelto: <strong>{change}</strong></p>}
+
       </section>
     </div>
     <p role="status" aria-live="polite" className={styles.status}>{status}</p>

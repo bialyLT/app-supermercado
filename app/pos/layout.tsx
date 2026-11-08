@@ -1,5 +1,6 @@
 import React from "react";
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { AdminShell } from "../../components/admin-shell";
 import { getServerIdentity } from "../../src/auth/session";
 import { getHighestRole } from "../../src/auth/roles";
@@ -10,14 +11,10 @@ export const metadata: Metadata = {
 };
 
 /**
- * S4 (revisada): el POS se renderiza dentro de la shell administrativa con la
- * barra lateral en modo rail de 72 px (badge Admin/POS, iconos con nombre
- * accesible, expansión por foco/hover o botón explícito).
- *
- * A diferencia de `/admin`, esta ruta NO redirige visitantes sin sesión: el
- * POS ya resuelve su autorización contra `/api/pos/context` y su E2E existente
- * depende de que la vista renderice sin sesión (S6: sin cambios de permisos).
- * Sin identidad, la shell muestra solo el destino POS y omite insignias de rol.
+ * El POS exige sesión de servidor (redirección al inicio si no hay identidad)
+ * y se renderiza dentro de la shell administrativa en modo rail de 72 px
+ * (badge Admin/POS, iconos con nombre accesible, expansión por foco/hover o
+ * botón explícito). La shell aporta el único <main> del documento.
  */
 export default async function PosLayout({
   children,
@@ -28,10 +25,11 @@ export default async function PosLayout({
   try {
     identity = await getServerIdentity();
   } catch {
-    identity = null;
+    redirect("/");
   }
 
   const initialRole = identity ? getHighestRole(identity.roles) : undefined;
+  if (!initialRole) redirect("/");
   return (
     <AdminShell initialRole={initialRole} rail>
       {children}

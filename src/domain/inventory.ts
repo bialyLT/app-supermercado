@@ -6,8 +6,12 @@ export class InventoryError extends Error {
   constructor(public readonly code: string) { super(code); }
 }
 
-export const quantitySchema = z.string().regex(/^\d{1,15}(\.\d{1,3})?$/)
-  .refine((value) => new Decimal(value).greaterThan(0), "INVALID_QUANTITY")
+const maxStoredQuantity = new Decimal("999999999999.999999");
+export const quantitySchema = z.string().regex(/^\d{1,12}(\.\d{1,3})?$/)
+  .refine((value) => {
+    const decimal = new Decimal(value);
+    return decimal.greaterThan(0) && decimal.lessThanOrEqualTo(maxStoredQuantity);
+  }, "INVALID_INPUT")
   .transform((value) => new Decimal(value).toString());
 const key = z.string().trim().min(1).max(128);
 const stock = {
@@ -45,7 +49,7 @@ export const releaseSchema = z.object({ reservationId: z.string().uuid(), idempo
 export const reviewSchema = z.object({
   reviewId: z.string().uuid(), decision: z.enum(["CONFIRMED", "CORRECTED", "REJECTED"]),
   reason: z.string().trim().min(1).max(500), idempotencyKey: key,
-  correctionQuantity: z.string().regex(/^\d{1,15}(\.\d{1,3})?$/).optional(),
+  correctionQuantity: quantitySchema.optional(),
   unitCost: z.string().regex(/^\d{1,15}(\.\d{1,2})?$/).optional(),
   acknowledgeUnknownCost: z.boolean().optional(),
 }).strict().superRefine((value, context) => {
