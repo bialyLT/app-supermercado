@@ -285,9 +285,9 @@ export default function PosPage() {
       </div>
       <div className={styles.bannerStatus}>
         {offline
-          ? <Alert variant="error" className={styles.connection}>Sin conexión · comandos se guardan localmente</Alert>
-          : <Alert variant="success" className={styles.connection}>Conectado</Alert>}
-        <p role="status" className={styles.queue}>Pendientes: {queueCounts.pending} · Procesando: {queueCounts.processing} · Completados: {queueCounts.completed} · Conflictos: {queueCounts.conflict} · Errores: {queueCounts.error}</p>
+          ? <Alert variant="error" className={styles.connection}>Offline · comandos se guardan localmente</Alert>
+          : <Alert variant="success" className={styles.connection}>Online</Alert>}
+        <p role="status" className={styles.queue}>{offline ? "Sin conexión" : "Conectado"} · Pendientes: {queueCounts.pending} · Procesando: {queueCounts.processing} · Completados: {queueCounts.completed} · Conflictos: {queueCounts.conflict} · Errores: {queueCounts.error}</p>
         {(queueCounts.conflict > 0 || queueCounts.error > 0) && <Button variant="secondary" type="button" onClick={retryQueue}>Reintentar cola</Button>}
       </div>
     </header>
