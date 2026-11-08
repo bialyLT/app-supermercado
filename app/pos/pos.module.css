@@ -130,14 +130,14 @@
   font-size: 1rem;
 }
 
-/* Foco visible: borde #0284c7 + anillo tokenizado (S5: #0284c7 solo borde/icono). */
+/* Foco visible: anillo tokenizado AA y consistente con globals.css (alto contraste). */
 .scanInput:focus-visible,
 .quantity:focus-visible,
 .paymentRow select:focus-visible,
 .paymentAmount:focus-visible {
-  outline: none;
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--color-primary-ring);
 }
 
 .quantityField {

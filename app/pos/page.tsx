@@ -314,7 +314,7 @@ export default function PosPage() {
               <label htmlFor="quantity">Cantidad</label>
               <input id="quantity" className={styles.quantity} type="number" min="0.001" step="0.001" value={quantity} onChange={(event) => setQuantity(event.target.value)} required />
             </div>
-            <Button type="submit" variant="primary">Agregar (F4)</Button>
+            <Button type="submit" variant="secondary">Agregar (F4)</Button>
           </div>
         </form>
         <section className={styles.card} aria-label="Carrito">
