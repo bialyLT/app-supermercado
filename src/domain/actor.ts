@@ -12,6 +12,7 @@ export type Permission =
   | "cash.session.open"
   | "cash.session.close"
   | "cash.session.close.other"
+  | "cash.register.manage"
   | "identity.supervisor_pin.manage"
   | "inventory.sale.approve"
   | "inventory.unverified_intake.create"

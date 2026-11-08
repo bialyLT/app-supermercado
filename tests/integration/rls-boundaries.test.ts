@@ -38,9 +38,9 @@ async function populatedFixture() {
   const branch2 = await admin.branch.create({ data: { tenantId: f.tenantId, storeId: f.storeId, code: "gate-2", name: "Gate branch 2" } });
   const actor2 = await addActor(f.tenantId, branch2.id, "ADMIN");
   const location2 = await admin.location.create({ data: { tenantId: f.tenantId, branchId: branch2.id, code: "l2", name: "Location 2" } });
-  const register2 = await admin.cashRegister.create({ data: { tenantId: f.tenantId, branchId: branch2.id, name: "Gate register 2" } });
+  const register2 = await admin.cashRegister.create({ data: { tenantId: f.tenantId, branchId: branch2.id, name: "Gate register 2", locationId: location2.id } });
   await admin.cashRegisterSession.create({ data: { tenantId: f.tenantId, registerId: register2.id,
-    branchId: branch2.id, userId: actor2.userId, currency: "XTS", openedAt: now } });
+    branchId: branch2.id, locationId: location2.id, userId: actor2.userId, currency: "XTS", openedAt: now } });
   await recordReceipt(actor2, { locationId: location2.id, variantId: f.variantId, quantity: "2", reason: "seed", idempotencyKey: "rls-w4-receipt" }, clock);
   await confirmPaidMultiLineSale(actor2, { lines: [{ locationId: location2.id, variantId: f.variantId, quantity: "2", unitPrice: "1" }],
     payments: [{ method: "CASH", amount: "2" }], allowUnverifiedIntake: false, idempotencyKey: "rls-w4-sale" }, clock);

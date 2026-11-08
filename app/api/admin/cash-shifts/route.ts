@@ -3,6 +3,7 @@ import { getServerActor } from "../../../../src/auth/session";
 import {
   closeRegisterSession,
   closeRegisterSessionBlind,
+  listCashRegisterOptions,
   openRegisterSession,
   recordCashMovement,
 } from "../../../../src/server/cash";
@@ -13,6 +14,14 @@ function errorResponse(error: unknown) {
     return NextResponse.json({ error: error.message }, { status });
   }
   return NextResponse.json({ error: "REQUEST_FAILED" }, { status: 400 });
+}
+
+export async function GET() {
+  try {
+    return NextResponse.json(await listCashRegisterOptions(await getServerActor()));
+  } catch (error) {
+    return errorResponse(error);
+  }
 }
 
 export async function POST(request: Request) {

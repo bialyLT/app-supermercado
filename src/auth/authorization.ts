@@ -5,7 +5,7 @@ const permissions: Record<RoleName, readonly string[]> = {
   CASHIER: ["cash.read"],
   SUPERVISOR: ["cash.read", "cash.override", "cash.history.read", "sales.read", "inventory.unverified_intake.review"],
   STOCK_MANAGER: ["cash.read", "inventory.write", "inventory.level.read", "inventory.ledger.read"],
-  ADMIN: ["cash.read", "cash.override", "cash.history.read", "sales.read", "inventory.write", "inventory.level.read", "inventory.ledger.read", "settings.write"],
+  ADMIN: ["cash.read", "cash.override", "cash.history.read", "sales.read", "inventory.write", "inventory.level.read", "inventory.ledger.read", "settings.write", "cash.register.manage"],
 };
 
 export function normalizePermission(permission: string): string {

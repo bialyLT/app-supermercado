@@ -1,29 +1,28 @@
 import { NextResponse } from "next/server";
-import { requirePermission } from "../../../../src/auth/authorization";
 import { getServerActor } from "../../../../src/auth/session";
-import { getOperationalContext } from "../../../../src/server/context";
-import { resolveSinglePosLocation } from "../../../../src/pos/location";
+import { getPosSessionLocation } from "../../../../src/server/cash";
+import { InventoryError } from "../../../../src/domain/inventory";
 
 export async function GET() {
   try {
-    await requirePermission("cash:read");
     const actor = await getServerActor();
-    const context = await getOperationalContext(actor);
-    const authorizedBranchIds = new Set(actor.branchIds);
-    const locations = context.locations.filter(
-      (location) => authorizedBranchIds.size === 0 || authorizedBranchIds.has(location.branchId),
-    );
-    const resolution = resolveSinglePosLocation(locations);
-    if ("error" in resolution) {
-      return NextResponse.json(resolution, { status: 409 });
-    }
+    const resolution = await getPosSessionLocation(actor);
     return NextResponse.json(resolution);
   } catch (error) {
+    if (error instanceof InventoryError) {
+      if (error.code === "REGISTER_LOCATION_REQUIRED") {
+        return NextResponse.json({ error: "REGISTER_LOCATION_REQUIRED" }, { status: 409 });
+      }
+      if (error.code === "NOT_FOUND") {
+        return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
+      }
+      if (error.code === "FORBIDDEN") {
+        return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+      }
+      return NextResponse.json({ error: error.code }, { status: 400 });
+    }
     if (error instanceof Error && error.message === "UNAUTHENTICATED") {
       return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
-    }
-    if (error instanceof Error && error.message === "FORBIDDEN") {
-      return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
     }
     return NextResponse.json({ error: "REQUEST_FAILED" }, { status: 400 });
   }

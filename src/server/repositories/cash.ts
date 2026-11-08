@@ -17,6 +17,98 @@ export async function currentRegisterSession(tx: Tx, actor: Actor, branchId: str
   return session;
 }
 
+export async function listRegisterOptions(actor: Actor, clock: Clock) {
+  return inventoryTransaction(actor, "cash.session.open", clock, async (tx, verified) => {
+    const registers = await tx.cashRegister.findMany({
+      where: { tenantId: verified.tenantId, branchId: { in: [...verified.branchIds] } },
+      include: {
+        branch: { select: { code: true, name: true } },
+        location: { select: { code: true, name: true } },
+      },
+      orderBy: [{ branchId: "asc" }, { name: "asc" }],
+    });
+    return {
+      registers: registers.map((register) => ({
+        id: register.id,
+        name: register.name,
+        branchId: register.branchId,
+        branchCode: register.branch.code,
+        branchName: register.branch.name,
+        locationId: register.locationId,
+        locationCode: register.location?.code ?? null,
+        locationName: register.location?.name ?? null,
+      })),
+    };
+  });
+}
+
+export async function assignRegisterLocation(actor: Actor, input: { registerId: string; locationId: string }, clock: Clock) {
+  return inventoryTransaction(actor, "cash.register.manage", clock, async (tx, verified) => {
+    const register = await tx.cashRegister.findFirst({ where: { tenantId: verified.tenantId, id: input.registerId } });
+    const tenantWideAdmin = verified.role === "ADMIN" && verified.branchIds.length === 0;
+    if (!register || (!tenantWideAdmin && !verified.branchIds.includes(register.branchId))) throw new InventoryError("NOT_FOUND");
+    // Same-branch active location only; cross-tenant/branch/inactive rejects
+    // closed with NOT_FOUND and no mutation (no existence oracle).
+    const location = await tx.location.findFirst({ where: { tenantId: verified.tenantId, id: input.locationId } });
+    if (!location || !location.active || !location.branchId || location.branchId !== register.branchId
+      || (!tenantWideAdmin && !verified.branchIds.includes(location.branchId))) throw new InventoryError("NOT_FOUND");
+    await tx.cashRegister.update({ where: { id: register.id }, data: { locationId: location.id } });
+    await audit(tx, verified, "cash.register.location.assigned", "CashRegister", register.id,
+      { locationId: location.id, branchId: register.branchId, previousLocationId: register.locationId });
+    return { registerId: register.id, locationId: location.id };
+  });
+}
+
+export async function listRegisterAssignments(actor: Actor, clock: Clock) {
+  return inventoryTransaction(actor, "cash.register.manage", clock, async (tx, verified) => {
+    // ADMIN without explicit branch assignments sees the whole tenant; otherwise scoped.
+    const branchScope = verified.role === "ADMIN" && verified.branchIds.length === 0
+      ? undefined
+      : { in: [...verified.branchIds] };
+    const registers = await tx.cashRegister.findMany({
+      where: { tenantId: verified.tenantId, ...(branchScope ? { branchId: branchScope } : {}) },
+      include: { branch: { select: { code: true, name: true } }, location: { select: { code: true, name: true, active: true } } },
+      orderBy: [{ branchId: "asc" }, { name: "asc" }],
+    });
+    const locations = await tx.location.findMany({
+      where: { tenantId: verified.tenantId, active: true, ...(branchScope ? { branchId: branchScope } : {}) },
+      include: { branch: { select: { code: true, name: true } } },
+      orderBy: [{ branchId: "asc" }, { name: "asc" }],
+    });
+    return {
+      registers: registers.map((register) => ({
+        id: register.id,
+        name: register.name,
+        branchId: register.branchId,
+        branchCode: register.branch.code,
+        branchName: register.branch.name,
+        locationId: register.locationId,
+        locationCode: register.location?.code ?? null,
+        locationName: register.location?.name ?? null,
+      })),
+      locations: locations.filter((location) => location.branchId !== null).map((location) => ({
+        id: location.id,
+        code: location.code,
+        name: location.name,
+        branchId: location.branchId as string,
+        branchCode: location.branch!.code,
+        branchName: location.branch!.name,
+      })),
+    };
+  });
+}
+
+export async function posSessionLocation(actor: Actor, clock: Clock) {
+  // Cashier/supervisor POS location comes from the immutable open-session
+  // snapshot; no stock write/receive/transfer permission is required or granted.
+  return inventoryTransaction(actor, "inventory.sell", clock, async (tx, verified) => {
+    const session = await tx.cashRegisterSession.findFirst({ where: { tenantId: verified.tenantId, userId: verified.userId, closedAt: null } });
+    if (!session?.locationId) throw new InventoryError("REGISTER_LOCATION_REQUIRED");
+    if (!verified.branchIds.includes(session.branchId)) throw new InventoryError("NOT_FOUND");
+    return { locationId: session.locationId };
+  });
+}
+
 export async function configure(actor: Actor, input: PolicyInput, clock: Clock) {
   assertMoneyPrecision(input.maxSessionValue, input.currency);
   return inventoryTransaction(actor, "inventory.policy.manage", clock, async (tx, verified) => {
@@ -35,17 +127,23 @@ export async function open(actor: Actor, input: { registerId: string; openingAmo
     if (!register || !verified.branchIds.includes(register.branchId)) throw new InventoryError("NOT_FOUND");
     return command(tx, verified, "CASH_OPEN", input, async () => {
       const policy = await configuredPolicy(tx, verified.tenantId);
+      // Snapshot the assigned active same-branch location inside the same
+      // serialized tenant transaction; reassignment affects future sessions only.
+      // Unassigned/inactive/branch-mismatched registers fail closed.
+      const assigned = register.locationId ? await tx.location.findFirst({ where: { tenantId: verified.tenantId,
+        id: register.locationId, branchId: register.branchId, active: true } }) : null;
+      if (!assigned) throw new InventoryError("REGISTER_LOCATION_REQUIRED");
       const existing = await tx.cashRegisterSession.findFirst({ where: { tenantId: verified.tenantId, closedAt: null,
         OR: [{ registerId: register.id }, { userId: verified.userId }] } });
       if (existing) throw new InventoryError("REGISTER_SESSION_ALREADY_OPEN");
       const session = await tx.cashRegisterSession.create({ data: { tenantId: verified.tenantId, registerId: register.id,
-        branchId: register.branchId, userId: verified.userId, currency: policy.currency, openedAt: now } });
+        branchId: register.branchId, locationId: assigned.id, userId: verified.userId, currency: policy.currency, openedAt: now } });
       const openingAmount = input.openingAmount ?? "0";
       assertMoneyPrecision(openingAmount, policy.currency);
       const opening = await tx.cashMovement.create({ data: { tenantId: verified.tenantId, registerSessionId: session.id,
         type: "OPENING", amount: openingAmount, currency: policy.currency, actorUserId: verified.userId,
         reason: input.openingReason ?? "Opening cash", createdAt: now } });
-      await audit(tx, verified, "cash.session.opened", "CashRegisterSession", session.id, { registerId: register.id, branchId: register.branchId, openingMovementId: opening.id });
+      await audit(tx, verified, "cash.session.opened", "CashRegisterSession", session.id, { registerId: register.id, branchId: register.branchId, locationId: assigned.id, openingMovementId: opening.id });
       return { id: session.id, type: "CASH_OPEN", currency: policy.currency };
     });
   });

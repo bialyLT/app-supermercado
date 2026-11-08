@@ -98,6 +98,13 @@ export const ADMIN_NAV_ITEMS: readonly NavItem[] = [
     shortcut: "Alt+S",
   },
   {
+    label: "Cajas y ubicaciones",
+    href: "/admin/cash-registers",
+    roles: ["ADMIN"],
+    description: "Asignación de ubicación activa por caja",
+    shortcut: "Alt+J",
+  },
+  {
     label: "Historial de caja",
     href: "/admin/cash-shifts/history",
     roles: ["ADMIN", "SUPERVISOR"],
@@ -172,6 +179,7 @@ const ROUTE_LABELS: Record<string, string> = {
   "/admin/weighed-barcode": "Códigos pesables",
   "/admin/cash-shifts": "Arqueos y Turnos",
   "/admin/cash-shifts/history": "Historial de caja",
+  "/admin/cash-registers": "Cajas y ubicaciones",
   "/pos": "Punto de Venta (POS)",
 };
 
