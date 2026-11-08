@@ -1,9 +1,40 @@
 import type { RoleName } from "../src/domain/contracts";
 
+export type NavGroupId = "operacion" | "administracion";
+
+export type NavIconName =
+  | "home"
+  | "inventory"
+  | "alerts"
+  | "sales"
+  | "purchases"
+  | "suppliers"
+  | "transfers"
+  | "reports"
+  | "promotions"
+  | "users"
+  | "settings"
+  | "weighed"
+  | "shifts"
+  | "pos"
+  | "logout";
+
+export type NavGroup = {
+  readonly id: NavGroupId;
+  readonly title: string;
+};
+
+export const NAV_GROUPS: readonly NavGroup[] = [
+  { id: "operacion", title: "Operación" },
+  { id: "administracion", title: "Administración" },
+];
+
 export type NavItem = {
   readonly label: string;
   readonly href: string;
+  readonly group: NavGroupId;
   readonly roles: readonly RoleName[];
+  readonly icon: NavIconName;
   readonly description?: string;
   readonly badge?: string;
   readonly shortcut?: string;
@@ -13,108 +44,138 @@ export const ADMIN_NAV_ITEMS: readonly NavItem[] = [
   {
     label: "Inicio",
     href: "/admin",
+    group: "operacion",
     roles: ["ADMIN", "STOCK_MANAGER", "SUPERVISOR"],
+    icon: "home",
     description: "Tablero operativo general",
     shortcut: "Alt+H",
   },
   {
     label: "Compras",
     href: "/admin/purchases",
+    group: "operacion",
     roles: ["ADMIN", "STOCK_MANAGER"],
+    icon: "purchases",
     description: "Recepción y comprobantes de compra",
     shortcut: "Alt+C",
   },
   {
     label: "Proveedores",
     href: "/admin/suppliers",
+    group: "operacion",
     roles: ["ADMIN", "STOCK_MANAGER"],
+    icon: "suppliers",
     description: "Gestión y catálogo de proveedores comerciales",
     shortcut: "Alt+V",
   },
   {
     label: "Transferencias",
     href: "/admin/transfers",
+    group: "operacion",
     roles: ["ADMIN", "STOCK_MANAGER"],
+    icon: "transfers",
     description: "Movimientos entre sucursales y depósitos",
     shortcut: "Alt+T",
   },
   {
     label: "Inventario",
     href: "/admin/inventory",
+    group: "operacion",
     roles: ["ADMIN", "STOCK_MANAGER"],
+    icon: "inventory",
     description: "Existencias y movimientos del ledger",
     shortcut: "Alt+I",
   },
-  { label: "Recepciones", href: "/admin/inventory/receipts", roles: ["ADMIN", "STOCK_MANAGER"], description: "Alta e historial de recepciones" },
-  { label: "Alertas de inventario", href: "/admin/inventory/alerts", roles: ["ADMIN", "STOCK_MANAGER", "SUPERVISOR"], description: "Casos pendientes fuera de umbral" },
-  { label: "Intakes", href: "/admin/inventory/intakes", roles: ["ADMIN", "STOCK_MANAGER", "SUPERVISOR"], description: "Revisión de discrepancias" },
+  { label: "Recepciones", href: "/admin/inventory/receipts", group: "operacion", roles: ["ADMIN", "STOCK_MANAGER"], icon: "purchases", description: "Alta e historial de recepciones" },
+  { label: "Alertas de inventario", href: "/admin/inventory/alerts", group: "operacion", roles: ["ADMIN", "STOCK_MANAGER", "SUPERVISOR"], icon: "alerts", description: "Casos pendientes fuera de umbral" },
+  { label: "Intakes", href: "/admin/inventory/intakes", group: "operacion", roles: ["ADMIN", "STOCK_MANAGER", "SUPERVISOR"], icon: "reports", description: "Revisión de discrepancias" },
   {
     label: "Ventas",
     href: "/admin/sales",
+    group: "operacion",
     roles: ["ADMIN", "SUPERVISOR"],
+    icon: "sales",
     description: "Historial de ventas y detalle",
     shortcut: "Alt+L",
   },
   {
     label: "Reportes",
     href: "/admin/reports",
+    group: "operacion",
     roles: ["ADMIN", "STOCK_MANAGER"],
+    icon: "reports",
     description: "Reportes operativos y exportación tabular",
     shortcut: "Alt+R",
   },
   {
     label: "Promociones N×M",
     href: "/admin/promotions",
+    group: "administracion",
     roles: ["ADMIN"],
+    icon: "promotions",
     description: "Reglas de promociones vigentes por categoría",
     shortcut: "Alt+N",
   },
   {
     label: "Usuarios",
     href: "/admin/users",
+    group: "administracion",
     roles: ["ADMIN"],
+    icon: "users",
     description: "Gestión de personal y roles de acceso",
     shortcut: "Alt+U",
   },
   {
     label: "Configuración",
     href: "/admin/settings",
+    group: "administracion",
     roles: ["ADMIN"],
+    icon: "settings",
     description: "Parámetros del tenant y tope de intake",
     shortcut: "Alt+G",
   },
   {
     label: "Códigos pesables",
     href: "/admin/weighed-barcode",
+    group: "administracion",
     roles: ["ADMIN"],
+    icon: "weighed",
     description: "Configuración de prefijo y balanzas EAN-13",
     shortcut: "Alt+B",
   },
   {
     label: "Arqueos y Turnos",
     href: "/admin/cash-shifts",
+    group: "administracion",
     roles: ["ADMIN", "SUPERVISOR"],
+    icon: "shifts",
     description: "Supervisión de caja, arqueos y anulaciones",
     shortcut: "Alt+S",
   },
   {
     label: "Cajas y ubicaciones",
     href: "/admin/cash-registers",
+    group: "administracion",
     roles: ["ADMIN"],
+    icon: "settings",
     description: "Asignación de ubicación activa por caja",
     shortcut: "Alt+J",
   },
   {
     label: "Historial de caja",
     href: "/admin/cash-shifts/history",
+    group: "administracion",
     roles: ["ADMIN", "SUPERVISOR"],
+    icon: "shifts",
     description: "Turnos y movimientos históricos de caja",
     shortcut: "Alt+Y",
   },
   {
     label: "Punto de Venta (POS)",
     href: "/pos",
+    group: "operacion",
     roles: ["ADMIN", "STOCK_MANAGER", "SUPERVISOR", "CASHIER"],
+    icon: "pos",
     description: "Terminal operativa de cobro y ventas",
     shortcut: "Alt+P",
   },

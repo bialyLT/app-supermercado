@@ -19,6 +19,8 @@ import {
   validatePurchaseReceiptForm,
 } from "./types";
 import { ProductCombobox } from "../product-combobox";
+import { Alert } from "../ui/alert";
+import { Button } from "../ui/button";
 import { SupplierModal } from "./supplier-modal";
 import styles from "./purchases.module.css";
 
@@ -284,53 +286,35 @@ export function PurchaseForm({
   return (
     <div className={styles.formCard}>
       {hasNoBranches && (
-        <div className={styles.alertBanner} role="status" aria-live="polite">
-          <span className={styles.alertTitle}>Sin sucursales asignadas</span>
-          <span>
-            Su usuario no tiene sucursales asignadas con permisos de recepción de mercadería.
-            Contacte al administrador del tenant para obtener asignación de sucursal.
-          </span>
-        </div>
+        <Alert variant="error" title="Sin sucursales asignadas">
+          Su usuario no tiene sucursales asignadas con permisos de recepción de mercadería.
+          Contacte al administrador del tenant para obtener asignación de sucursal.
+        </Alert>
       )}
 
       {serverError && (
-        <div className={styles.alertBanner} role="alert" aria-live="assertive">
-          <span className={styles.alertTitle}>Error al registrar comprobante</span>
-          <span>{serverError}</span>
-        </div>
+        <Alert variant="error" title="Error al registrar comprobante">{serverError}</Alert>
       )}
 
       {errors.lines && (
-        <div className={styles.alertBanner} role="alert">
-          <span className={styles.alertTitle}>Validación de líneas</span>
-          <span>{errors.lines}</span>
-        </div>
+        <Alert variant="error" title="Validación de líneas">{errors.lines}</Alert>
       )}
 
       <form onSubmit={handleSubmit} noValidate>
         {/* Context and Supplier Selection */}
-        <fieldset style={{ border: "none", padding: 0, margin: "0 0 24px 0" }}>
+        <fieldset className={styles.formSection}>
           <legend className={styles.sectionTitle}>1. Datos del Comprobante y Contexto Operativo</legend>
 
-          <div className={styles.grid3} style={{ marginBottom: "16px" }}>
+          <div className={`${styles.grid3} ${styles.grid3Bottom}`}>
             <div className={styles.fieldGroup}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div className={styles.labelRow}>
                 <label htmlFor="purchase-supplier" className={`${styles.label} ${styles.labelRequired}`}>
                   Proveedor
                 </label>
                 <button
                   type="button"
+                  className={styles.linkButton}
                   onClick={() => setIsSupplierModalOpen(true)}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: "var(--color-primary, #0284c7)",
-                    cursor: "pointer",
-                    fontSize: "0.8rem",
-                    fontWeight: 600,
-                    textDecoration: "underline",
-                    padding: 0,
-                  }}
                 >
                   + Nuevo
                 </button>
@@ -473,7 +457,7 @@ export function PurchaseForm({
             </div>
           </div>
 
-          <div className={styles.grid2} style={{ marginTop: "16px" }}>
+          <div className={`${styles.grid2} ${styles.grid2Top}`}>
             <div className={styles.fieldGroup}>
               <label htmlFor="purchase-notes" className={styles.label}>
                 Observaciones / Notas
@@ -492,36 +476,30 @@ export function PurchaseForm({
         </fieldset>
 
         {/* Multi-Line Entry Section */}
-        <fieldset style={{ border: "none", padding: 0, margin: "0 0 24px 0" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
-            <legend className={styles.sectionTitle} style={{ margin: 0, border: "none" }}>
+        <fieldset className={styles.formSection}>
+          <div className={styles.sectionHeader}>
+            <legend className={`${styles.sectionTitle} ${styles.sectionTitleLegend}`}>
               2. Detalle de Mercadería Recibida ({form.lines.length} {form.lines.length === 1 ? "línea" : "líneas"})
             </legend>
-            <button
-              type="button"
-              className={styles.btnSecondary}
-              onClick={handleAddLine}
-              disabled={isSubmitting}
-              style={{ minHeight: "36px", padding: "6px 14px", fontSize: "0.85rem" }}
-            >
+            <Button type="button" variant="secondary" onClick={handleAddLine} disabled={isSubmitting}>
               + Agregar línea <span className={styles.kbd}>Alt+N</span>
-            </button>
+            </Button>
           </div>
 
           <div className={styles.tableWrapper}>
             <table className={styles.linesTable} aria-label="Líneas del comprobante de compra">
               <thead>
                 <tr>
-                  <th style={{ width: "35px" }}>#</th>
-                  <th style={{ minWidth: "260px" }}>Variante / Producto</th>
-                  <th style={{ width: "110px" }}>Cantidad</th>
-                  <th style={{ width: "120px" }}>Costo Unit.</th>
-                  <th style={{ width: "95px" }}>IVA %</th>
-                  <th style={{ width: "100px" }}>Descuento</th>
-                  <th style={{ width: "120px" }}>Lote</th>
-                  <th style={{ width: "130px" }}>Vencimiento</th>
-                  <th style={{ width: "120px", textAlign: "right" }}>Subtotal</th>
-                  <th style={{ width: "90px", textAlign: "center" }}>Acciones</th>
+                  <th className={styles.colIndex}>#</th>
+                  <th className={styles.colVariant}>Variante / Producto</th>
+                  <th className={styles.colQuantity}>Cantidad</th>
+                  <th className={styles.colUnitCost}>Costo Unit.</th>
+                  <th className={styles.colTaxRate}>IVA %</th>
+                  <th className={styles.colDiscount}>Descuento</th>
+                  <th className={styles.colLot}>Lote</th>
+                  <th className={styles.colExpiry}>Vencimiento</th>
+                  <th className={styles.colSubtotal}>Subtotal</th>
+                  <th className={styles.colActions}>Acciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -531,9 +509,7 @@ export function PurchaseForm({
 
                   return (
                     <tr key={line.id}>
-                      <td style={{ textAlign: "center", fontWeight: 600, color: "var(--color-text-muted, #64748b)" }}>
-                        {idx + 1}
-                      </td>
+                      <td className={styles.rowIndex}>{idx + 1}</td>
 
                       {/* Variant autocomplete search */}
                       <td>
@@ -655,33 +631,27 @@ export function PurchaseForm({
                       </td>
 
                       {/* Row actions */}
-                      <td style={{ textAlign: "center" }}>
-                        <div style={{ display: "inline-flex", gap: "4px" }}>
-                          <button
+                      <td className={styles.rowActionsCell}>
+                        <div className={styles.rowActions}>
+                          <Button
                             type="button"
+                            variant="secondary"
                             onClick={() => handleDuplicateLine(idx)}
                             disabled={isSubmitting}
                             title="Duplicar línea"
-                            style={{
-                              background: "none",
-                              border: "1px solid var(--color-border)",
-                              borderRadius: "4px",
-                              padding: "2px 6px",
-                              cursor: "pointer",
-                            }}
                           >
                             📋
-                          </button>
-                          <button
+                          </Button>
+                          <Button
                             type="button"
-                            className={styles.btnDanger}
+                            variant="danger"
                             onClick={() => handleRemoveLine(idx)}
                             disabled={isSubmitting || form.lines.length <= 1}
                             title="Eliminar línea"
                             aria-label={`Eliminar línea ${idx + 1}`}
                           >
                             ✕
-                          </button>
+                          </Button>
                         </div>
                       </td>
                     </tr>
@@ -693,7 +663,7 @@ export function PurchaseForm({
         </fieldset>
 
         {/* Decimal-Safe Totals and Submit Action */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+        <div className={styles.formFooter}>
           <div className={styles.totalsCard}>
             <div className={styles.totalsRow}>
               <span>Subtotal neto:</span>
@@ -714,22 +684,13 @@ export function PurchaseForm({
           </div>
 
           <div className={styles.buttonGroup}>
-            <button
-              type="button"
-              className={styles.btnSecondary}
-              onClick={handleAddLine}
-              disabled={isSubmitting}
-            >
+            <Button type="button" variant="secondary" onClick={handleAddLine} disabled={isSubmitting}>
               + Agregar línea (<kbd className={styles.kbd}>Alt+N</kbd>)
-            </button>
+            </Button>
 
-            <button
-              type="submit"
-              className={styles.btnPrimary}
-              disabled={isSubmitting || hasNoBranches}
-            >
+            <Button type="submit" variant="primary" disabled={isSubmitting || hasNoBranches}>
               {isSubmitting ? "Registrando compra…" : "Registrar compra"} (<kbd className={styles.kbd}>Alt+G</kbd>)
-            </button>
+            </Button>
           </div>
         </div>
       </form>

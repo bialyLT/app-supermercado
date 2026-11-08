@@ -1,3 +1,9 @@
+/* Sistema visual compartido (S1): solo tokens de app/globals.css, sin literales
+   duplicados para roles ya tokenizados. Dirección elegida: 01-sidebar-classic.html
+   (sección Punto de Venta). S4 (revisada): la página se renderiza dentro de la
+   shell administrativa con el sidebar en modo rail de 72 px; este módulo conserva
+   solo la distribución de caja y no emite landmarks propios. */
+
 .shell {
   box-sizing: border-box;
   width: min(100%, 1100px);
@@ -6,190 +12,300 @@
   overflow-wrap: anywhere;
 }
 
-.shell * {
-  box-sizing: border-box;
+/* Banner superior (pos-banner del artboard). */
+.banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 12px 18px;
+  margin-bottom: 16px;
 }
 
-.header {
-  display: grid;
-  gap: 0.75rem;
-  margin-bottom: 1.25rem;
+.bannerContext {
+  min-width: 0;
 }
 
-.header h1 {
+.bannerContext h1 {
   margin: 0;
-  font-size: clamp(1.5rem, 2.5vw, 2rem);
+  font-size: 1.5rem;
 }
 
 .shortcuts {
-  margin: 0;
-  color: var(--color-text-muted);
-}
-
-.queueStatus {
-  margin: 0;
-  padding: 0.75rem 1rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  background: var(--color-surface-subtle);
-  color: var(--color-text-muted);
+  margin: 4px 0 0;
   font-size: 0.9rem;
-  overflow-wrap: anywhere;
+  color: var(--color-text-muted);
 }
 
+.shortcuts kbd {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.78rem;
+  padding: 2px 6px;
+  background: var(--color-surface-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+}
+
+.bannerStatus {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.connection {
+  margin: 0;
+  padding: 6px 14px;
+  font-size: 0.85rem;
+}
+
+.queue {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+/* Distribución de caja: columna izquierda (buscar + carrito) y pago a la derecha. */
 .grid {
   display: grid;
-  gap: 1rem;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1.5fr) minmax(320px, 1fr);
+  gap: 20px;
+  align-items: start;
 }
 
-.grid > form,
-.grid > section {
+.column {
   display: flex;
   flex-direction: column;
-  align-content: start;
-  gap: 0.875rem;
+  gap: 20px;
   min-width: 0;
-  padding: 1.25rem;
+}
+
+.card {
+  min-width: 0;
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  background: var(--color-surface);
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
-.grid h2 {
-  margin: 0;
-  color: var(--color-text);
-  font-size: 1.125rem;
-  line-height: 1.35;
+.card h2 {
+  margin: 0 0 12px;
+  font-size: 1.05rem;
+  border-bottom: 1px solid var(--color-border-subtle);
+  padding-bottom: 8px;
 }
 
-.shell input,
-.shell select {
+.location {
+  margin: 0 0 10px;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.scanRow {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+
+.scanWrap {
+  flex: 1;
+  min-width: 240px;
+}
+
+.scanInput {
   width: 100%;
-  min-width: 0;
-  min-height: 44px;
-  margin: 0;
-  padding: 0.625rem 0.75rem;
+  min-height: 48px;
+  padding: 8px 12px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-surface);
   color: var(--color-text);
-  font: inherit;
+  font-size: 1rem;
 }
 
-.shell input:focus-visible,
-.shell select:focus-visible {
+/* Foco visible: anillo tokenizado AA y consistente con globals.css (alto contraste). */
+.scanInput:focus-visible,
+.quantity:focus-visible,
+.paymentRow select:focus-visible,
+.paymentAmount:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
   border-color: var(--color-primary);
 }
 
-.shell input:disabled,
-.shell select:disabled {
-  background: var(--color-surface-subtle);
-  color: var(--color-text-muted);
-  cursor: not-allowed;
+.quantityField {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
 }
 
-.shell button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  min-width: 44px;
-  min-height: 44px;
-  margin: 0;
-  padding: 0.625rem 1rem;
-  border-radius: var(--radius-md);
-  font: inherit;
+.quantityField label {
+  font-size: 0.85rem;
   font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.15s ease, border-color 0.15s ease;
+  color: var(--color-text);
 }
 
-.primaryButton {
-  border: 1px solid var(--color-primary);
-  background: var(--color-primary);
-  color: var(--color-primary-contrast);
-}
-
-.primaryButton:hover:not(:disabled) {
-  border-color: var(--color-primary-hover);
-  background: var(--color-primary-hover);
-}
-
-.primaryButton:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.secondaryButton {
+.quantity {
+  width: 7.5rem;
+  min-height: 44px;
+  padding: 8px 10px;
   border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
   background: var(--color-surface);
   color: var(--color-text);
-  font-weight: 500;
+  font-size: 0.95rem;
 }
 
-.secondaryButton:hover:not(:disabled) {
-  border-color: var(--color-text-muted);
-  background: var(--color-surface-subtle);
-}
-
-.secondaryButton:disabled {
-  cursor: not-allowed;
-}
-
-.shell label {
-  display: block;
-  color: var(--color-text);
-  font-weight: 600;
-}
-
-.cartList {
-  display: grid;
-  gap: 0.5rem;
+/* Carrito */
+.lines {
+  list-style: none;
   margin: 0;
   padding: 0;
-  list-style: none;
+  font-size: 0.9rem;
 }
 
-.cartList li {
-  padding: 0.75rem;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-md);
-  background: var(--color-surface-subtle);
+.line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 4px;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.line:last-child {
+  border-bottom: 0;
+}
+
+.lineLabel {
+  min-width: 0;
   overflow-wrap: anywhere;
 }
 
+.lineQuantity {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.empty {
+  margin: 0;
+  padding: 12px 4px;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+}
+
+/* Pago */
 .paymentRow {
-  display: grid;
-  grid-template-columns: minmax(8rem, 0.9fr) minmax(0, 1.1fr);
+  display: flex;
   gap: 8px;
+  margin-bottom: 10px;
 }
 
-@media (max-width: 900px) {
+.paymentRow select {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 6px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 0.9rem;
+}
+
+.paymentAmount {
+  width: 9.5rem;
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 6px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.wide {
+  width: 100%;
+  margin-top: 10px;
+}
+
+.change {
+  margin: 12px 0 0;
+  padding: 10px 14px;
+  background: var(--color-surface-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+}
+
+.change strong {
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
+}
+
+.status {
+  margin: 16px 0 0;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+}
+
+.status:empty {
+  display: none;
+}
+
+/* Tablet: una sola columna sin scroll horizontal. */
+@media (max-width: 980px) {
   .grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .grid > section:last-child {
-    grid-column: 1 / -1;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
-@media (max-width: 600px) {
+@media (max-width: 640px) {
   .shell {
     padding: 1rem;
   }
 
-  .grid {
-    grid-template-columns: 1fr;
+  .banner {
+    padding: 10px 14px;
   }
 
-  .grid > section:last-child {
-    grid-column: auto;
+  .card {
+    padding: 16px;
+  }
+
+  .scanRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .quantity {
+    width: 100%;
   }
 
   .paymentRow {
-    grid-template-columns: 1fr;
-    gap: 0;
+    flex-wrap: wrap;
+  }
+
+  .paymentRow select,
+  .paymentAmount {
+    width: 100%;
+    flex: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shell button {
+    transition: none;
   }
 }

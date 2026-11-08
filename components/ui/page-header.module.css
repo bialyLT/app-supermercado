@@ -1,0 +1,32 @@
+/* Encabezado de página: título 1.5rem, descripción muted 0.9rem
+   y acciones a la derecha (design/admin-experience/01-sidebar-classic.html). */
+.pageHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.textBlock {
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.5rem;
+  color: var(--color-text, #0f172a);
+}
+
+.description {
+  margin: 2px 0 0;
+  color: var(--color-text-muted, #475569);
+  font-size: 0.9rem;
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}

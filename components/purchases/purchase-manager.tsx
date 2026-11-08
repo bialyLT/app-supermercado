@@ -8,6 +8,9 @@ import type {
   PurchaseReceiptSummary,
   Supplier,
 } from "./types";
+import { Alert } from "../ui/alert";
+import { Button } from "../ui/button";
+import { PageHeader } from "../ui/page-header";
 import { PurchaseForm } from "./purchase-form";
 import { PurchaseHistory } from "./purchase-history";
 import styles from "./purchases.module.css";
@@ -204,54 +207,35 @@ export function PurchaseManager({
 
   return (
     <div className={styles.container}>
-      <header className={styles.header}>
-        <div className={styles.titleGroup}>
-          <h1 className={styles.title}>Gestión de Compras y Recepción</h1>
-          <p className={styles.subtitle}>
-            Recepción operativa de mercadería directa de proveedores con cálculo Decimal exacto e idempotencia estricta.
-          </p>
-        </div>
-
-        <div className={styles.shortcutsBar} aria-label="Atajos de teclado rápidos">
-          <span>⚡ Atajos:</span>
-          <span className={styles.shortcutItem}>
-            <kbd className={styles.kbd}>Alt+N</kbd> Nueva línea
-          </span>
-          <span className={styles.shortcutItem}>
-            <kbd className={styles.kbd}>Alt+G</kbd> Registrar
-          </span>
-        </div>
-      </header>
+      <PageHeader
+        title="Gestión de Compras y Recepción"
+        description="Recepción operativa de mercadería directa de proveedores con cálculo Decimal exacto e idempotencia estricta."
+        actions={
+          <div className={styles.shortcutsBar} aria-label="Atajos de teclado rápidos">
+            <span>⚡ Atajos:</span>
+            <span className={styles.shortcutItem}>
+              <kbd className={styles.kbd}>Alt+N</kbd> Nueva línea
+            </span>
+            <span className={styles.shortcutItem}>
+              <kbd className={styles.kbd}>Alt+G</kbd> Registrar
+            </span>
+          </div>
+        }
+      />
 
       {contextError && (
-        <div className={styles.alertBanner} role="alert" aria-live="assertive">
-          <span className={styles.alertTitle}>Error de contexto operativo</span>
-          <span>{contextError}</span>
-        </div>
+        <Alert variant="error" title="Error de contexto operativo">{contextError}</Alert>
       )}
 
       {/* Post-Submit Success Notification Banner */}
       {lastSubmittedReceipt && (
-        <aside
-          className={`${styles.alertBanner} ${styles.alertSuccess}`}
-          role="status"
-          aria-live="polite"
-        >
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span className={styles.alertTitle}>
-              ✓ ¡Comprobante registrado con éxito!
-            </span>
+        <Alert variant="success">
+          <div className={styles.successHeader}>
+            <strong className={styles.alertTitle}>✓ ¡Comprobante registrado con éxito!</strong>
             <button
               type="button"
+              className={styles.successClose}
               onClick={() => setLastSubmittedReceipt(null)}
-              style={{
-                background: "none",
-                border: "none",
-                color: "#166534",
-                cursor: "pointer",
-                fontWeight: 700,
-                fontSize: "1rem",
-              }}
               aria-label="Cerrar notificación"
             >
               ✕
@@ -265,20 +249,19 @@ export function PurchaseManager({
             </strong>{" "}
             ({lastSubmittedReceipt.lines?.length ?? 1} líneas ingresadas al stock).
           </div>
-          <div style={{ marginTop: "6px" }}>
-            <button
+          <div className={styles.successActions}>
+            <Button
               type="button"
-              className={styles.btnSecondary}
+              variant="secondary"
               onClick={() => {
                 setActiveTab("history");
                 setLastSubmittedReceipt(null);
               }}
-              style={{ minHeight: "30px", padding: "4px 10px", fontSize: "0.8rem" }}
             >
               Ver en Historial
-            </button>
+            </Button>
           </div>
-        </aside>
+        </Alert>
       )}
 
       {/* Primary Tab Navigation */}

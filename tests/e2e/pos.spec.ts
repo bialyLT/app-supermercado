@@ -33,7 +33,7 @@ test("POS exposes keyboard-first controls and touch-sized actions", async ({ pag
   await expect(addPayment).toBeVisible();
   await expect(addPayment).toHaveCSS("background-color", "rgb(255, 255, 255)");
   await expect(confirm).toBeVisible();
-  await expect(confirm).toHaveCSS("background-color", "rgb(2, 132, 199)");
+  await expect(confirm).toHaveCSS("background-color", "rgb(3, 105, 161)");
   await expect(confirm).toBeDisabled();
   await expect(confirm).toHaveCSS("opacity", "0.6");
   await addPayment.click();
