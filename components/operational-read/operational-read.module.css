@@ -2,14 +2,20 @@
 .header { display: flex; justify-content: space-between; gap: 1rem; align-items: end; flex-wrap: wrap; }
 .header h1 { margin: 0; }
 .header p { margin: .35rem 0 0; color: var(--muted, #52606d); }
-.filters { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: .75rem; padding: 1rem; border: 1px solid #d9e2ec; border-radius: .75rem; background: #fff; }
+/* Filter bar: flex-wrap instead of a fixed six-column grid. A fixed column
+   count squeezed the action buttons into one sixth of the width, so they
+   overflowed their cell and overlapped the neighbouring controls at large
+   viewports. Wrapping keeps every control inside its own box at any width. */
+.filters { display: flex; flex-wrap: wrap; align-items: end; gap: .75rem; padding: 1rem; border: 1px solid #d9e2ec; border-radius: .75rem; background: #fff; }
+.filters .field { flex: 1 1 12rem; min-width: 0; }
 .field { display: grid; gap: .3rem; min-width: 0; }
 .field label { font-weight: 650; font-size: .85rem; }
 .field input { min-height: 2.5rem; border: 1px solid #9fb3c8; border-radius: .4rem; padding: .45rem .6rem; }
 .field .selectorControl { min-height: 44px; width: 100%; border: 1px solid #9fb3c8; border-radius: .4rem; padding: .45rem .6rem; font: inherit; background: #fff; color: inherit; }
 .field .selectorControl:focus-visible { outline: 3px solid #f59e0b; outline-offset: 2px; }
 .chipRow { display: flex; align-items: center; gap: .5rem; min-height: 44px; flex-wrap: wrap; }
-.actions { display: flex; align-items: end; gap: .5rem; }
+.actions { display: flex; align-items: end; gap: .5rem; flex: 0 0 auto; flex-wrap: wrap; margin-left: auto; }
+.actions .button { white-space: nowrap; }
 .button { min-height: 2.5rem; border: 1px solid #1d4ed8; border-radius: .4rem; padding: .45rem .85rem; background: #1d4ed8; color: white; font-weight: 650; cursor: pointer; }
 .button:focus-visible, .field input:focus-visible, .link:focus-visible { outline: 3px solid #f59e0b; outline-offset: 2px; }
 .chipRow .button { min-height: 44px; }
@@ -29,5 +35,5 @@
 .card { padding: 1rem; border: 1px solid #d9e2ec; border-radius: .65rem; background: #fff; }
 .card dt { color: #52606d; font-size: .85rem; }
 .card dd { margin: .25rem 0 0; font-weight: 700; }
-@media (max-width: 900px) { .filters { grid-template-columns: repeat(3, minmax(0, 1fr)); } .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 560px) { .filters { grid-template-columns: 1fr; } .header { align-items: start; } .cards { grid-template-columns: 1fr; } }
+@media (max-width: 900px) { .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .header { align-items: start; } .cards { grid-template-columns: 1fr; } }
