@@ -17,6 +17,7 @@ const operationalLocationSchema = z.object({
 
 export const operationalContextSchema = z.object({
   tenantId: uuidSchema,
+  operationalMode: z.enum(["SIMPLE", "MULTI"]).optional(),
   branches: z.array(
     z.object({
       id: uuidSchema,

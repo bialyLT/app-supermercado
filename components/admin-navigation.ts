@@ -216,11 +216,17 @@ export function isRoleAuthorizedForAdmin(role: RoleName): boolean {
   return role !== "CASHIER";
 }
 
-export function getVisibleNavItems(role: RoleName): NavItem[] {
+export function getVisibleNavItems(role: RoleName, operationalMode: "SIMPLE" | "MULTI" = "MULTI"): NavItem[] {
   if (role === "CASHIER") {
     return ADMIN_NAV_ITEMS.filter((item) => item.href === "/pos");
   }
-  return ADMIN_NAV_ITEMS.filter((item) => item.roles.includes(role));
+  const items = ADMIN_NAV_ITEMS.filter((item) => item.roles.includes(role));
+  // A single-branch kiosco never needs branch transfers or register management.
+  if (operationalMode === "SIMPLE") {
+    const hidden = new Set(["/admin/transfers", "/admin/cash-registers"]);
+    return items.filter((item) => !hidden.has(item.href));
+  }
+  return items;
 }
 
 const ROUTE_LABELS: Record<string, string> = {

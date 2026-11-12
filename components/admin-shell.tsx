@@ -94,6 +94,20 @@ export function AdminShell({
   }, [isSidebarOpen, isDrawerMode]);
   const [sessionExpired, setSessionExpired] = useState(false);
   const [signOutError, setSignOutError] = useState("");
+  const [operationalMode, setOperationalMode] = useState<"SIMPLE" | "MULTI">("MULTI");
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/admin/context")
+      .then((response) => (response.ok ? response.json() : null))
+      .then((body: { operationalMode?: string } | null) => {
+        if (active && body?.operationalMode === "SIMPLE") setOperationalMode("SIMPLE");
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const handleSignOut = useCallback(async () => {
     setSignOutError("");
@@ -109,7 +123,7 @@ export function AdminShell({
   // Sin identidad (POS público renderizado) se muestra solo el destino POS,
   // sin insignias de rol: no se inventa un rol para visitantes sin sesión.
   const visibleNavItems = currentRole
-    ? getVisibleNavItems(currentRole)
+    ? getVisibleNavItems(currentRole, operationalMode)
     : ADMIN_NAV_ITEMS.filter((item) => item.href === "/pos");
   const isAuthorized = currentRole !== undefined && isRoleAuthorizedForAdmin(currentRole);
   useEffect(() => {

@@ -222,3 +222,19 @@ describe("administrative shell navigation model", () => {
     });
   });
 });
+
+describe("simple mode navigation", () => {
+  it("hides branch transfers and register management for a single-branch kiosco", () => {
+    const hrefs = getVisibleNavItems("ADMIN", "SIMPLE").map((item) => item.href);
+    expect(hrefs).not.toContain("/admin/transfers");
+    expect(hrefs).not.toContain("/admin/cash-registers");
+    expect(hrefs).toContain("/admin/cash-shifts");
+    expect(hrefs).toContain("/admin/sales");
+  });
+
+  it("keeps the full navigation in multi mode", () => {
+    const hrefs = getVisibleNavItems("ADMIN", "MULTI").map((item) => item.href);
+    expect(hrefs).toContain("/admin/transfers");
+    expect(hrefs).toContain("/admin/cash-registers");
+  });
+});

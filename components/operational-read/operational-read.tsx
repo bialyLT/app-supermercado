@@ -60,7 +60,7 @@ export function OperationalRead({ surface }: { readonly surface: Surface }) {
   const [error, setError] = useState("");
   const [filterError, setFilterError] = useState("");
   const [context, setContext] = useState<OperationalSelectorContext | null>(null);
-  const [contextLoading, setContextLoading] = useState(surface === "inventory");
+  const [contextLoading, setContextLoading] = useState(true);
   const [contextError, setContextError] = useState("");
   const variantSelection = useVariantSelection();
   const variantQueryRef = useRef("");
@@ -69,7 +69,6 @@ export function OperationalRead({ surface }: { readonly surface: Surface }) {
   });
   const contextSeq = useRef(0);
   const loadContext = useCallback(() => {
-    if (surface !== "inventory") return;
     const seq = contextSeq.current + 1;
     contextSeq.current = seq;
     setContextLoading(true); setContextError("");
@@ -133,7 +132,9 @@ export function OperationalRead({ surface }: { readonly surface: Surface }) {
   return <section className={styles.shell} aria-labelledby={`${surface}-title`}>
     <header className={styles.header}><div><h1 id={`${surface}-title`}>{titles[surface]}</h1><p>Consulta de solo lectura, limitada por tu sesión y sucursales autorizadas.</p></div></header>
     <form className={styles.filters} onSubmit={(event) => { event.preventDefault(); void load(); }}>
-      <Filter label="Sucursal" value={filters.branchId} onChange={(v) => update("branchId", v)} placeholder="ID opcional" />
+      {context?.operationalMode === "SIMPLE" ? null : (
+        <Filter label="Sucursal" value={filters.branchId} onChange={(v) => update("branchId", v)} placeholder="ID opcional" />
+      )}
       {surface === "inventory" && <>
         {contextError ? (
           <div className={styles.field}><span id="inventory-location-fallback">Ubicación</span><div className={styles.chipRow} aria-labelledby="inventory-location-fallback"><span>{locationFilterDisplay(filters.locationId, context?.locations ?? []) ?? "Todas las ubicaciones"}</span>{filters.locationId && <button className={styles.button} type="button" onClick={() => update("locationId", "")}>Quitar</button>}<button className={styles.button} type="button" onClick={loadContext}>Reintentar</button></div></div>
