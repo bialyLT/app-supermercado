@@ -81,7 +81,7 @@ export function OperationalRead({ surface }: { readonly surface: Surface }) {
       setContextError(toContextErrorMessage(reason));
       setContextLoading(false);
     });
-  }, [surface]);
+  }, []);
 
   const load = useCallback(async () => {
     setFilterError("");

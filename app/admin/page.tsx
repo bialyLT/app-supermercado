@@ -2,6 +2,7 @@ import React from "react";
 import Link from "next/link";
 import styles from "./admin-dashboard.module.css";
 import { ADMIN_NAV_ITEMS } from "../../components/admin-navigation";
+import { CreateBranchButton } from "../../components/branches/create-branch-button";
 
 export default function AdminPage() {
   const adminModules = ADMIN_NAV_ITEMS.filter((item) => item.href !== "/admin");
@@ -24,6 +25,8 @@ export default function AdminPage() {
           <kbd>Alt+P</kbd>.
         </div>
       </section>
+
+      <CreateBranchButton />
 
       <div className={styles.grid}>
         {adminModules.map((mod) => (
