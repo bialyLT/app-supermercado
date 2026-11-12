@@ -10,6 +10,9 @@ vi.mock("../src/server/repositories/tenant-context", () => ({
 }));
 
 const mockTx = {
+  tenant: {
+    findUniqueOrThrow: vi.fn(async () => ({ operationalMode: "MULTI" })),
+  },
   branch: {
     findMany: vi.fn(),
   },
