@@ -16,7 +16,7 @@
 .chipRow { display: flex; align-items: center; gap: .5rem; min-height: 44px; flex-wrap: wrap; }
 .actions { display: flex; align-items: end; gap: .5rem; flex: 0 0 auto; flex-wrap: wrap; margin-left: auto; }
 .actions .button { white-space: nowrap; }
-.button { min-height: 2.5rem; border: 1px solid #1d4ed8; border-radius: .4rem; padding: .45rem .85rem; background: #1d4ed8; color: white; font-weight: 650; cursor: pointer; }
+.button { min-height: 2.5rem; border: 1px solid var(--color-primary-hover, #0369a1); border-radius: .4rem; padding: .45rem .85rem; background: var(--color-primary-hover, #0369a1); color: white; font-weight: 650; cursor: pointer; }
 .button:focus-visible, .field input:focus-visible, .link:focus-visible { outline: 3px solid #f59e0b; outline-offset: 2px; }
 .chipRow .button { min-height: 44px; }
 .status { padding: .8rem 1rem; border-radius: .5rem; background: #fff7ed; color: #9a3412; }
@@ -27,7 +27,7 @@
 .table th, .table td { text-align: left; padding: .75rem; border-bottom: 1px solid #e5e7eb; vertical-align: top; }
 .table th { background: #f8fafc; font-size: .85rem; }
 .table tr:last-child td { border-bottom: 0; }
-.link { color: #1d4ed8; font-weight: 650; }
+.link { color: var(--color-primary-hover, #0369a1); font-weight: 650; }
 .positive { color: #166534; font-weight: 650; }
 .negative { color: #b91c1c; font-weight: 650; }
 .detail { display: grid; gap: 1rem; }

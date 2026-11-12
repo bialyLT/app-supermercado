@@ -60,7 +60,7 @@
 
 .input:focus-visible,
 .button:focus-visible {
-  outline: 3px solid var(--color-focus, #2563eb);
+  outline: 3px solid var(--color-focus, #0369a1);
   outline-offset: 2px;
 }
 
@@ -85,9 +85,9 @@
 
 .button {
   padding: 0.65rem 1rem;
-  border: 1px solid var(--color-primary, #2563eb);
+  border: 1px solid var(--color-primary-hover, #0369a1);
   border-radius: 0.5rem;
-  background: var(--color-primary, #2563eb);
+  background: var(--color-primary-hover, #0369a1);
   color: #fff;
   cursor: pointer;
 }
