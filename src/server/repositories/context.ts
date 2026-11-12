@@ -1,4 +1,5 @@
 import type { Actor } from "../../domain/actor";
+import type { OperationalMode } from "../../domain/operational-mode";
 import { prisma } from "./client";
 import { withTenant } from "./tenant-context";
 
@@ -20,6 +21,7 @@ export type OperationalBranch = {
 
 export type OperationalContext = {
   tenantId: string;
+  operationalMode: OperationalMode;
   branches: OperationalBranch[];
   locations: OperationalLocation[];
 };
@@ -63,6 +65,12 @@ export async function getOperationalContext(actor: Actor): Promise<OperationalCo
   verifyContextPermission(actor);
 
   return withTenant(prisma, actor, async (tx) => {
+    const tenant = await tx.tenant.findUniqueOrThrow({
+      where: { id: actor.tenantId },
+      select: { operationalMode: true },
+    });
+    const operationalMode = tenant.operationalMode as OperationalMode;
+
     // ADMIN with no explicit branch assignments has tenant-wide branch access.
     // Otherwise, actor is restricted to assigned branches.
     const branchScope =
@@ -87,6 +95,7 @@ export async function getOperationalContext(actor: Actor): Promise<OperationalCo
     if (accessibleBranchIds.length === 0) {
       return {
         tenantId: actor.tenantId,
+        operationalMode,
         branches: [],
         locations: [],
       };
@@ -137,6 +146,7 @@ export async function getOperationalContext(actor: Actor): Promise<OperationalCo
 
     return {
       tenantId: actor.tenantId,
+      operationalMode,
       branches: branchesWithLocations,
       locations: mappedLocations,
     };

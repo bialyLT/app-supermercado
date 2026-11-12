@@ -28,6 +28,7 @@ model Tenant {
   id        String        @id @default(uuid()) @db.Uuid
   name      String
   slug      String        @unique
+  operationalMode OperationalMode @default(MULTI)
   stores    Store[]
   users     User[]
   roles     Role[]
@@ -75,6 +76,11 @@ enum ProductKind {
   WEIGHT
   VOLUME
   LENGTH
+}
+
+enum OperationalMode {
+  SIMPLE
+  MULTI
 }
 
 enum SyncConflictKind {
