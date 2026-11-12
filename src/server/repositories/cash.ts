@@ -2,6 +2,7 @@ import Decimal from "decimal.js";
 import type { Actor } from "../../domain/actor";
 import { assertMoneyPrecision, currencyPrecision, FinancialDecimal, money, type PolicyInput } from "../../domain/cash";
 import { InventoryError } from "../../domain/inventory";
+import { assertSimpleTopology } from "../../domain/operational-mode";
 import { audit, command, inventoryTransaction, type Clock } from "./inventory";
 import type { TransactionClient as Tx } from "./tenant-context";
 
@@ -102,6 +103,33 @@ export async function posSessionLocation(actor: Actor, clock: Clock) {
   // Cashier/supervisor POS location comes from the immutable open-session
   // snapshot; no stock write/receive/transfer permission is required or granted.
   return inventoryTransaction(actor, "inventory.sell", clock, async (tx, verified) => {
+    const tenant = await tx.tenant.findUniqueOrThrow({
+      where: { id: verified.tenantId },
+      select: { operationalMode: true },
+    });
+
+    // A kiosco has exactly one branch with one register: the operator must not
+    // be asked to pick either. The topology guard fails loudly when that
+    // assumption stops holding, instead of silently guessing.
+    if (tenant.operationalMode === "SIMPLE") {
+      const [branches, registers] = await Promise.all([
+        tx.branch.count({ where: { tenantId: verified.tenantId } }),
+        tx.cashRegister.count({ where: { tenantId: verified.tenantId } }),
+      ]);
+      assertSimpleTopology({ branches, registers });
+      const register = await tx.cashRegister.findFirstOrThrow({ where: { tenantId: verified.tenantId } });
+      if (!register.locationId) throw new InventoryError("REGISTER_LOCATION_REQUIRED");
+      const open = await tx.cashRegisterSession.findFirst({
+        where: { tenantId: verified.tenantId, registerId: register.id, closedAt: null },
+      });
+      return {
+        locationId: register.locationId,
+        registerId: register.id,
+        registerSessionId: open?.id ?? null,
+        sessionOpen: Boolean(open),
+      };
+    }
+
     const session = await tx.cashRegisterSession.findFirst({ where: { tenantId: verified.tenantId, userId: verified.userId, closedAt: null } });
     if (!session?.locationId) throw new InventoryError("REGISTER_LOCATION_REQUIRED");
     if (!verified.branchIds.includes(session.branchId)) throw new InventoryError("NOT_FOUND");
