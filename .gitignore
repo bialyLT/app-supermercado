@@ -7,3 +7,6 @@ test-results
 .env.local
 *.log
 *.tsbuildinfo
+
+# Local-only demo seed. Never commit business/demo data.
+/scripts/local/
