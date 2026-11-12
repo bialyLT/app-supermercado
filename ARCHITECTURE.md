@@ -96,6 +96,9 @@ en la misma transacción, protegido por triggers. Legacy sin perfil queda sin
 snapshot. No se agrega emisión fiscal, IVA ni lógica tributaria en caja/pagos.
 Contrato y límites: `docs/fiscal-profiles.md`.
 
+D-030 deja este modelo **inerte**: se conserva el código y el esquema, no se
+amplía, no es requisito para vender y no debe agregarse lógica fiscal nueva.
+
 ## Concurrencia (decidido, D-005)
 
 Venta y movimientos de stock corren en una transacción. El descuento usa
@@ -150,14 +153,12 @@ opacos duran 90 s y se consumen junto con la venta, ligados al solicitante,
 sesión de caja y comando completo. Las alertas de antigüedad se derivan al
 consultar casos pendientes, con scope de sucursal y umbral configurable.
 
-## Observabilidad mínima desde ahora
+## Observabilidad mínima
 
 Logs estructurados con `correlation_id`, `tenant_id` y `actor_id`; endpoint de
-health; errores tipados. Métricas y trazas completas llegan en Épica 6.
+health; errores tipados.
 
 ## Despliegue
 
-Despliegue containerizado reproducible con PostgreSQL, migraciones
-controladas, backups y rollback. El proveedor se decide antes de la Épica 6
-(D-010) según presupuesto, jurisdicción fiscal, disponibilidad y necesidad de
-hardware local.
+Fuera de alcance. El sistema se ejecuta en desarrollo local. No se planifica
+publicación, hosting, staging, backups operativos ni rollback (D-030).

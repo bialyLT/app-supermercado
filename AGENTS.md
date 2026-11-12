@@ -13,14 +13,13 @@ sesión**, antes de planificar o tocar código.
 6. El brief de la épica activa (y su addendum, si existe)
 
 Solo bajo demanda y **nunca como fuente de verdad**:
-`MASTER_PLAN.md` (histórico), `REUSABLE_RETAIL_SYSTEM_CONTEXT.md` (referencia
-de otro proyecto: Supabase/RLS/delivery no aplican salvo lo que `DECISIONS.md`
-adopte), `iniciar-proyecto.md` (origen de requisitos).
+`REUSABLE_RETAIL_SYSTEM_CONTEXT.md` (referencia de otro proyecto:
+Supabase/RLS/delivery no aplican salvo lo que `DECISIONS.md` adopte).
 
 ## 2. Precedencia ante contradicciones
 
 `DOMAIN_RULES.md` > `DECISIONS.md` (aprobadas) > `ARCHITECTURE.md` >
-brief/addendum de la épica > `ROADMAP.md` > `MASTER_PLAN.md` > reusable.
+brief/addendum de la épica > `ROADMAP.md` > reusable.
 
 Un brief **no puede debilitar** `DOMAIN_RULES.md`. Si dos documentos del mismo
 nivel se contradicen, no elijas en silencio: detené el trabajo afectado,
@@ -31,6 +30,11 @@ reportá `BLOQUEADO:` con la contradicción citada y seguí con lo no afectado.
 Es un POS/ERP para kiosco con arquitectura que escala a supermercado.
 **Fuera de alcance hasta decisión explícita en `DECISIONS.md`:** e-commerce,
 delivery, picking/packing, fidelización, marketplaces, microservicios.
+
+**Descartado de forma permanente (D-030):** despliegue, producción, staging,
+backups operativos, CI/CD de release y emisión fiscal. No se planifican, no se
+documentan como paso pendiente y no deben reaparecer en ningún brief ni
+roadmap.
 
 ## 4. Reglas de trabajo
 

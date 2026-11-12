@@ -2,6 +2,10 @@
 
 Estado: ENTREGADO: compras, transferencias, reportes JSON/CSV, preparación Neon/Vercel y backups operativos verificados; producción no fue desplegada.
 
+> Nota (D-030): el alcance de despliegue, staging y backups de este informe queda
+> descartado de forma permanente. Se conserva como evidencia histórica, no como
+> paso pendiente.
+
 ## Entregado
 
 - Compras directas con impuestos, totales Decimal, idempotencia, auditoría y alcance tenant/sucursal.
@@ -27,7 +31,7 @@ Estado: ENTREGADO: compras, transferencias, reportes JSON/CSV, preparación Neon
 - `app/admin/promotions/promotion-manager.tsx`
 - `scripts/backup-postgres.sh`
 - `scripts/restore-postgres-backup.sh`
-- `docs/deployment.md`
+- `docs/deployment.md` (eliminado por D-030)
 - `docs/reports.md`
 - `tests/purchases-domain.test.ts`
 - `tests/transfers-domain.test.ts`

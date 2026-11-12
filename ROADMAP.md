@@ -1,6 +1,6 @@
 # Roadmap operativo
 
-**Estado:** Épicas 0, 1, 2, 3, 4, 5, 6 y 7 cerradas técnicamente en los cortes aprobados. Épica 5 queda cerrada con EAN-13 con precio, perfiles fiscales argentinos y promociones N×M; impresión y hardware permanecen fuera de alcance. Épica 7 y Frontend Audit Waves 0, 1, 2 y 3 están entregadas según sus informes de cierre. El próximo trabajo requiere resolver decisiones de producto y publicación pendientes.
+**Estado:** Épicas 0, 1, 2, 3, 4, 5, 6 y 7 cerradas técnicamente en los cortes aprobados. Épica 5 queda cerrada con EAN-13 con precio y promociones N×M; impresión y hardware permanecen fuera de alcance. Épica 7 y Frontend Audit Waves 0, 1, 2 y 3 están entregadas según sus informes de cierre. No hay publicación ni producción planificadas (D-030): el sistema se opera en local y esta documentación no las lista como paso pendiente.
 **Reglas vinculantes:** `AGENTS.md`, `DOMAIN_RULES.md`, `DECISIONS.md`,
 `GATES.md`.
 
@@ -81,9 +81,8 @@ entrega de movimientos de caja, pagos, arqueo ni contratos fiscales de Épica 3.
   numeración por sucursal y tipo con cierre documental (160f72d), más fix E2E
   del mapeo 401/400 (sin commitear). Gates: 174/174 tests, typecheck/lint 0,
   build/E2E/audit verdes, ledger 0 divergencias, RLS 34/34. Informe:
-  `.github/web-dev-loop/reports/epica-3-closure.md`. La rama actual ya fue
-  publicada en `origin/feat/pos-offline`; abrir PR queda pendiente de
-  autorización explícita.
+  `.github/web-dev-loop/reports/epica-3-closure.md`. La rama está integrada en
+  `main`.
 
 ## Épica 4 — POS keyboard-first y offline
 
@@ -112,7 +111,8 @@ entrega de movimientos de caja, pagos, arqueo ni contratos fiscales de Épica 3.
 - **EAN-13 D-018/D-019:** parser y configuración tenant-scoped, resolución
   server-side, validación de precio vigente, snapshot inmutable y flujo POS.
 - **Fiscalidad D-006/D-009:** perfiles MONOTRIBUTO/RESPONSABLE_INSCRIPTO por
-  razón social, snapshot histórico en venta y aislamiento/auditoría.
+  razón social, snapshot histórico en venta y aislamiento/auditoría. Queda
+  **inerte por D-030**: sin emisión fiscal y sin ampliación.
 - **Promociones D-020:** N×M por categoría, motor determinista, checkout,
   API administrativa y pantalla de gestión.
 - **Verificación consolidada:** EAN reporta 193/193 tests, cobertura de líneas
@@ -121,21 +121,17 @@ entrega de movimientos de caja, pagos, arqueo ni contratos fiscales de Épica 3.
   exit 0. `typecheck`, `lint`, Prisma validate y `git diff --check` terminan en
   0 en el corte promocional.
 
-## Épica 6 — Escala, reportes y despliegue
+## Épica 6 — Escala y reportes (entregada)
 
-**Prerequisito:** D-010 y D-021 aprobadas. PostgreSQL se prepara sobre Neon Free
-São Paulo y la aplicación sobre Vercel; los backups son operados por el negocio
-con `pg_dump`, copias externas cifradas y restauración cronometrada. No se
-publicará producción durante esta épica.
-
-- **Objetivo:** operar múltiples sucursales y publicar con seguridad.
-- **Entregables:** compras, transferencias entre sucursales, reportes,
-  observabilidad (logs estructurados con `correlation_id`, health checks,
-  métricas), backups, CI/CD, staging, producción, rollback y runbook.
-- **Prerrequisito:** D-010.
-- **Criterios:** release reproducible; migración reversible cuando sea
-  posible; **restauración de backup probada y cronometrada**; prueba de carga
-  con números; revisión OWASP final.
+- **Estado:** entregada. Compras directas, transferencias entre sucursales,
+  reportes JSON/CSV y observabilidad mínima. Informe:
+  `.github/web-dev-loop/reports/epica-6-scale-reports-deployment.md`.
+- **Objetivo:** operar múltiples sucursales con reportes y trazabilidad.
+- **Criterios cumplidos:** totales Decimal server-side, ledger reconciliable,
+  aislamiento por tenant en cada tabla nueva.
+- **Fuera de alcance permanente:** despliegue, producción, staging, backups
+  operativos, CI/CD de release y rollback (D-030). No se documentan como paso
+  pendiente en ningún archivo.
 
 ## Épica 7 — Interfaz operativa y administración (cerrada técnicamente)
 
@@ -161,17 +157,14 @@ los hallazgos marcados ⚠ y se resuelven las decisiones de producto/security.
 | 3 · Consistencia | Formatos es-AR, tokens, contraste, estilos inline y copy | Contraste AA; estilos/tokens centralizados; copy consistente |
 
 La especificación operativa y las decisiones requeridas están en
-`odd/tasks/frontend-audit-remediation.md`. Wave 0 y Wave 1 tienen briefs,
-informes de cierre y evidencia numérica. Wave 2 queda como siguiente alcance
-planificado, sin autorización de implementación todavía.
+`odd/tasks/frontend-audit-remediation.md`. Waves 0, 1, 2 y 3 tienen brief,
+informe de cierre y evidencia numérica. No queda ninguna ola autorizada ni
+pendiente.
 
-**Estado actual (2026-11-08):** Ola 0 y Ola 1 entregadas. En la misma fecha se
-integraron a `main` el POS autenticado con ubicación de caja (PR #18) y el
-sistema visual compartido de admin/POS rescatado del workspace WSL (PR #19),
-con su documentación (PR #20). El remoto quedó sin ramas pendientes. El
-siguiente corte planificado es Ola 2 · Estados y errores: `apiFetch`,
-expiración de sesión, estados de carga/error/reintento y visibilidad de la cola
-offline. Requiere brief aprobado y OK explícito antes de escribir código.
+**Estado actual:** Ola 0, Ola 1, Ola 2 y Ola 3 entregadas. El POS autenticado con
+ubicación de caja (PR #18), el sistema visual compartido de admin/POS (PR #19) y
+su documentación (PR #20) están integrados en `main`. El remoto no tiene ramas
+pendientes.
 
 ## Plantilla de cierre de cualquier épica
 

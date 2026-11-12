@@ -1,5 +1,10 @@
 # Perfil tributario argentino — Épica 3
 
+> Estado: implementado pero **inerte** (D-030). No hay emisión fiscal ni
+> requisito operativo: la venta funciona como ticket interno sin configurar
+> nada. Este documento describe el código existente; no es una tarea pendiente
+> ni una invitación a ampliar la fiscalidad.
+
 ## Quick path
 
 1. Un administrador autenticado configura el perfil del **Store** (razón social):

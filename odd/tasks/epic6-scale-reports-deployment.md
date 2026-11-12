@@ -1,6 +1,6 @@
 # Epic 6 — Scale, reports and deployment
 Branch: `feat/epic6-scale-reports-deployment` (create from merged `origin/main` before source implementation).
-Status: delivered; implementation and closure evidence are recorded in `.github/web-dev-loop/reports/epica-6-scale-reports-deployment.md`. Production deployment remains intentionally pending.
+Status: delivered; implementation and closure evidence are recorded in `.github/web-dev-loop/reports/epica-6-scale-reports-deployment.md`. **Deployment is out of scope permanently (D-030):** production, staging, backups and rollback are not pending work and must not be reintroduced.
 
 ## Specs
 
@@ -60,7 +60,7 @@ S27. «Neon» — free PostgreSQL in São Paulo; Vercel remains the app host; ba
 
 ## Tasks
 
-T1 | S1-S7 | planning | done | Approve D-010/D-021 and define the release/backup contract; decisions recorded in `DECISIONS.md` and `docs/deployment.md`.
+T1 | S1-S7 | planning | done | Approve D-010/D-021 and define the release/backup contract; decisions recorded in `DECISIONS.md`. Both are superseded by D-030.
 T2 | S8,S15,S23 | implementation | done | Implement direct purchase receipts with server-side pricing, tax totals, stock ledger and audit; commit: 6fc3be4.
 T3 | S8,S16,S24 | implementation | done | Implement automatic inter-branch transfers with idempotency, ledger movements and audit; commit: 6fc3be4.
 T4 | S9,S17,S21,S25 | implementation | done | Implement management reports and authorized CSV export; commit: 02e2494.
