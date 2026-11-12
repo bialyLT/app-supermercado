@@ -750,3 +750,14 @@
     padding: 16px;
   }
 }
+
+.signOutError {
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  border-radius: var(--radius-md, 6px);
+  background: var(--color-danger-hover-bg, #fee2e2);
+  color: var(--color-danger, #dc2626);
+  font-size: 0.85rem;
+  line-height: 1.3;
+}
+

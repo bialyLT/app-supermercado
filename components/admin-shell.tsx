@@ -16,7 +16,7 @@ import {
 import { Modal } from "./modal";
 import { NavIcon } from "./ui/nav-icons";
 import styles from "./admin-shell.module.css";
-import { apiFetch } from "../src/client/api-fetch";
+import { signOut } from "../src/client/sign-out";
 
 export type AdminShellProps = {
   readonly children?: React.ReactNode;
@@ -93,14 +93,17 @@ export function AdminShell({
     }
   }, [isSidebarOpen, isDrawerMode]);
   const [sessionExpired, setSessionExpired] = useState(false);
+  const [signOutError, setSignOutError] = useState("");
 
   const handleSignOut = useCallback(async () => {
-    try {
-      await apiFetch("/api/auth/sign-out", { method: "POST" });
-    } finally {
-      router.push("/");
-      router.refresh();
+    setSignOutError("");
+    const result = await signOut();
+    if (!result.ok) {
+      setSignOutError(result.message);
+      return;
     }
+    router.push("/");
+    router.refresh();
   }, [router]);
 
   // Sin identidad (POS público renderizado) se muestra solo el destino POS,
@@ -313,6 +316,11 @@ export function AdminShell({
                 "Cerrar sesión"
               )}
             </button>
+            {signOutError ? (
+              <p role="alert" className={styles.signOutError}>
+                {signOutError}
+              </p>
+            ) : null}
           </div>
         )}
       </aside>
